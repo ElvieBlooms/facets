@@ -1,0 +1,13 @@
+{
+  "set": "hgss",
+  "label": "HGSS",
+  "credit": ["Neo-Spriteman's Resource Pack (list the original artists here)"],
+  "frlg": {
+    "NURSE": { "file": "000", "extra": "000_bow" },
+    "YOUNGSTER": "001"
+  },
+  "rse": {
+    "NURSE": "000",
+    "YOUNGSTER": "001"
+  }
+}
