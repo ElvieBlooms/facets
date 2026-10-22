@@ -1,0 +1,22 @@
+{
+  "id": "facets",
+  "name": "Facets",
+  "version": "0.1.0",
+  "api": 2,
+  "entry": "main.lua",
+  "profile": "content",
+  "game_version": ">=0.3.91",
+  "category": "GRAPHICS",
+  "priority": 100,
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
+  "incompatible": [],
+  "experimental": true,
+  "permissions": [
+    "engine_internals"
+  ],
+  "description": "NPC overworld sprite replacement for FireRed, LeafGreen, Ruby, Sapphire and Emerald. Companion to Emerald Lens: it leaves the player and the rival alone.",
+  "github": "ElvieBlooms/facets",
+  "games": ["gen3"]
+}
