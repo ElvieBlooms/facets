@@ -12,7 +12,7 @@
   "optional_dependencies": [],
   "conflicts": [],
   "incompatible": [],
-  "experimental": true,
+  "experimental": false,
   "permissions": [
     "engine_internals"
   ],
