@@ -15,3 +15,8 @@ assets/npcs/*
 # GBC is a name map only: its sprites come from the player's own install. -Elvie
 !assets/npcs/gbc/
 !assets/npcs/gbc_2x/
+# Pokémon sets: GBC reads the player's own install; DS is the free-with-
+# credit DS-style 64x64 resource. Both ship. -Elvie
+assets/mons/*
+!assets/mons/gbc/
+!assets/mons/ds/
