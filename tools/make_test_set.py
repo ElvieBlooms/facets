@@ -118,7 +118,7 @@ def main():
         for name, (w, h, n) in sheets.items():
             sheet(w, h, n).save(os.path.join(d, name + ".png"))
     with open(os.path.join(root, "meta.json"), "w") as f:
-        json.dump({"label": "TEST FRAMES", "credit": ["Test frames by Elvie"]}, f, indent=2)
+        json.dump({"label": "TEST FRAMES", "credit": ["Test frames by Elvie"], "test": True}, f, indent=2)
         f.write("\n")
     print("wrote", root)
 

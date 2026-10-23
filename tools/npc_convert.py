@@ -15,8 +15,9 @@ recipe  Convert a whole pack from a recipe (see recipes/example.json):
           python3 npc_convert.py recipe hgss.json <pack folder> <mod folder>
 
 Upscaled packs (each pixel drawn as 2x2) are shrunk back first, only when
-that loses nothing. The feet are moved to the second-to-last row, where
-the game's own NPCs stand. Needs Pillow (python3 -m pip install --user pillow).
+that loses nothing; a 2x sheet drawn a pixel off the even grid is found
+and shrunk too, and one with a few touched-up pixels needs --lossy. The
+feet are moved to the second-to-last row, where the game's own NPCs stand. Needs Pillow (python3 -m pip install --user pillow).
 """
 import argparse, json, os, sys
 from PIL import Image
@@ -65,12 +66,53 @@ def lossless_scale(im):
     return 1
 
 
+def shrink_2x(im, lossy=False):
+    """For sheets that are 2x but not on the even grid: drawn a pixel off
+    (some packs are), or with a few touched-up pixels. Tries the four
+    grid offsets and keeps the one with the fewest mixed blocks. Mixed
+    blocks take their most common colour, only when lossy is on.
+    Returns (image, offset, mixed) or None. -Elvie"""
+    w, h = im.size
+    if w % 8 or h % 8:
+        return None
+    best = None
+    for ox in (0, 1):
+        for oy in (0, 1):
+            # shift onto the grid; the pixel row/column that falls off the
+            # edge is checked to be clear first
+            shifted = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+            shifted.alpha_composite(im.crop((ox, oy, w, h)), (0, 0))
+            lost = im.crop((0, 0, ox, h)).getbbox() if ox else None
+            lost = lost or (im.crop((0, 0, w, oy)).getbbox() if oy else None)
+            if lost:
+                continue
+            px = shifted.load()
+            out = Image.new("RGBA", (w // 2, h // 2), (0, 0, 0, 0))
+            opx = out.load()
+            mixed = 0
+            for y in range(0, h, 2):
+                for x in range(0, w, 2):
+                    block = [px[x, y], px[x + 1, y], px[x, y + 1], px[x + 1, y + 1]]
+                    block = [(0, 0, 0, 0) if b[3] == 0 else b for b in block]
+                    if block.count(block[0]) != 4:
+                        mixed += 1
+                        block.sort(key=block.count, reverse=True)
+                    opx[x // 2, y // 2] = block[0]
+            if best is None or mixed < best[2]:
+                best = (out, (ox, oy), mixed)
+    if best is None:
+        return None
+    if best[2] and not lossy:
+        return ("mixed", best[1], best[2])
+    return best
+
+
 def lowest_row(im):
     bbox = im.getbbox()
     return None if bbox is None else bbox[3] - 1
 
 
-def convert(path, extra=None, order=None):
+def convert(path, extra=None, order=None, lossy=False):
     """order: (row, column) for each frame, instead of ORDER, for a sheet
     laid out its own way; a 10th entry is frame 9 taken from the sheet
     (a bow drawn into the charset). -Elvie"""
@@ -86,6 +128,18 @@ def convert(path, extra=None, order=None):
     k = lossless_scale(im)
     if k > 1:
         im = im.resize((w // k, h // k), Image.NEAREST)
+    elif w // 4 > FRAME or h // 4 > FRAME:
+        shrunk = shrink_2x(im, lossy)
+        if shrunk and shrunk[0] == "mixed":
+            fail(f"{path}: looks 2x (grid offset {shrunk[1]}) but {shrunk[2]} blocks of 2x2 pixels "
+                 "aren't one colour; --lossy (or \"lossy\": true in a recipe) shrinks it anyway, "
+                 "each block taking its most common colour")
+        if shrunk:
+            im, offset, mixed = shrunk
+            k = 2
+            if offset != (0, 0) or mixed:
+                print(f"note: {path}: shrunk from grid offset {offset}"
+                      + (f", {mixed} mixed blocks settled by their most common colour" if mixed else ""))
     cw, ch = im.size[0] // 4, im.size[1] // 4
     if cw > FRAME or ch > FRAME:
         fail(f"{path}: frames are {cw}x{ch} after shrinking by {k}; Facets takes up to {FRAME}x{FRAME}")
@@ -159,6 +213,7 @@ def main():
     one.add_argument("--family", required=True, choices=["frlg", "rse"])
     one.add_argument("--name", required=True, help="the game's sprite name, e.g. NURSE")
     one.add_argument("--extra", help="frame 9 (bow or hand raise)")
+    one.add_argument("--lossy", action="store_true", help="shrink a near-2x sheet even if some 2x2 blocks are mixed")
     one.add_argument("--cells", help="row,column per frame for a sheet laid out its own way, e.g. \"0,2 3,0 1,0 0,1 0,3 3,1 3,2 1,1 1,3 0,0\"")
     rec = sub.add_parser("recipe")
     rec.add_argument("recipe")
@@ -168,7 +223,7 @@ def main():
 
     if a.cmd == "one":
         cells = [[int(v) for v in rc.split(",")] for rc in a.cells.split()] if a.cells else None
-        out, k = convert(a.charset, a.extra, cells)
+        out, k = convert(a.charset, a.extra, cells, a.lossy)
         dest = write(out, a.mod_dir, a.set_key, a.family, a.name)
         ensure_meta(a.mod_dir, a.set_key)
         print(f"{dest} ({out.size[1] // FRAME} frames, shrunk by {k})")
@@ -181,11 +236,11 @@ def main():
     for family in ("frlg", "rse"):
         for name, ref in (recipe.get(family) or {}).items():
             if isinstance(ref, dict):
-                src, extra, cells = ref.get("file"), ref.get("extra"), ref.get("cells")
+                src, extra, cells, lossy = ref.get("file"), ref.get("extra"), ref.get("cells"), ref.get("lossy")
             else:
-                src, extra, cells = ref, None, None
+                src, extra, cells, lossy = ref, None, None, False
             out, _ = convert(find_in_pack(a.pack, str(src)),
-                             extra and find_in_pack(a.pack, str(extra)), cells)
+                             extra and find_in_pack(a.pack, str(extra)), cells, bool(lossy))
             write(out, a.mod_dir, set_key, family, name)
             count += 1
     ensure_meta(a.mod_dir, set_key, recipe.get("label"), recipe.get("credit"))

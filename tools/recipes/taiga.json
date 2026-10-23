@@ -1,0 +1,93 @@
+{
+  "set": "taiga",
+  "label": "TAIGA",
+  "credit": [
+    "Overworld sprites by Taiga (Taiga Collection), free to use with credit",
+    "Using assets, colours or inspiration from DiegoWT, Neo-Spriteman, Vanilla Sunshine, AtomicReactor, PurpleZaffre, izzyvivious and Tebited"
+  ],
+  "about": "Pack: Taiga Collection; point the converter at its 'Collection' folder. ORAS-style trainer classes, plus a few SWSH ones, to fill gaps in HGSS and give Hoenn its own style. Which sprite each trainer class uses comes from pret's pokeemerald and pokefirered maps (several classes share one townsperson sprite). PICNICKER is left out: the pack's female Camper is nearly identical to the male one. Facets ships the converted sheets it uses (assets/npcs/taiga/), credited; this recipe rebuilds them.",
+  "frlg": {
+    "YOUNGSTER": "ORAS/trYoungster",
+    "BUG_CATCHER": "ORAS/trBugCatcher",
+    "CAMPER": "ORAS/trCamper_M",
+    "GENTLEMAN": "ORAS/trGentleman",
+    "SAILOR": "ORAS/trSailor",
+    "TUBER_F": "ORAS/trTuber_F",
+    "FISHER": "ORAS/trFisherman",
+    "POKE_MANIAC": "ORAS/trPok#U00e9Maniac",
+    "COOLTRAINER_M": "ORAS/trAceTrainer_M",
+    "COOLTRAINER_F": "ORAS/AceTrainer_F",
+    "TUBER_M_LAND": "ORAS/trTuber_M",
+    "CRUSH_GIRL": "ORAS/trBattleGirl",
+    "CHEF": "SWSH/trCafemaster",
+    "MG_DELIVERYMAN": "SWSH/trPostman"
+  },
+  "rse": {
+    "YOUNGSTER": "ORAS/trYoungster",
+    "BUG_CATCHER": "ORAS/trBugCatcher",
+    "CAMPER": "ORAS/trCamper_M",
+    "GENTLEMAN": "ORAS/trGentleman",
+    "SAILOR": "ORAS/trSailor",
+    "TUBER_F": "ORAS/trTuber_F",
+    "FISHERMAN": "ORAS/trFisherman",
+    "MANIAC": "ORAS/trPok#U00e9Maniac",
+    "TUBER_M": "ORAS/trTuber_M",
+    "NINJA_BOY": "ORAS/trNinjaBoy",
+    "RICH_BOY": {
+      "file": "ORAS/trRichBoy",
+      "lossy": true
+    },
+    "POKEFAN_F": "ORAS/trPok#U00e9Fan_F",
+    "POKEFAN_M": "ORAS/trPok#U00e9Fan_M",
+    "MAN_3": "ORAS/trAceTrainer_M",
+    "WOMAN_5": "ORAS/AceTrainer_F",
+    "GIRL_3": "ORAS/trBattleGirl",
+    "WOMAN_2": {
+      "file": "ORAS/trAromalady",
+      "lossy": true
+    },
+    "MAN_5": "ORAS/trGuitarist",
+    "MYSTERY_GIFT_MAN": "SWSH/trPostman",
+    "COOK": "SWSH/trCafemaster"
+  },
+  "confidence": {
+    "frlg": {
+      "YOUNGSTER": "sure",
+      "BUG_CATCHER": "sure",
+      "CAMPER": "sure",
+      "GENTLEMAN": "sure",
+      "SAILOR": "sure",
+      "TUBER_F": "sure",
+      "FISHER": "sure",
+      "POKE_MANIAC": "sure (also FR/LG's Burglars)",
+      "COOLTRAINER_M": "sure",
+      "COOLTRAINER_F": "sure",
+      "TUBER_M_LAND": "sure",
+      "CRUSH_GIRL": "likely (FR/LG's Battle Girl)",
+      "CHEF": "guess",
+      "MG_DELIVERYMAN": "likely"
+    },
+    "rse": {
+      "YOUNGSTER": "sure",
+      "BUG_CATCHER": "sure",
+      "CAMPER": "sure",
+      "GENTLEMAN": "sure",
+      "SAILOR": "sure",
+      "TUBER_F": "sure",
+      "FISHERMAN": "sure",
+      "MANIAC": "sure (also Bug Maniacs and Collectors)",
+      "TUBER_M": "sure",
+      "NINJA_BOY": "sure",
+      "RICH_BOY": "sure",
+      "POKEFAN_F": "sure",
+      "POKEFAN_M": "sure",
+      "MAN_3": "sure (Cooltrainer M)",
+      "WOMAN_5": "sure (Cooltrainer F)",
+      "GIRL_3": "sure (Battle Girl)",
+      "WOMAN_2": "likely (Aroma Lady; also Ladies, Parasol Ladies, Breeders)",
+      "MAN_5": "likely (Guitarist; also Bird Keepers and Kindlers)",
+      "MYSTERY_GIFT_MAN": "likely",
+      "COOK": "guess"
+    }
+  }
+}

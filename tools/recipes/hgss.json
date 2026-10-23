@@ -4,7 +4,7 @@
   "credit": [
     "HGSS overworld sprites by Nintendo / Game Freak, from Neo-Spriteman's Resource Pack"
   ],
-  "about": "Pack: Neo-Spriteman's Resource Pack, folder 'HGSS OVERWORLDS/Humans'. File numbers are HGSS's own overworld model indexes (MMODEL_* in pret/pokeheartgold include/constants/mmodel.h). 'confidence' is how sure the match is; 'guess' rows are generic townsfolk with no exact HGSS twin.",
+  "about": "Pack: Neo-Spriteman's Resource Pack, folder 'HGSS OVERWORLDS/Humans'. File numbers are HGSS's own overworld model indexes (MMODEL_* in pret/pokeheartgold include/constants/mmodel.h). 'confidence' is how sure the match is; 'guess' rows are generic townsfolk with no exact HGSS twin. R/S/E files use Emerald's names; Ruby and Sapphire find them through Facets' alias table.",
   "frlg": {
     "LITTLE_BOY": "HGSS_113",
     "LITTLE_GIRL": "HGSS_114",
@@ -103,7 +103,98 @@
     "SABRINA": "HGSS_163",
     "BLAINE": "HGSS_168",
     "GIOVANNI": "HGSS_225",
-    "MOM": "HGSS_192"
+    "MOM": "HGSS_192",
+    "ROCKER": "HGSS_185"
+  },
+  "rse": {
+    "NURSE": {
+      "file": "HGSS_133",
+      "cells": [
+        [
+          0,
+          2
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          3,
+          3
+        ]
+      ]
+    },
+    "LINK_RECEPTIONIST": "HGSS_134",
+    "UNION_ROOM_NURSE": "HGSS_135",
+    "MART_EMPLOYEE": "HGSS_132",
+    "LITTLE_BOY": "HGSS_113",
+    "LITTLE_GIRL": "HGSS_114",
+    "YOUNGSTER": "HGSS_115",
+    "BUG_CATCHER": "HGSS_116",
+    "LASS": "HGSS_117",
+    "CAMPER": "HGSS_141",
+    "PICNICKER": "HGSS_142",
+    "HIKER": "HGSS_131",
+    "FISHERMAN": "HGSS_143",
+    "SAILOR": "HGSS_144",
+    "GENTLEMAN": "HGSS_137",
+    "BLACK_BELT": "HGSS_140",
+    "BEAUTY": "HGSS_124",
+    "MANIAC": "HGSS_184",
+    "HEX_MANIAC": "HGSS_033",
+    "SWIMMER_M": "HGSS_138",
+    "SWIMMER_F": "HGSS_139",
+    "GAMEBOY_KID": "HGSS_161",
+    "FAT_MAN": "HGSS_130",
+    "OLD_MAN": "HGSS_128",
+    "OLD_WOMAN": "HGSS_129",
+    "EXPERT_M": "HGSS_018",
+    "EXPERT_F": "HGSS_019",
+    "SCIENTIST_1": "HGSS_136",
+    "SCIENTIST_2": "HGSS_025",
+    "CAMERAMAN": "HGSS_032",
+    "REPORTER_F": "HGSS_031",
+    "CYCLING_TRIATHLETE_F": "HGSS_021",
+    "STEVEN": "HGSS_059",
+    "DEVON_EMPLOYEE": "HGSS_226",
+    "MYSTERY_GIFT_MAN": "HGSS_250",
+    "MAN_1": "HGSS_126",
+    "MAN_2": "HGSS_120",
+    "MAN_3": "HGSS_122",
+    "WOMAN_1": "HGSS_123",
+    "WOMAN_2": "HGSS_127",
+    "WOMAN_4": "HGSS_013",
+    "GIRL_1": "HGSS_006",
+    "GIRL_2": "HGSS_007",
+    "WOMAN_5": "HGSS_125"
   },
   "confidence": {
     "frlg": {
@@ -160,7 +251,54 @@
       "SABRINA": "sure (GSLEADER10)",
       "BLAINE": "sure (GSLEADER15)",
       "GIOVANNI": "sure (SAKAKI)",
-      "MOM": "sure (REDMAMA)"
+      "MOM": "sure (REDMAMA)",
+      "ROCKER": "likely (JUGGRER); FR/LG's Jugglers use the ROCKER sprite"
+    },
+    "rse": {
+      "NURSE": "sure (PCWOMAN1); same 'cells' fix as FR/LG",
+      "LINK_RECEPTIONIST": "guess (PCWOMAN2)",
+      "UNION_ROOM_NURSE": "guess (PCWOMAN3)",
+      "MART_EMPLOYEE": "sure (SHOPM1_2)",
+      "LITTLE_BOY": "sure (GSBABYBOY1)",
+      "LITTLE_GIRL": "sure (GSBABYGIRL1)",
+      "YOUNGSTER": "sure (GSBOY2)",
+      "BUG_CATCHER": "sure (GSBOY3)",
+      "LASS": "likely (GSGIRL1)",
+      "CAMPER": "sure (CAMPBOY_2)",
+      "PICNICKER": "sure (PICNICGIRL_2)",
+      "HIKER": "sure (MOUNT_2)",
+      "FISHERMAN": "sure (FISHING_2)",
+      "SAILOR": "sure (SEAMAN_2)",
+      "GENTLEMAN": "sure (GSGENTLEMAN)",
+      "BLACK_BELT": "sure (GSFIGHTER)",
+      "BEAUTY": "likely (GSWOMAN2)",
+      "MANIAC": "sure (MANIA)",
+      "HEX_MANIAC": "likely (MYSTERY)",
+      "SWIMMER_M": "likely (GSSWIMMERM)",
+      "SWIMMER_F": "likely (GSSWIMMERW)",
+      "GAMEBOY_KID": "sure (GSDSBOY)",
+      "FAT_MAN": "likely (GSBIGMAN)",
+      "OLD_MAN": "likely (GSOLDMAN1)",
+      "OLD_WOMAN": "likely (GSOLDWOMAN1)",
+      "EXPERT_M": "likely (OLDMAN1)",
+      "EXPERT_F": "likely (OLDWOMAN1)",
+      "SCIENTIST_1": "likely (GSASSISTANTM)",
+      "SCIENTIST_2": "guess (ASSISTANTM)",
+      "CAMERAMAN": "sure (CAMERAMAN)",
+      "REPORTER_F": "likely (REPORTER)",
+      "CYCLING_TRIATHLETE_F": "sure (CYCLEW)",
+      "STEVEN": "sure (DAIGO)",
+      "DEVON_EMPLOYEE": "guess (SUIT)",
+      "MYSTERY_GIFT_MAN": "likely (DELIVERY2)",
+      "MAN_1": "guess (GSMIDDLEMAN1)",
+      "MAN_2": "guess (GSMAN1)",
+      "MAN_3": "likely (GSMAN3); Emerald's male Cooltrainers use MAN_3",
+      "WOMAN_1": "guess (GSWOMAN1)",
+      "WOMAN_2": "guess (MIDDLEWOMAN1_2)",
+      "WOMAN_4": "guess (WOMAN2)",
+      "GIRL_1": "guess (GIRL2)",
+      "GIRL_2": "guess (GIRL3)",
+      "WOMAN_5": "likely (GSWOMAN3); Emerald's female Cooltrainers use WOMAN_5"
     }
   }
 }

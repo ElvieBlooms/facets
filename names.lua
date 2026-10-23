@@ -11,8 +11,11 @@ local SKIP = {
     exact = { BLUE = true, RS_BRENDAN = true, RS_MAY = true },
   },
   rse = {
-    prefixes = { "BRENDAN_", "MAY_", "RIVAL_", "LINK_" },
-    exact = { RED = true, LEAF = true },
+    prefixes = { "BRENDAN_", "MAY_", "RIVAL_" },
+    -- By name, not a LINK_ prefix: LINK_RECEPTIONIST is the Pokemon
+    -- Center's upstairs receptionist, an ordinary NPC. -Elvie
+    exact = { RED = true, LEAF = true, LINK_BRENDAN = true, LINK_MAY = true,
+      LINK_RS_BRENDAN = true, LINK_RS_MAY = true },
   },
 }
 
@@ -27,9 +30,10 @@ function names.skipped(family, name)
 end
 
 -- Ruby and Sapphire call some people by other names than Emerald. The
--- first twelve are the same sprite pixel for pixel, the rest the same
--- drawing in another palette (Mauville's man in his different jobs). So a
--- set's rse/ folder needs only the Emerald file. -Elvie
+-- first eleven are the same sprite pixel for pixel, the next six the same
+-- people redrawn, the rest the same drawing in another palette (Mauville's
+-- man in his different jobs). So a set's rse/ folder needs only the
+-- Emerald file. -Elvie
 local ALIASES = {
   rse = {
     BOY_4 = "RICH_BOY",
@@ -43,6 +47,13 @@ local ALIASES = {
     KECLEON_1 = "KECLEON",
     KECLEON_2 = "KECLEON",
     ZIGZAGOON = "ZIGZAGOON_2",
+    -- Same people, redrawn for Emerald (same id or same role). -Elvie
+    OLD_MAN_1 = "EXPERT_M",
+    OLD_WOMAN_1 = "EXPERT_F",
+    OLD_MAN_2 = "OLD_MAN",
+    OLD_WOMAN_2 = "OLD_WOMAN",
+    MAN_7 = "DEVON_EMPLOYEE",
+    WOMAN_7 = "WOMAN_5",
     GIDDY = "BARD",
     HIPSTER = "BARD",
     STORYTELLER = "BARD",

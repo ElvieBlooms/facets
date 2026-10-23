@@ -1,0 +1,54 @@
+{
+  "set": "zaffre",
+  "label": "ZAFFRE",
+  "credit": [
+    "Overworld sprites by PurpleZaffre (Zaffre's Overworlds, from the Ultimate Gen 4 Overworlds Pack)"
+  ],
+  "about": "Pack: Ultimate Gen 4 Overworlds Pack; point the converter at its \"Zaffre's Overworlds\" folder. Only PurpleZaffre's own NPC_Z sheets are used. PurpleZaffre's sprites are free to use with credit; the pack itself isn't to be redistributed. So Facets ships only the converted sheets it uses (assets/npcs/zaffre/), credited, and this recipe rebuilds them. Fills the named characters no other set has: Hoenn's gym leaders, Wallace, Archie and Maxie, and Kanto's Agatha, Lorelei and Mr. Fuji.",
+  "frlg": {
+    "MR_FUJI": "NPC_Z13_Mr_Fuji",
+    "LORELEI": "NPC_Z35_Elite_Four_Lorelei",
+    "AGATHA": "NPC_Z36_Elite_Four_Agatha",
+    "GIOVANNI": "NPC_Z38_Team_Rocket_Boss_Giovanni"
+  },
+  "rse": {
+    "ROXANNE": "NPC_Z16_Gym_Leader_Roxanne",
+    "BRAWLY": "NPC_Z17_Gym_Leader_Brawly",
+    "WATTSON": "NPC_Z18_Gym_Leader_Wattson",
+    "FLANNERY": "NPC_Z19_Gym_Leader_Flannery",
+    "NORMAN": "NPC_Z20_Gym_Leader_Norman",
+    "WINONA": "NPC_Z21_Gym_Leader_Winona",
+    "TATE": "NPC_Z22_Gym_Leader_Tate",
+    "LIZA": "NPC_Z23_Gym_Leader_Liza",
+    "JUAN": "NPC_Z24_Gym_Leader_Juan",
+    "WALLACE": "NPC_Z37_Champion_Wallace",
+    "MAXIE": "NPC_Z39_Team_Magma_Boss_Maxie",
+    "ARCHIE": "NPC_Z40_Team_Aqua_Boss_Archie",
+    "MAN_5": "NPC_Z01_Bird_Keeper_M",
+    "MAN_4": "NPC_Z07_Breeder_M"
+  },
+  "confidence": {
+    "frlg": {
+      "MR_FUJI": "sure",
+      "LORELEI": "sure",
+      "AGATHA": "sure",
+      "GIOVANNI": "sure"
+    },
+    "rse": {
+      "ROXANNE": "sure",
+      "BRAWLY": "sure",
+      "WATTSON": "sure",
+      "FLANNERY": "sure",
+      "NORMAN": "sure",
+      "WINONA": "sure",
+      "TATE": "sure",
+      "LIZA": "sure",
+      "JUAN": "sure",
+      "WALLACE": "sure",
+      "MAXIE": "sure",
+      "ARCHIE": "sure",
+      "MAN_5": "likely (Bird Keeper; also Guitarists and Kindlers)",
+      "MAN_4": "likely (Breeder M; also young couples)"
+    }
+  }
+}
