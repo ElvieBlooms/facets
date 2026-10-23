@@ -10,6 +10,12 @@ one     Convert one charset into a set folder:
         FR/LG trainer's VS Seeker hand raise), the same size as one frame.
         --cells picks the cell for each frame when a sheet isn't laid out
         the usual way (some packs draw a bow into the charset).
+        --lie-down makes a lying-down sprite (FR/LG's OLD_MAN_LYING_DOWN)
+        from a standing charset: the standing frame turned on its side.
+        --sit-down [ROWS] makes a sitting sprite (FR/LG's SITTING_BOY): the
+        standing frames with ROWS of legs taken off, set on the ground.
+        --down-only is for sheets with only the facing-down row drawn:
+        every facing uses it (they look at the camera when they turn).
 
 recipe  Convert a whole pack from a recipe (see recipes/example.json):
           python3 npc_convert.py recipe hgss.json <pack folder> <mod folder>
@@ -112,11 +118,56 @@ def lowest_row(im):
     return None if bbox is None else bbox[3] - 1
 
 
-def convert(path, extra=None, order=None, lossy=False):
+def lie_down(out):
+    """For sprites lying on the ground (FR/LG's old man in Viridian): the
+    standing-down frame turned a quarter clockwise, head to the right, on
+    the feet row, the same in all 9 frames like the game's own. -Elvie"""
+    first = out.crop((0, 0, FRAME, FRAME))
+    bbox = first.getbbox()
+    if not bbox:
+        fail("lie_down: the standing-down frame is empty")
+    body = first.crop(bbox).transpose(Image.ROTATE_270)
+    if body.size[0] > FRAME or body.size[1] > FRAME:
+        fail(f"lie_down: lying down he's {body.size[0]}x{body.size[1]}, bigger than {FRAME}x{FRAME}")
+    frame = Image.new("RGBA", (FRAME, FRAME), (0, 0, 0, 0))
+    frame.alpha_composite(body, ((FRAME - body.size[0]) // 2, (FRAME - 1) - body.size[1]))
+    lying = Image.new("RGBA", (FRAME, FRAME * 9), (0, 0, 0, 0))
+    for i in range(9):
+        lying.alpha_composite(frame, (0, i * FRAME))
+    return lying
+
+
+def sit_down(out, legs=2):
+    """For sprites sitting on the floor (FR/LG's SITTING_BOY): each
+    standing frame with the bottom `legs` rows of the body taken off and
+    the rest set down on the feet row. Walking frames use the standing
+    one of the same facing, since a sitting NPC only turns. -Elvie"""
+    lying = Image.new("RGBA", (FRAME, FRAME * 9), (0, 0, 0, 0))
+    stand = {0: 0, 1: 1, 2: 2, 3: 0, 4: 0, 5: 1, 6: 1, 7: 2, 8: 2}
+    for i in range(9):
+        f = out.crop((0, stand[i] * FRAME, FRAME, stand[i] * FRAME + FRAME))
+        bbox = f.getbbox()
+        if not bbox:
+            continue
+        top = f.crop((0, 0, FRAME, bbox[3] - legs))
+        lying.alpha_composite(top, (0, i * FRAME + legs))
+    return lying
+
+
+# For sheets with only the facing-down row drawn: every facing uses it. -Elvie
+DOWN_ONLY = [(0, 0), (0, 0), (0, 0), (0, 1), (0, 3), (0, 1), (0, 3), (0, 1), (0, 3)]
+POSES = ["standing down", "standing up", "standing left", "walking down", "walking down",
+         "walking up", "walking up", "walking left", "walking left", "frame 9"]
+
+
+def convert(path, extra=None, order=None, lossy=False, down_only=False):
     """order: (row, column) for each frame, instead of ORDER, for a sheet
     laid out its own way; a 10th entry is frame 9 taken from the sheet
-    (a bow drawn into the charset). -Elvie"""
-    order = [tuple(rc) for rc in order] if order else ORDER
+    (a bow drawn into the charset). down_only: the sheet only has its
+    facing-down row, so every frame comes from it. -Elvie"""
+    if down_only and order:
+        fail(f"{path}: give cells or down_only, not both")
+    order = [tuple(rc) for rc in order] if order else (DOWN_ONLY if down_only else ORDER)
     if len(order) not in (9, 10) or any(len(rc) != 2 or not all(0 <= v < 4 for v in rc) for rc in order):
         fail(f"{path}: cells must list 9 or 10 [row, column] pairs, each 0-3")
     if extra and len(order) == 10:
@@ -144,6 +195,12 @@ def convert(path, extra=None, order=None, lossy=False):
     if cw > FRAME or ch > FRAME:
         fail(f"{path}: frames are {cw}x{ch} after shrinking by {k}; Facets takes up to {FRAME}x{FRAME}")
     cells = [im.crop((c * cw, r * ch, (c + 1) * cw, (r + 1) * ch)) for r, c in order]
+    for i, cell in enumerate(cells):
+        if not cell.getbbox():
+            r, c = order[i]
+            fail(f"{path}: frame {i} ({POSES[i]}, row {r} column {c} of the sheet) is empty"
+                 + ("; if only the facing-down row is drawn, --down-only (\"down_only\": true in a recipe) uses it for every facing"
+                    if r else ""))
     if extra:
         e = clear_background(Image.open(extra))
         if e.size != (cw, ch) and e.size != (FRAME, FRAME):
@@ -155,12 +212,27 @@ def convert(path, extra=None, order=None, lossy=False):
     if low is None:
         fail(f"{path}: the standing-down frame is empty")
     out = Image.new("RGBA", (FRAME, FRAME * len(cells)), (0, 0, 0, 0))
+
+    # How far a group of frames can move without losing a pixel: some
+    # sheets step lower when walking than when standing, so their feet go
+    # as near row 30 as fits. -Elvie
+    def fit(dy, group):
+        boxes = [c.getbbox() for c in group if c.getbbox()]
+        lo = max([-b[1] for b in boxes] or [dy])
+        hi = min([FRAME - b[3] for b in boxes] or [dy])
+        return max(lo, min(hi, dy)) if lo <= hi else dy
+    shared = fit((FRAME - 2) - low, cells[:9])
+    if shared != (FRAME - 2) - low:
+        print(f"note: {path}: feet put on row {low + shared} instead of {FRAME - 2}, so no frame loses pixels")
     clipped = False
     for i, cell in enumerate(cells):
         dx = (FRAME - cell.size[0]) // 2
         # A hand-drawn frame 9 lines up by its own feet. -Elvie
-        own = lowest_row(cell) if i >= 9 else low
-        dy = (FRAME - 2) - (own if own is not None else low)
+        if i >= 9:
+            own = lowest_row(cell)
+            dy = fit((FRAME - 2) - (own if own is not None else low), [cell])
+        else:
+            dy = shared
         bbox = cell.getbbox()
         if bbox and (bbox[1] + dy < 0 or bbox[3] + dy > FRAME):
             clipped = True
@@ -213,6 +285,9 @@ def main():
     one.add_argument("--family", required=True, choices=["frlg", "rse"])
     one.add_argument("--name", required=True, help="the game's sprite name, e.g. NURSE")
     one.add_argument("--extra", help="frame 9 (bow or hand raise)")
+    one.add_argument("--lie-down", action="store_true", help="a lying-down sprite from the standing-down frame, turned on its side")
+    one.add_argument("--sit-down", type=int, nargs="?", const=2, metavar="ROWS", help="a sitting sprite from the standing frames: ROWS of legs taken off (default 2)")
+    one.add_argument("--down-only", action="store_true", help="the sheet only has its facing-down row; use it for every facing")
     one.add_argument("--lossy", action="store_true", help="shrink a near-2x sheet even if some 2x2 blocks are mixed")
     one.add_argument("--cells", help="row,column per frame for a sheet laid out its own way, e.g. \"0,2 3,0 1,0 0,1 0,3 3,1 3,2 1,1 1,3 0,0\"")
     rec = sub.add_parser("recipe")
@@ -223,7 +298,11 @@ def main():
 
     if a.cmd == "one":
         cells = [[int(v) for v in rc.split(",")] for rc in a.cells.split()] if a.cells else None
-        out, k = convert(a.charset, a.extra, cells, a.lossy)
+        out, k = convert(a.charset, a.extra, cells, a.lossy, a.down_only)
+        if a.lie_down:
+            out = lie_down(out)
+        if a.sit_down:
+            out = sit_down(out, a.sit_down)
         dest = write(out, a.mod_dir, a.set_key, a.family, a.name)
         ensure_meta(a.mod_dir, a.set_key)
         print(f"{dest} ({out.size[1] // FRAME} frames, shrunk by {k})")
@@ -240,7 +319,12 @@ def main():
             else:
                 src, extra, cells, lossy = ref, None, None, False
             out, _ = convert(find_in_pack(a.pack, str(src)),
-                             extra and find_in_pack(a.pack, str(extra)), cells, bool(lossy))
+                             extra and find_in_pack(a.pack, str(extra)), cells, bool(lossy),
+                             isinstance(ref, dict) and bool(ref.get("down_only")))
+            if isinstance(ref, dict) and ref.get("lie_down"):
+                out = lie_down(out)
+            if isinstance(ref, dict) and ref.get("sit_down"):
+                out = sit_down(out, int(ref["sit_down"]))
             write(out, a.mod_dir, set_key, family, name)
             count += 1
     ensure_meta(a.mod_dir, set_key, recipe.get("label"), recipe.get("credit"))
