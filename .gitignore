@@ -12,3 +12,6 @@ assets/npcs/*
 !assets/npcs/diego/
 !assets/npcs/zaffre/
 !assets/npcs/community/
+# GBC is a name map only: its sprites come from the player's own install. -Elvie
+!assets/npcs/gbc/
+!assets/npcs/gbc_2x/
