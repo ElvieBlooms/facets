@@ -4,7 +4,7 @@
 
 NPC overworld sprites for the Gen 3 games in gen1recomp: FireRed, LeafGreen, Ruby, Sapphire and Emerald. Townsfolk, trainers, nurses, gym leaders and villains can each get new art, one sheet at a time. Anything without a sheet stays the game's own.
 
-Facets can also swap Pokémon pictures: Crystal's battle sprites, or the DS-style 64x64 resource (below).
+Facets can also swap Pokémon pictures: Game Boy Color sprites for all 386, or the DS-style 64x64 resource (below).
 
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
@@ -31,7 +31,7 @@ Below those, **POKEMON** has its own **SET** for Pokémon pictures (battle, summ
 
 Every Pokémon picture in the Gen 3 games goes through two engine functions, `Pokemon.frontPic` and `Pokemon.backPic`, and Facets wraps both, so a set reaches every screen at once. Emerald's two-frame front animations are covered too, so a replaced Pokémon never flickers back to the game's own.
 
-**GBC** reads Crystal's battle sprites from your own install (then Gold's, then Silver's) and colours them with Crystal's own palette for each species, so shinies are Crystal's shinies. It covers all 251 Johto and Kanto Pokémon, Unown A to Z and the egg; nothing is included with Facets. Each one stands where the game's own picture would: centred, with its feet on the row the Gen 3 picture ends on. Hoenn's Pokémon, Unown ! and ?, and Castform's and Deoxys's forms stay the game's own. Without Crystal imported, GBC changes nothing.
+**GBC** reads Crystal's battle sprites from your own install (then Gold's, then Silver's) and colours them with Crystal's own palette for each species, so shinies are Crystal's shinies. That's all 251 Kanto and Johto Pokémon, Unown A to Z and the egg, none of it included. Hoenn's 135, Castform's weather forms, every Deoxys form and Unown ! and ? come from E-SY's GBC-style sprite compilation, which is included (`assets/mons/gbc/front` and `back`). That sheet has no shiny colours, so shiny Hoenn Pokémon stay the game's own, and Spinda's front stays the game's own so it keeps its spots. Each picture stands where the game's own would: centred, with its feet on the row the Gen 3 picture ends on. Without Crystal imported, only the Hoenn side changes.
 
 **DS** is the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush and many others: Gen 4-style fronts, backs and shinies for all 386 Pokémon, plus Castform's weather forms and each game's Deoxys (Attack in FireRed, Defense in LeafGreen, Speed in Emerald). It's included, used with credit. The resource has no Unown, so Unown stays the game's own; so does Spinda's front, since the game draws each Spinda's own spots.
 
@@ -45,6 +45,12 @@ assets/mons/<set>/back_shiny/006.png
 ```
 
 Unown's letters are `201.png` (A), `201_b.png` to `201_z.png`, `201_emark.png` and `201_qmark.png`; the egg is `egg.png`. Forms are `351_sunny`, `351_rainy`, `351_snowy` (Castform) and `386_attack`, `386_defense`, `386_speed` (Deoxys). Facets stands every picture on the game's own ground line for that Pokémon, so where the art sits in its frame doesn't matter. A set with `"source": "gb"` uses Crystal's sprites for anything it has no file for.
+
+The GBC set's Hoenn sprites were cut from E-SY's sheet with:
+
+```
+python3 tools/make_gbc_hoenn.py tools/recipes/gbc_hoenn.json "<E-SY's GBC sprite sheet>.png" .
+```
 
 `tools/mon_convert.py` builds a set from a sprite resource of 256-wide sheets (front, shiny front, back, shiny back, on a solid background). The DS set was made with:
 
@@ -242,5 +248,5 @@ DIEGO, TAIGA, ZAFFRE and COMMUNITY are included, used with credit. HGSS is Ninte
 - **COMMUNITY (included):** overworld sprites by KyleDove, Jext and Hyo, with some by DiegoWT and Aqua, all free to use with credit.
 - **GBC and GBC 2X:** Gen 1/2 overworld sprites by Nintendo / Game Freak, read from your own imported games; none of it is included. The strips for everyone else (included) are by Catwithnojob (Gen 2 Additional NPCs Pack), free to use with credit.
 - **DS (included):** the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush, with sprites by Wizznats, jhajjar, Vapper3, atif, redriders180, cmbeke, Tailes, SneakerTheOtter, karatekid522, dreamengine, Rizon, Spark, MrDollSteak, PJBottomz, Archeops, dragonflye and Anvils Alive; free to use with credit.
-- **GBC Pokémon:** Gen 2 battle sprites and palettes by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included.
+- **GBC Pokémon:** Gen 2 battle sprites and palettes by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included. Hoenn, form and Unown ! and ? sprites (included) from E-SY's GBC-style sprite compilation, by Unknown, Neslug, Pokekoks, Matdemo159, RED, bloodless, Blue Emerald, LostImpact, Rangi, Piacarrot and Techmath; free to use with credit.
 - **Sprite data:** which sprite each trainer class uses, and the HGSS overworld model names, come from pret's pokeemerald, pokefirered and pokeheartgold decompilations.

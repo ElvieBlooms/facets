@@ -1,0 +1,19 @@
+{
+  "about": "E-SY's GBC-style Pokémon sprite compilation (one big sheet: a panel per generation, then a panel of forms). Cells are 56x56 at 1x on a 72-pixel grid, white inside a 7-pixel coloured frame (big sprites spill onto it); front and back side by side, six Pokémon to a row, in national order. Panel n's first cell starts at x = 15 + 870n, y = 63. Only what Gen 3 has and the Game Boy games don't is taken: Hoenn (the Gen 3 panel), Castform's weather forms, Deoxys's forms, and Unown ! and ?. Point make_gbc_hoenn.py at the sheet PNG.",
+  "set": "gbc",
+  "credit": "Hoenn, form and Unown !/? sprites from E-SY's GBC-style sprite compilation, by Unknown, Neslug, Pokekoks, Matdemo159, RED, bloodless, Blue Emerald, LostImpact, Rangi, Piacarrot and Techmath; free to use with credit",
+  "grid": {"x0": 15, "panel": 870, "y0": 63, "pitch": 72, "size": 56, "frame": 7},
+  "runs": [
+    {"panel": 2, "cell": 0, "national": 252, "count": 135}
+  ],
+  "cells": [
+    {"panel": 7, "cell": 38, "name": "351_sunny"},
+    {"panel": 7, "cell": 40, "name": "351_rainy"},
+    {"panel": 7, "cell": 42, "name": "351_snowy"},
+    {"panel": 7, "cell": 50, "name": "386_attack"},
+    {"panel": 7, "cell": 52, "name": "386_defense"},
+    {"panel": 7, "cell": 54, "name": "386_speed"},
+    {"panel": 7, "cell": 304, "name": "201_emark"},
+    {"panel": 7, "cell": 306, "name": "201_qmark"}
+  ]
+}
