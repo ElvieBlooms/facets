@@ -22,34 +22,49 @@ gb.PALETTES = {
   PAL_OW_PINK  = { { 255, 156, 82 }, { 247, 82, 49 },  { 0, 0, 0 } },
 }
 
--- The cached sprites are greyscale: 255 is see-through, then 170, 85 and 0
--- for palette colours 1-3. -Elvie
-local function shade(v)
+-- The cached overworld sprites are greyscale: 255 is see-through, then
+-- 170, 85 and 0 for palette colours 1-3. -Elvie
+function gb.shade(v)
   if v > 0.83 then return nil end
   if v > 0.5 then return 1 end
   if v > 0.17 then return 2 end
   return 3
 end
 
--- Reads <game>/assets/generated/sprites/<sprite>.png from the first game
--- in the list that has it. Returns the ImageData and the game, or nil. -Elvie
+-- Reads <game>/<rel> from the first game in the list that has it (the
+-- player's imported cache). Returns the bytes and the game, or nil. -Elvie
 local CacheFs
-function gb.read(sprite, games)
-  if type(sprite) ~= "string" or sprite:find("[^%w_]") then return nil end
-  if not (love and love.image and love.data) then return nil end
+function gb.readAt(rel, games)
+  if type(rel) ~= "string" or rel:find("%.%.") then return nil end
   if CacheFs == nil then
     local ok, m = pcall(require, "src.import.CacheFs")
     CacheFs = ok and type(m) == "table" and type(m.readAt) == "function" and m or false
   end
   if not CacheFs then return nil end
   for _, game in ipairs(games or gb.GAMES) do
-    local ok, bytes = pcall(CacheFs.readAt, game .. "/assets/generated/sprites/" .. sprite .. ".png")
-    if ok and type(bytes) == "string" then
-      local okD, data = pcall(function() return love.image.newImageData(love.data.newByteData(bytes)) end)
-      if okD and data then return data, game end
+    local ok, bytes = pcall(CacheFs.readAt, game .. "/" .. rel)
+    if ok and type(bytes) == "string" then return bytes, game end
+  end
+  return nil
+end
+
+-- A PNG from the first game that has it, as ImageData. -Elvie
+function gb.readImage(rel, games)
+  if not (love and love.image and love.data) then return nil end
+  for _, game in ipairs(games or gb.GAMES) do
+    local bytes = gb.readAt(rel, { game })
+    if bytes then
+      local ok, data = pcall(function() return love.image.newImageData(love.data.newByteData(bytes)) end)
+      if ok and data then return data, game end
     end
   end
   return nil
+end
+
+-- An overworld sprite, <game>/assets/generated/sprites/<sprite>.png. -Elvie
+function gb.read(sprite, games)
+  if type(sprite) ~= "string" or sprite:find("[^%w_]") then return nil end
+  return gb.readImage("assets/generated/sprites/" .. sprite .. ".png", games)
 end
 
 -- GB frames, 16x16 each, stacked: stand down, up, left, then walk down,
@@ -67,7 +82,7 @@ local function colourAt(src, pal, x, y)
     if a and a > 0 then return { r * 255, g * 255, b * 255 } end
     return nil
   end
-  local k = shade(r)
+  local k = gb.shade(r)
   return k and pal[k] or nil
 end
 

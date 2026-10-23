@@ -4,6 +4,8 @@
 
 NPC overworld sprites for the Gen 3 games in gen1recomp: FireRed, LeafGreen, Ruby, Sapphire and Emerald. Townsfolk, trainers, nurses, gym leaders and villains can each get new art, one sheet at a time. Anything without a sheet stays the game's own.
 
+Facets can also swap Pokémon pictures: Crystal's battle sprites, or the DS-style 64x64 resource (below).
+
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
 **Status: 0.2.0.** Works in all five games. It ships with four sprite sets, all free to use with credit:
@@ -13,7 +15,7 @@ Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald
 - **ZAFFRE:** PurpleZaffre's named characters (Hoenn's gym leaders, Wallace, Archie and Maxie; Agatha, Lorelei, Mr. Fuji and Giovanni).
 - **COMMUNITY:** custom sprites by KyleDove, Jext and Hyo (with some by DiegoWT and Aqua) for everyone else: Kanto's gym leaders, Bruno and Lance, Team Rocket, Oak, Bill and Daisy, Hoenn's Elite Four, Aqua and Magma, Birch, Wally, Steven, the Frontier Brains, Pokémon Center staff and townsfolk.
 
-Together they give **every person in all five games** new art, with no converting needed: 74 NPCs in FireRed/LeafGreen, 104 in Emerald and 98 in Ruby/Sapphire. That's every trainer, townsperson, staff member and story character; checked against the games' sprite tables and pret's maps. Pokémon and objects keep the game's art. HGSS art (Nintendo's) isn't included; its recipe is still there if you'd like HGSS's look for the NPCs it has. A numbered TEST FRAMES set is included for checking frame order; it's only used when picked.
+Together they give **every person in all five games** new art, with no converting needed: 74 NPCs in FireRed/LeafGreen, 104 in Emerald and 98 in Ruby/Sapphire. That's every trainer, townsperson, staff member and story character; checked against the games' sprite tables and pret's maps. Objects keep the game's art, and Pokémon have their own option. HGSS art (Nintendo's) isn't included; its recipe is still there if you'd like HGSS's look for the NPCs it has. A numbered TEST FRAMES set is included for checking frame order; it's only used when picked.
 
 There are also two Game Boy looks, **GBC** and **GBC 2X** (below): Gen 1/2 overworld sprites read from your own imported Crystal, Gold, Silver, Yellow, Red or Blue, with Catwithnojob's Gen 2-style sprites for everyone the Game Boy games never had. With a Gen 1/2 game imported, they cover every person in all five games too.
 
@@ -22,6 +24,35 @@ There are also two Game Boy looks, **GBC** and **GBC 2X** (below): Gen 1/2 overw
 Under the mod's options there's a heading per game family (FR/LG, R/S/E) with **SET**: each sprite set you have, or OFF for the game's own NPCs. Changes apply straight away.
 
 If the selected set doesn't have a sheet for someone, the other sets are tried in menu order, then the game's own sprite.
+
+Below those, **POKEMON** has its own **SET** for Pokémon pictures (battle, summary, Pokédex, PC, evolution, trades and the rest). It's OFF by default, so Facets only changes Pokémon when you ask it to. One choice covers all five games.
+
+## Pokémon pictures
+
+Every Pokémon picture in the Gen 3 games goes through two engine functions, `Pokemon.frontPic` and `Pokemon.backPic`, and Facets wraps both, so a set reaches every screen at once. Emerald's two-frame front animations are covered too, so a replaced Pokémon never flickers back to the game's own.
+
+**GBC** reads Crystal's battle sprites from your own install (then Gold's, then Silver's) and colours them with Crystal's own palette for each species, so shinies are Crystal's shinies. It covers all 251 Johto and Kanto Pokémon, Unown A to Z and the egg; nothing is included with Facets. Each one stands where the game's own picture would: centred, with its feet on the row the Gen 3 picture ends on. Hoenn's Pokémon, Unown ! and ?, and Castform's and Deoxys's forms stay the game's own. Without Crystal imported, GBC changes nothing.
+
+**DS** is the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush and many others: Gen 4-style fronts, backs and shinies for all 386 Pokémon, plus Castform's weather forms and each game's Deoxys (Attack in FireRed, Defense in LeafGreen, Speed in Emerald). It's included, used with credit. The resource has no Unown, so Unown stays the game's own; so does Spinda's front, since the game draws each Spinda's own spots.
+
+A set is a folder under `assets/mons/` with a `meta.json` (`label`, `credit`) and 64x64 PNGs named by national number:
+
+```
+assets/mons/<set>/front/006.png
+assets/mons/<set>/back/006.png
+assets/mons/<set>/front_shiny/006.png     (optional; without one, shinies stay the game's own)
+assets/mons/<set>/back_shiny/006.png
+```
+
+Unown's letters are `201.png` (A), `201_b.png` to `201_z.png`, `201_emark.png` and `201_qmark.png`; the egg is `egg.png`. Forms are `351_sunny`, `351_rainy`, `351_snowy` (Castform) and `386_attack`, `386_defense`, `386_speed` (Deoxys). Facets stands every picture on the game's own ground line for that Pokémon, so where the art sits in its frame doesn't matter. A set with `"source": "gb"` uses Crystal's sprites for anything it has no file for.
+
+`tools/mon_convert.py` builds a set from a sprite resource of 256-wide sheets (front, shiny front, back, shiny back, on a solid background). The DS set was made with:
+
+```
+python3 tools/mon_convert.py tools/recipes/ds_mons.json "<The DS-style 64x64 Pokémon Sprite Resource folder>" .
+```
+
+The Pokémon side is `mons.lua`, `mon_names.lua` and `assets/mons/`, listed once in `main.lua`; an NPC-only build drops those.
 
 ## Sprite sets
 
@@ -210,4 +241,6 @@ DIEGO, TAIGA, ZAFFRE and COMMUNITY are included, used with credit. HGSS is Ninte
 - **ZAFFRE (included):** overworld sprites by PurpleZaffre (Zaffre's Overworlds, from the Ultimate Gen 4 Overworlds Pack), used with credit. Get the full pack from PurpleZaffre's own release, not from this repo.
 - **COMMUNITY (included):** overworld sprites by KyleDove, Jext and Hyo, with some by DiegoWT and Aqua, all free to use with credit.
 - **GBC and GBC 2X:** Gen 1/2 overworld sprites by Nintendo / Game Freak, read from your own imported games; none of it is included. The strips for everyone else (included) are by Catwithnojob (Gen 2 Additional NPCs Pack), free to use with credit.
+- **DS (included):** the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush, with sprites by Wizznats, jhajjar, Vapper3, atif, redriders180, cmbeke, Tailes, SneakerTheOtter, karatekid522, dreamengine, Rizon, Spark, MrDollSteak, PJBottomz, Archeops, dragonflye and Anvils Alive; free to use with credit.
+- **GBC Pokémon:** Gen 2 battle sprites and palettes by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included.
 - **Sprite data:** which sprite each trainer class uses, and the HGSS overworld model names, come from pret's pokeemerald, pokefirered and pokeheartgold decompilations.

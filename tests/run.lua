@@ -100,8 +100,13 @@ STRIP_FILES = {
   SWIMMER = function() return colourStrip(6) end,
   SITTER = function() return colourStrip(3) end,
 }
+-- Text files from the install (Crystal's palettes.lua), as-is. -Elvie
+local GB_TEXT = {}
 package.preload["src.import.CacheFs"] = function()
-  return { readAt = function(rel) return GB_FILES[rel] and ("bytes:" .. rel) or nil end }
+  return { readAt = function(rel)
+    if GB_TEXT[rel] then return GB_TEXT[rel] end
+    return GB_FILES[rel] and ("bytes:" .. rel) or nil
+  end }
 end
 love = {
   data = { newByteData = function(str) return { bytes = str } end },
@@ -114,6 +119,13 @@ love = {
         return make()
       end
       local path = a
+      if path:find("/assets/mons/", 1, true) then
+        -- a Pokémon picture: its size from the header, one red pixel at (10, 40) -Elvie
+        local w, h = pngSize(path)
+        local d = pixelData(w, h)
+        d:setPixel(10, 40, 1, 0, 0, 1)
+        return d
+      end
       local strip = path:match("/strips/([%w_]+)%.png$")
       if strip and STRIP_FILES[strip] then return STRIP_FILES[strip]() end
       local w, h = pngSize(path)
@@ -567,6 +579,178 @@ do
     eq(labels.gbc_2x, "GBC 2X", "shipped: GBC 2X is offered (borrowing GBC's map)")
   end
   eq(mod.rows[2].choices[#mod.rows[2].choices - 1][1], "TEST FRAMES", "shipped: TEST FRAMES listed last")
+end
+
+-- Pokémon pictures (mons.lua)
+-- --------------------------------------------------
+do
+  fresh("firered")
+  -- Crystal-style battle sprite: w x w, see-through outside, a black pixel
+  -- at the bottom-left, grey 170 at the top-right, inner white at (5,5). -Elvie
+  local function battleSprite(w)
+    local d = pixelData(w, w)
+    d:setPixel(0, w - 1, 0, 0, 0, 1)
+    d:setPixel(w - 1, 0, 170 / 255, 170 / 255, 170 / 255, 1)
+    d:setPixel(5, 5, 1, 1, 1, 1)
+    return d
+  end
+  local B = "assets/generated/battle/"
+  GB_FILES["crystal/" .. B .. "front/charizard.png"] = function() return battleSprite(56) end
+  GB_FILES["crystal/" .. B .. "back/charizard_back.png"] = function() return battleSprite(48) end
+  -- Unown comes with no see-through pixels: a white square with a black dot -Elvie
+  GB_FILES["crystal/" .. B .. "front/unown_c.png"] = function()
+    local d = pixelData(40, 40)
+    for y = 0, 39 do for x = 0, 39 do d:setPixel(x, y, 1, 1, 1, 1) end end
+    d:setPixel(20, 39, 0, 0, 0, 1)
+    return d
+  end
+  GB_FILES["gold/" .. B .. "front/pikachu.png"] = function() return battleSprite(40) end
+  GB_FILES["crystal/" .. B .. "front/egg.png"] = function() return battleSprite(40) end
+  GB_TEXT["crystal/data/generated/palettes.lua"] = table.concat({
+    "return {", "  objects = {", "  },", "  pokemon = {",
+    "    CHARIZARD = {", "      normal = {", "        {", "          200,", "          100,", "          50,", "        },",
+    "        {", "          20,", "          40,", "          60,", "        },", "      },",
+    "      shiny = {", "        {", "          1,", "          2,", "          3,", "        },",
+    "        {", "          4,", "          5,", "          6,", "        },", "      },", "    },",
+    "    PIKACHU = {", "      normal = {", "        {", "          255,", "          255,", "          0,", "        },",
+    "        {", "          9,", "          9,", "          9,", "        },", "      },",
+    "      shiny = {", "        {", "          7,", "          7,", "          7,", "        },",
+    "        {", "          8,", "          8,", "          8,", "        },", "      },", "    },",
+    "    UNOWN = {", "      normal = { { 10, 10, 10 }, { 11, 11, 11 } },", "      shiny = { { 12, 12, 12 }, { 13, 13, 13 } },", "    },",
+    "    EGG = {", "      normal = { { 30, 30, 30 }, { 31, 31, 31 } },", "      shiny = { { 32, 32, 32 }, { 33, 33, 33 } },", "    },",
+    "  },", "  roofs = {", "  },", "}" }, "\n")
+
+  -- Engine stubs: the Pokemon module's two pic functions, Unown and the
+  -- egg, pic offsets and Emerald's frame pics. -Elvie
+  local calls = {}
+  local Pokemon = {
+    SPECIES_EGG = 412,
+    frontPic = function(sp) calls[#calls + 1] = "front" .. tostring(sp); return { vanilla = "front" .. tostring(sp) } end,
+    backPic = function(sp) calls[#calls + 1] = "back" .. tostring(sp); return { vanilla = "back" .. tostring(sp) } end,
+    picBaseSpecies = function(sp)
+      if sp == 201 then return 201, 0 end
+      if sp >= 413 and sp < 440 then return 201, sp - 412 end
+      return sp, nil
+    end,
+    national = function(sp) if sp == 277 then return 252 end; return sp end,
+    deoxysFormSuffix = function(sp) if sp == 386 and Pokemon_handled then return "_handled" end; return "" end,
+  }
+  package.loaded["src.core.game3.pokemon"] = Pokemon
+  package.loaded["src.core.game3.battle.pic_coords"] = { front = { [6] = 1, [25] = 9 }, back = { [6] = 4 } }
+  local MonAnim = { framePic = function(sp, frame) return { vanilla = "frame" .. frame } end }
+  package.loaded["src.core.game3.mon_anim"] = MonAnim
+
+  local MOD_M = OUT .. "/modM"
+  sh(("mkdir -p '%s/assets/mons/gbc' '%s/assets/mons/zzz/front'"):format(MOD_M, MOD_M))
+  local f = io.open(MOD_M .. "/assets/mons/gbc/meta.json", "w"); f:write('{"label":"GBC","source":"gb"}'); f:close()
+  f = io.open(MOD_M .. "/assets/mons/zzz/meta.json", "w"); f:write('{"label":"ZZZ"}'); f:close()
+  -- PNG headers only: the love stub reads sizes from them. -Elvie
+  local function fakePng(path, w, h)
+    local function u32(n) return string.char(math.floor(n / 16777216) % 256, math.floor(n / 65536) % 256, math.floor(n / 256) % 256, n % 256) end
+    local out = io.open(path, "wb"); out:write("\137PNG\r\n\26\n\0\0\0\13IHDR" .. u32(w) .. u32(h) .. "\8\6\0\0\0"); out:close()
+  end
+  fakePng(MOD_M .. "/assets/mons/zzz/front/001.png", 64, 64)
+  fakePng(MOD_M .. "/assets/mons/zzz/front/002.png", 80, 80)
+  fakePng(MOD_M .. "/assets/mons/zzz/front/327.png", 64, 64)
+  fakePng(MOD_M .. "/assets/mons/zzz/front/351.png", 64, 64)
+  fakePng(MOD_M .. "/assets/mons/zzz/front/351_sunny.png", 64, 64)
+  fakePng(MOD_M .. "/assets/mons/zzz/front/386.png", 64, 64)
+  fakePng(MOD_M .. "/assets/mons/zzz/front/386_attack.png", 64, 64)
+
+  local mod = newMod(MOD_M)
+  local rows = {}
+  local start = require("mods.facets.mons").init(mod, rows)
+  check(start ~= nil, "mons: init returns a start function")
+  mod.options:define(rows)
+  eq(rows[1].label, "POKEMON", "mons: POKEMON heading")
+  eq(rows[2].key, "setMons", "mons: SET row")
+  eq(rows[2].default, "__off", "mons: OFF by default")
+  local labels = {}
+  for _, c in ipairs(rows[2].choices) do labels[#labels + 1] = c[2] end
+  eq(table.concat(labels, ","), "gbc,zzz,__off", "mons: sets in label order, then OFF")
+  start()
+  eq(Pokemon.frontPic(6).vanilla, "front6", "mons: OFF leaves the game's own")
+
+  mod.options:set("setMons", "gbc")
+  local function px(e, x, y)
+    local r, g, b, a = e.imageData:getPixel(x, y)
+    return ("%d,%d,%d,%s"):format(math.floor(r * 255 + .5), math.floor(g * 255 + .5), math.floor(b * 255 + .5), tostring(a))
+  end
+  local zard = Pokemon.frontPic(6, nil, false, 0, "dex")
+  check(zard and zard.image and not zard.vanilla, "gbc: Charizard front from Crystal")
+  eq(zard.w .. "x" .. zard.h, "64x64", "gbc: 64x64")
+  -- 56 wide: x 4..59; lowest row on 64 - 1 - 1 = row 62 (y offset 1) -Elvie
+  eq(px(zard, 4, 62), "0,0,0,1", "gbc: black, bottom-left, on the game's own bottom row")
+  eq(px(zard, 59, 7), "200,100,50,1", "gbc: grey 170 is the palette's first colour")
+  eq(px(zard, 9, 12), "255,255,255,1", "gbc: inner white stays white")
+  local _, _, _, a = zard.imageData:getPixel(20, 30)
+  eq(a, 0, "gbc: outside is see-through")
+  eq(Pokemon.frontPic(6), zard, "gbc: cached")
+  local shiny = Pokemon.frontPic(6, nil, true)
+  eq(px(shiny, 59, 7), "1,2,3,1", "gbc: shiny uses Crystal's shiny palette")
+  local back = Pokemon.backPic(6, nil, false)
+  check(back and not back.vanilla, "gbc: back from <name>_back.png")
+  eq(px(back, 8, 59), "0,0,0,1", "gbc: back bottom on 64 - 4 - 1 (y offset 4)")
+  local pika = Pokemon.frontPic(25)
+  check(pika and not pika.vanilla, "gbc: Gold's copy used when Crystal's is missing")
+  eq(px(pika, 12, 54), "0,0,0,1", "gbc: Pikachu's bottom on row 54 (y offset 9)")
+  local unown = Pokemon.frontPic(414)
+  check(unown and not unown.vanilla, "gbc: Unown C from unown_c.png")
+  local _, _, _, ua = unown.imageData:getPixel(12, 10)
+  eq(ua, 0, "gbc: a sprite with no see-through: the white round the edge is cleared")
+  eq(px(unown, 32, 63), "0,0,0,1", "gbc: ...and the rest is drawn (bottom on row 63, no offset)")
+  eq(Pokemon.frontPic(413).vanilla, "front413", "gbc: Unown B missing from the install: the game's own")
+  eq(Pokemon.frontPic(439).vanilla, "front439", "gbc: Unown ? (no Game Boy letter): the game's own")
+  check(not Pokemon.frontPic(412).vanilla, "gbc: the egg")
+  eq(Pokemon.backPic(412).vanilla, "back412", "gbc: no egg back")
+  eq(Pokemon.frontPic(277).vanilla, "front277", "gbc: Hoenn Pokémon stay the game's own")
+  eq(Pokemon.frontPic(6, 1).vanilla, "front6", "gbc: forms stay the game's own")
+  eq(MonAnim.framePic(6, 1, false), zard, "gbc: Emerald's second frame is the same picture")
+  eq(MonAnim.framePic(277, 1).vanilla, "frame1", "gbc: unreplaced frames are the game's own")
+
+  mod.options:set("setMons", "zzz")
+  local own = Pokemon.frontPic(1)
+  check(own and not own.vanilla and own.w == 64, "folder set: front/001.png used")
+  eq(px(own, 10, 63), "255,0,0,1", "folder set: stood on the game's ground line (row 63 with no offset)")
+  local _, _, _, oa = own.imageData:getPixel(10, 40)
+  eq(oa, 0, "folder set: ...moved down from where it was drawn")
+  eq(Pokemon.frontPic(327).vanilla, "front327", "folder set: Spinda's front stays the game's own (spots)")
+  local cast = Pokemon.frontPic(351)
+  check(cast and not cast.vanilla, "folder set: Castform")
+  local sunny = Pokemon.frontPic(351, 1)
+  check(sunny and not sunny.vanilla and sunny ~= cast, "folder set: Castform's sunny form from 351_sunny")
+  eq(Pokemon.frontPic(351, 2).vanilla, "front351", "folder set: a form without a file is the game's own")
+  local deo = Pokemon.frontPic(386)
+  check(deo and not deo.vanilla, "folder set: Deoxys")
+  Pokemon_handled = true
+  local atk = Pokemon.frontPic(386)
+  check(atk and not atk.vanilla and atk ~= deo, "folder set: FireRed's Deoxys is 386_attack when the game asks for its own form")
+  Pokemon_handled = nil
+  eq(Pokemon.frontPic(2).vanilla, "front2", "folder set: an 80x80 file is skipped")
+  eq(Pokemon.frontPic(6).vanilla, "front6", "folder set: no file, no Game Boy source: the game's own")
+  eq(Pokemon.frontPic(1, nil, true).vanilla, "front1", "folder set: no shiny file: the game's own")
+  mod.options:set("setMons", "__off")
+  eq(Pokemon.frontPic(1).vanilla, "front1", "mons: back to OFF")
+  package.loaded["src.core.game3.pokemon"] = nil
+  package.loaded["src.core.game3.battle.pic_coords"] = nil
+  package.loaded["src.core.game3.mon_anim"] = nil
+end
+
+-- main.lua: NPC rows, then the POKEMON rows -Elvie
+do
+  fresh("firered")
+  local Pokemon = { frontPic = function() return nil end, backPic = function() return nil end }
+  package.loaded["src.core.game3.pokemon"] = Pokemon
+  local mod = newMod(ROOT)
+  local f = assert(loadfile(ROOT .. "/main.lua"))
+  f()(mod)
+  local keys = {}
+  for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons", "main: NPC rows then POKEMON rows")
+  local monSets = {}
+  for _, c in ipairs(mod.rows[6].choices) do monSets[#monSets + 1] = c[1] end
+  eq(table.concat(monSets, ","), "DS,GBC,OFF", "shipped: Pokémon sets DS and GBC, then OFF")
+  package.loaded["src.core.game3.pokemon"] = nil
 end
 
 print(("%d passed, %d failed"):format(passed, failed))

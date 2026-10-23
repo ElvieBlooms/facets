@@ -83,7 +83,19 @@ local function decodeJson(text)
   return result
 end
 
-function npcs.init(mod)
+npcs.decodeJson = decodeJson
+
+-- Adds the NPC option rows to `rows` and returns a function to call once
+-- the options are defined, or nil if there's nothing to replace. Called
+-- without rows, it defines its own options and starts. -Elvie
+function npcs.init(mod, rows)
+  if rows == nil then
+    local own = {}
+    local start = npcs.init(mod, own)
+    if #own > 0 then mod.options:define(own) end
+    if start then start() end
+    return
+  end
   local function isDirectory(rel)
     local info = mod.assets:info(rel)
     return info and info.type == "directory"
@@ -160,7 +172,6 @@ function npcs.init(mod)
   -- only have rows the cursor can land on. -Elvie
   -- --------------------------------------------------
   local INERT = "_"
-  local rows = {}
   for _, family in ipairs(FAMILIES) do
     local sets = setsFor[family.id]
     if #sets > 0 then
@@ -173,8 +184,7 @@ function npcs.init(mod)
         choices = choices, default = sets[1].key })
     end
   end
-  mod.options:define(rows)
-
+  return function()
   -- Only the running game's family is set up. -Elvie
   local okVersion, GameVersion = pcall(require, "src.core.GameVersion")
   local layout = okVersion and GameVersion.layout(GameVersion.get())
@@ -209,6 +219,7 @@ function npcs.init(mod)
       if type(change) ~= "table" or change.mod ~= mod.id then return end
       if change.key == "set" .. running.suffix then handle.configure(resolve()) end
     end)
+  end
   end
 end
 
