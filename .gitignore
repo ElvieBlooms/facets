@@ -4,10 +4,11 @@ tests/out/
 
 # Converted art stays on your machine, except sets cleared to ship: the
 # test set, and the free-with-credit sheets Facets uses from Taiga,
-# DiegoWT and PurpleZaffre (not their packs). Nintendo art (HGSS) stays
+# DiegoWT, PurpleZaffre, KyleDove, Jext and Hyo (not their packs). Nintendo art (HGSS) stays
 # out. -Elvie
 assets/npcs/*
 !assets/npcs/test_frames/
 !assets/npcs/taiga/
 !assets/npcs/diego/
 !assets/npcs/zaffre/
+!assets/npcs/community/
