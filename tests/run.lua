@@ -89,6 +89,17 @@ local GB_FILES = {
   ["red/assets/generated/sprites/gbyoung.png"] = function() return gbStrip(6) end,
   ["crystal/assets/generated/sprites/gbyoung.png"] = function() return gbStrip(6) end,
 }
+-- Strips shipped in a set: the same layout in their own colours, with
+-- alpha for see-through. Frame f has a red pixel at (f, 15). -Elvie
+local function colourStrip(frames)
+  local d = pixelData(16, 16 * frames)
+  for f = 0, frames - 1 do d:setPixel(f, f * 16 + 15, 200 / 255, 10 / 255, 10 / 255, 1) end
+  return d
+end
+STRIP_FILES = {
+  SWIMMER = function() return colourStrip(6) end,
+  SITTER = function() return colourStrip(3) end,
+}
 package.preload["src.import.CacheFs"] = function()
   return { readAt = function(rel) return GB_FILES[rel] and ("bytes:" .. rel) or nil end }
 end
@@ -103,6 +114,8 @@ love = {
         return make()
       end
       local path = a
+      local strip = path:match("/strips/([%w_]+)%.png$")
+      if strip and STRIP_FILES[strip] then return STRIP_FILES[strip]() end
       local w, h = pngSize(path)
       return { path = path, getDimensions = function() return w, h end }
     end,
@@ -446,7 +459,13 @@ do
     "BIKER": {"sprite": "gbbiker", "palette": "PAL_OW_BROWN"},
     "LASS": {"sprite": "nobody_has_this", "palette": "PAL_OW_RED"},
     "CAPTAIN": {"sprite": "gbcaptain", "palette": "PAL_OW_BROWN"},
+    "SWIMMER_M_LAND": {"strip": "SWIMMER"},
+    "SITTING_BOY": {"strip": "SITTER"},
+    "WORKER_M": {"strip": "NOT_SHIPPED"},
     "RED_NORMAL": {"sprite": "gbyoung", "palette": "PAL_OW_RED"}}}]]); f:close()
+  sh(("mkdir -p '%s'"):format(MOD_G .. "/assets/npcs/gb/strips"))
+  copy(TF .. "frlg/NURSE.png", MOD_G .. "/assets/npcs/gb/strips/SWIMMER.png")
+  copy(TF .. "frlg/NURSE.png", MOD_G .. "/assets/npcs/gb/strips/SITTER.png")
   f = io.open(MOD_G .. "/assets/npcs/real/meta.json", "w"); f:write('{"label":"REAL"}'); f:close()
   sh(("mkdir -p '%s'"):format(MOD_G .. "/assets/npcs/gb2"))
   f = io.open(MOD_G .. "/assets/npcs/gb2/meta.json", "w"); f:write('{"label":"AAA GB 2X","source":"gb","scale":2,"map":"gb"}'); f:close()
@@ -491,9 +510,25 @@ do
   eq(Ow.get(22).image.data.path:match("/(real)/"), "real", "gb: ...REAL's sheet")
   eq(Ow.get(0), vanilla[0], "gb: the player is never replaced, even when mapped")
   eq(Ow.get(80), vanilla[80], "gb: unmapped BROCK is the game's own")
+  -- Strips: the set's own art, in its own colours -Elvie
+  local idOf = {}
+  for id, full in pairs(require("src.core.game3.constants").of("firered"):raw("event_objects").byId.OBJ_EVENT_GFX_) do
+    idOf[full:sub(15)] = tonumber(id)
+  end
+  local swim = Ow.get(idOf.SWIMMER_M_LAND)
+  check(swim ~= vanilla[idOf.SWIMMER_M_LAND], "strip: SWIMMER_M_LAND built from the set's strip")
+  eq(swim.frameCount, 9, "strip: 9 frames")
+  r, g, b = px(swim, 0, 0, 30)
+  eq(("%d,%d,%d"):format(r, g, b), "200,10,10", "strip: own colour kept, feet on row 30")
+  r = px(swim, 4, 12, 30); eq(r, 200, "strip: walk frames mirrored like Game Boy sprites")
+  local _, _, _, sa = px(swim, 0, 5, 20); eq(sa, 0, "strip: alpha 0 is see-through")
+  r = px(Ow.get(idOf.SITTING_BOY), 3, 0, 30); eq(r, 200, "strip: a 3-frame strip walks on its stand frames")
+  eq(Ow.get(idOf.WORKER_M), vanilla[idOf.WORKER_M], "strip: a missing strip leaves the game's own")
   local warns = 0
-  for _, l in ipairs(mod.logs) do if l:match("^warn") then warns = warns + 1 end end
-  eq(warns, 0, "gb: nothing logged")
+  for _, l in ipairs(mod.logs) do
+    if l:match("^warn") and not l:match("NOT_SHIPPED") then warns = warns + 1 end
+  end
+  eq(warns, 0, "gb: nothing else logged")
 
   -- 2x: the same map (borrowed), every pixel a 2x2 block, 32x32 frames -Elvie
   local labels = {}
@@ -515,6 +550,9 @@ do
   eq(b2.width .. "x" .. b2.height, "32x32", "gb2: BIKER 32x32")
   r = px(Ow.get(18), 4, 24, 31); eq(r, 0, "gb2: mirrored walk frame scaled too")
   check(Ow.get(22) ~= vanilla[22], "gb2: LASS still falls through to the next set")
+  local s2 = Ow.get(idOf.SWIMMER_M_LAND)
+  eq(s2.width .. "x" .. s2.height, "32x32", "gb2: strips borrowed from the map's set, at 2x")
+  r = px(s2, 0, 1, 31); eq(r, 200, "gb2: strip pixel a 2x2 block")
 end
 
 -- The repo's own sets: labels in the options, GBC 2X borrowing GBC's map -Elvie

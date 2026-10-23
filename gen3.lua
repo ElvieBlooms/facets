@@ -58,7 +58,7 @@ function gen3.init(mod, ctx)
 
   -- The current choice. Everything below reads these, so configure() only
   -- has to replace them. -Elvie
-  local bases = {}    -- sets to look in, in fallback order: { dir, gb = map or nil }
+  local bases = {}    -- sets to look in, in fallback order: { dir, gb = map or nil, scale, strips }
   local fileFor       -- [graphics id] = file, or a Game Boy entry; nil = look again
   local built         -- [vanilla record] = our record, or false if it failed
   local replaced = {} -- [graphics id] = true once handed out, for cache drops
@@ -76,7 +76,17 @@ function gen3.init(mod, ctx)
       if base.gb then
         for name, entry in pairs(base.gb) do
           if type(entry) == "string" then entry = { sprite = entry } end
-          if type(entry) == "table" and type(entry.sprite) == "string" then
+          if type(entry) == "table" and type(entry.strip) == "string" and base.strips
+              and not entry.strip:find("[^%w_]") then
+            -- A strip shipped in the set, drawn in its own colours. -Elvie
+            local rel = base.strips .. "/" .. entry.strip .. ".png"
+            local ok, src = pcall(love.image.newImageData, mod.assets:path(rel))
+            if ok and src then
+              byName[name:upper()] = { gb = { palette = false }, src = src, scale = base.scale, label = rel }
+            else
+              warnOnce(mod, rel, "could not load %s; skipping it", rel)
+            end
+          elseif type(entry) == "table" and type(entry.sprite) == "string" then
             local src, game = gb.read(entry.sprite, entry.games)
             if src then
               byName[name:upper()] = { gb = entry, src = src, scale = base.scale,
@@ -214,7 +224,8 @@ function gen3.init(mod, ctx)
         local map = newCtx.gbMaps and newCtx.gbMaps[key]
         bases[#bases + 1] = { dir = newCtx.npcsDir .. "/" .. key .. "/gen3/" .. family,
           gb = type(map) == "table" and type(map[family]) == "table" and map[family] or nil,
-          scale = newCtx.gbScale and newCtx.gbScale[key] or 1 }
+          scale = newCtx.gbScale and newCtx.gbScale[key] or 1,
+          strips = newCtx.gbStrips and newCtx.gbStrips[key] or nil }
       end
     end
     fileFor = nil

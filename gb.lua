@@ -4,7 +4,8 @@
 -- player's imported Crystal (then Gold, Silver, Yellow, Red, Blue) cache
 -- at runtime and drawn at 1x, coloured with Crystal's daytime NPC
 -- palettes. A player without those games imported just sees the next set,
--- or the game's own NPC. -Elvie
+-- or the game's own NPC. NPCs no Game Boy game has use strips shipped in
+-- the set (strips/), in the same layout with their own colours. -Elvie
 -- --------------------------------------------------
 
 local gb = {}
@@ -58,14 +59,30 @@ end
 local FROM = { 1, 2, 3, 4, 4, 5, 5, 6, 3 }
 local MIRROR = { false, false, false, false, true, false, true, false, false }
 
+-- A pixel's colour: a cached sprite's shade through the palette, or a
+-- strip's own colour (pal nil) where it isn't see-through. -Elvie
+local function colourAt(src, pal, x, y)
+  local r, g, b, a = src:getPixel(x, y)
+  if not pal then
+    if a and a > 0 then return { r * 255, g * 255, b * 255 } end
+    return nil
+  end
+  local k = shade(r)
+  return k and pal[k] or nil
+end
+
 -- Builds a 9-frame sheet, w wide and h tall per frame, the sprite centred
 -- with its feet on the feet row. scale 1 is the Game Boy's own size (in
 -- the game's frame); scale 2 draws each pixel as a 2x2 block, filling a
--- 32x32 frame. Returns ImageData, or nil and a reason. -Elvie
+-- 32x32 frame. paletteName false keeps the strip's own colours (strips
+-- shipped in the GBC set). Returns ImageData, or nil and a reason. -Elvie
 function gb.sheet(src, paletteName, w, h, scale)
   scale = scale == 2 and 2 or 1
-  local pal = gb.PALETTES[paletteName or "PAL_OW_RED"]
-  if not pal then return nil, "no palette " .. tostring(paletteName) end
+  local pal
+  if paletteName ~= false then
+    pal = gb.PALETTES[paletteName or "PAL_OW_RED"]
+    if not pal then return nil, "no palette " .. tostring(paletteName) end
+  end
   local sw, sh = src:getDimensions()
   if sw ~= 16 or sh % 16 ~= 0 then return nil, ("%dx%d isn't a Game Boy sprite strip"):format(sw, sh) end
   -- Frames are counted by what's drawn: some standing-only NPCs (Crystal's
@@ -75,7 +92,7 @@ function gb.sheet(src, paletteName, w, h, scale)
     local drawn = false
     for y = (f - 1) * 16, f * 16 - 1 do
       for x = 0, 15 do
-        if not drawn and shade((src:getPixel(x, y))) then drawn = true end
+        if not drawn and colourAt(src, pal, x, y) then drawn = true end
       end
     end
     if drawn then count = f end
@@ -94,10 +111,8 @@ function gb.sheet(src, paletteName, w, h, scale)
     for y = 0, 15 do
       for x = 0, 15 do
         local sx = MIRROR[i] and (15 - x) or x
-        local v = src:getPixel(sx, top + y)
-        local k = shade(v)
-        if k then
-          local c = pal[k]
+        local c = colourAt(src, pal, sx, top + y)
+        if c then
           for by = 0, scale - 1 do
             for bx = 0, scale - 1 do
               local dx, dy = ox + x * scale + bx, oy + y * scale + by
