@@ -239,6 +239,48 @@
     "GYM_GUY": {
       "sprite": "gym_guide",
       "palette": "PAL_OW_BLUE"
+    },
+    "SITTING_BOY": {
+      "strip": "SITTING_BOY"
+    },
+    "CRUSH_GIRL": {
+      "strip": "CRUSH_GIRL"
+    },
+    "FAT_MAN": {
+      "strip": "FAT_MAN"
+    },
+    "TUBER_F": {
+      "strip": "TUBER_F"
+    },
+    "TUBER_M_LAND": {
+      "strip": "TUBER_M"
+    },
+    "TUBER_M_WATER": {
+      "strip": "TUBER_M"
+    },
+    "SWIMMER_M_LAND": {
+      "strip": "SWIMMER_M_LAND"
+    },
+    "SWIMMER_F_LAND": {
+      "strip": "SWIMMER_F_LAND"
+    },
+    "WORKER_M": {
+      "strip": "WORKER_M"
+    },
+    "WORKER_F": {
+      "strip": "WORKER_F"
+    },
+    "MG_DELIVERYMAN": {
+      "strip": "DELIVERY"
+    },
+    "TRAINER_TOWER_DUDE": {
+      "strip": "TRAINER_TOWER_DUDE"
+    },
+    "CELIO": {
+      "strip": "CELIO"
+    },
+    "TEACHY_TV_HOST": {
+      "strip": "TEACHY_TV_HOST"
     }
   },
   "rse": {
@@ -381,6 +423,213 @@
     "TEALA": {
       "sprite": "teacher",
       "palette": "PAL_OW_RED"
+    },
+    "NINJA_BOY": {
+      "strip": "NINJA_BOY"
+    },
+    "BOY_1": {
+      "strip": "BOY_1"
+    },
+    "GIRL_1": {
+      "strip": "GIRL_1"
+    },
+    "BOY_2": {
+      "strip": "BOY_2"
+    },
+    "GIRL_2": {
+      "strip": "GIRL_2"
+    },
+    "BOY_3": {
+      "strip": "BOY_3"
+    },
+    "GIRL_3": {
+      "strip": "GIRL_3"
+    },
+    "RICH_BOY": {
+      "strip": "RICH_BOY"
+    },
+    "WOMAN_1": {
+      "strip": "WOMAN_1"
+    },
+    "FAT_MAN": {
+      "strip": "FAT_MAN"
+    },
+    "MAN_1": {
+      "strip": "MAN_1"
+    },
+    "WOMAN_2": {
+      "strip": "WOMAN_2"
+    },
+    "MAN_2": {
+      "strip": "MAN_2"
+    },
+    "WOMAN_3": {
+      "strip": "WOMAN_3"
+    },
+    "WOMAN_4": {
+      "strip": "WOMAN_4"
+    },
+    "PSYCHIC_M": {
+      "strip": "PSYCHIC_M"
+    },
+    "SCHOOL_KID_M": {
+      "strip": "SCHOOL_KID_M"
+    },
+    "HEX_MANIAC": {
+      "strip": "HEX_MANIAC"
+    },
+    "RUNNING_TRIATHLETE_M": {
+      "strip": "RUNNING_TRIATHLETE_M"
+    },
+    "RUNNING_TRIATHLETE_F": {
+      "strip": "RUNNING_TRIATHLETE_F"
+    },
+    "TUBER_F": {
+      "strip": "TUBER_F"
+    },
+    "TUBER_M": {
+      "strip": "TUBER_M"
+    },
+    "TUBER_M_SWIMMING": {
+      "strip": "TUBER_M"
+    },
+    "CYCLING_TRIATHLETE_M": {
+      "strip": "CYCLING_TRIATHLETE_M"
+    },
+    "PROF_BIRCH": {
+      "strip": "PROF_BIRCH"
+    },
+    "MAN_4": {
+      "strip": "MAN_4"
+    },
+    "REPORTER_M": {
+      "strip": "REPORTER_M"
+    },
+    "REPORTER_F": {
+      "strip": "REPORTER_F"
+    },
+    "BARD": {
+      "strip": "BARD"
+    },
+    "ANABEL": {
+      "strip": "ANABEL"
+    },
+    "TUCKER": {
+      "strip": "TUCKER"
+    },
+    "GRETA": {
+      "strip": "GRETA"
+    },
+    "SPENSER": {
+      "strip": "SPENSER"
+    },
+    "NOLAND": {
+      "strip": "NOLAND"
+    },
+    "LUCY": {
+      "strip": "LUCY"
+    },
+    "BRANDON": {
+      "strip": "BRANDON"
+    },
+    "SCOTT": {
+      "strip": "SCOTT"
+    },
+    "ROOFTOP_SALE_WOMAN": {
+      "strip": "ROOFTOP_SALE_WOMAN"
+    },
+    "ARTIST": {
+      "strip": "ARTIST"
+    },
+    "CAMERAMAN": {
+      "strip": "CAMERAMAN"
+    },
+    "DEVON_EMPLOYEE": {
+      "strip": "DEVON_EMPLOYEE"
+    },
+    "AQUA_MEMBER_M": {
+      "strip": "AQUA_MEMBER_M"
+    },
+    "AQUA_MEMBER_F": {
+      "strip": "AQUA_MEMBER_F"
+    },
+    "MAGMA_MEMBER_M": {
+      "strip": "MAGMA_MEMBER_M"
+    },
+    "MAGMA_MEMBER_F": {
+      "strip": "MAGMA_MEMBER_F"
+    },
+    "SIDNEY": {
+      "strip": "SIDNEY"
+    },
+    "PHOEBE": {
+      "strip": "PHOEBE"
+    },
+    "GLACIA": {
+      "strip": "GLACIA"
+    },
+    "DRAKE": {
+      "strip": "DRAKE"
+    },
+    "ROXANNE": {
+      "strip": "ROXANNE"
+    },
+    "BRAWLY": {
+      "strip": "BRAWLY"
+    },
+    "WATTSON": {
+      "strip": "WATTSON"
+    },
+    "FLANNERY": {
+      "strip": "FLANNERY"
+    },
+    "NORMAN": {
+      "strip": "NORMAN"
+    },
+    "WINONA": {
+      "strip": "WINONA"
+    },
+    "TATE": {
+      "strip": "TATE"
+    },
+    "LIZA": {
+      "strip": "LIZA"
+    },
+    "JUAN": {
+      "strip": "JUAN"
+    },
+    "WALLACE": {
+      "strip": "WALLACE"
+    },
+    "STEVEN": {
+      "strip": "STEVEN"
+    },
+    "WALLY": {
+      "strip": "WALLY"
+    },
+    "ARCHIE": {
+      "strip": "ARCHIE"
+    },
+    "MAXIE": {
+      "strip": "MAXIE"
+    },
+    "MOM": {
+      "strip": "MOM_RSE"
+    },
+    "LITTLE_BOY_3": {
+      "strip": "LITTLE_BOY_3"
+    },
+    "HOT_SPRINGS_OLD_WOMAN": {
+      "strip": "HOT_SPRINGS_OLD_WOMAN"
+    },
+    "CONTEST_JUDGE": {
+      "strip": "CONTEST_JUDGE"
+    },
+    "MYSTERY_GIFT_MAN": {
+      "strip": "MYSTERY_GIFT_MAN"
+    },
+    "CYCLING_TRIATHLETE_F": {
+      "strip": "CYCLING_TRIATHLETE_F"
     }
   }
 }

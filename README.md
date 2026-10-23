@@ -142,11 +142,19 @@ python3 tools/npc_convert.py recipe tools/recipes/community.json "<folder holdin
 - **FR/LG (60):** all eight gym leaders, the Elite Four, Giovanni, Team Rocket, Oak, Bill, Daisy, Mom, Mr. Fuji, Pokémon Center and Mart staff, and most trainer classes and townsfolk.
 - **R/S/E (35):** the trainer classes, staff and townsfolk Gen 2 shares with Hoenn.
 
-If you haven't imported a game a sprite needs, or no Game Boy game has someone, that NPC comes from the next set instead, like any missing sheet. The sprites stay 16x16, so everyone is Game Boy-sized; standing-only Game Boy NPCs (like Crystal's nurse) walk on their standing frames.
+Everyone no Game Boy game has (14 in FR/LG, 69 in R/S/E: the Hoenn gym leaders, Elite Four, Frontier Brains, Aqua and Magma, Birch, Steven, Wally, tubers, triathletes and the rest) comes from Catwithnojob's Gen 2 Additional NPCs Pack, made in the Gen 2 style from TCG, Monster Race and Robopon characters. These are shipped as strips in `assets/npcs/gbc/strips/`, in the same layout as a Game Boy sprite and in their own colours; GBC 2X borrows them with the map. They're lookalikes, not the characters themselves, so swap any you'd pick differently.
+
+If you haven't imported a game a sprite needs, that NPC comes from the next set instead, like any missing sheet. The sprites stay 16x16, so everyone is Game Boy-sized; standing-only Game Boy NPCs (like Crystal's nurse) walk on their standing frames.
 
 **GBC 2X** is the same set drawn at double size, each Game Boy pixel a 2x2 block in a 32x32 frame. Chunky, a bit bigger than everyone else, and still no art: its meta.json borrows GBC's `gb.json` with `"map": "gbc"` and sets `"scale": 2`.
 
-To change a pick, edit `gb.json`: each entry is a sprite name from `<game>/assets/generated/sprites/` in your install and a palette (`PAL_OW_RED`, `PAL_OW_BLUE`, `PAL_OW_GREEN`, `PAL_OW_BROWN` or `PAL_OW_PINK`). A set with `"source": "gb"` in its meta.json is read this way; `"scale": 2` doubles it and `"map": "<set>"` uses another set's `gb.json`.
+To change a pick, edit `gb.json`: each entry is a sprite name from `<game>/assets/generated/sprites/` in your install and a palette (`PAL_OW_RED`, `PAL_OW_BLUE`, `PAL_OW_GREEN`, `PAL_OW_BROWN` or `PAL_OW_PINK`). A set with `"source": "gb"` in its meta.json is read this way; `"scale": 2` doubles it and `"map": "<set>"` uses another set's `gb.json` and `strips/`. An entry of `{"strip": "NAME"}` uses `strips/NAME.png` instead: 16 wide, 16x16 frames stacked (stand down, up, left, then walk down, up, left, or just the first three), alpha for see-through.
+
+The strips are built from the pack by `tools/make_gbc_strips.py`, from `tools/recipes/gbc_strips.json`. Each strip names a pack sheet and its colour variant (`A` red, `B` blue, `C` green, `D` brown, the same as Crystal's palettes, or `-` for the sheet without a letter), and can be repainted in a Crystal palette (`"recolor": "PAL_OW_RED"`, used for Team Magma) or sat down (`"sit": 2`). It writes the strips and points `gb.json` at them; a sprite from your games always wins over a strip.
+
+```
+python3 tools/make_gbc_strips.py tools/recipes/gbc_strips.json "<pack>/Gen 2 Additional NPCs Pack" .
+```
 
 ### PurpleZaffre's overworlds
 
@@ -197,5 +205,5 @@ DIEGO, TAIGA, ZAFFRE and COMMUNITY are included, used with credit. HGSS is Ninte
 - **DIEGO (included):** overworld sprites by DiegoWT (OW PACK v2), free to use with credit.
 - **ZAFFRE (included):** overworld sprites by PurpleZaffre (Zaffre's Overworlds, from the Ultimate Gen 4 Overworlds Pack), used with credit. Get the full pack from PurpleZaffre's own release, not from this repo.
 - **COMMUNITY (included):** overworld sprites by KyleDove, Jext and Hyo, with some by DiegoWT and Aqua, all free to use with credit.
-- **GBC and GBC 2X:** Gen 1/2 overworld sprites by Nintendo / Game Freak, read from your own imported games; none of it is included.
+- **GBC and GBC 2X:** Gen 1/2 overworld sprites by Nintendo / Game Freak, read from your own imported games; none of it is included. The strips for everyone else (included) are by Catwithnojob (Gen 2 Additional NPCs Pack), free to use with credit.
 - **Sprite data:** which sprite each trainer class uses, and the HGSS overworld model names, come from pret's pokeemerald, pokefirered and pokeheartgold decompilations.

@@ -111,8 +111,9 @@ function npcs.init(mod)
   -- A Game Boy set (meta.json "source": "gb") has no art, only gb.json:
   -- which Gen 1/2 sprite stands in for each Gen 3 NPC, read from the
   -- player's own install (gb.lua). "scale": 2 draws them at double size,
-  -- and "map": "<set>" borrows another set's gb.json instead of its own. -Elvie
-  local gbMaps, gbScale = {}, {}
+  -- and "map": "<set>" borrows another set's gb.json instead of its own,
+-- along with its strips/ folder. -Elvie
+  local gbMaps, gbScale, gbStrips = {}, {}, {}
   local function readGbMap(key)
     local rel = NPCS_DIR .. "/" .. key .. "/gb.json"
     if not mod.assets:info(rel) then return nil end
@@ -129,6 +130,7 @@ function npcs.init(mod)
         local from = type(meta.map) == "string" and meta.map:match("^[%w_%-]+$") and meta.map or key
         gbMaps[key] = readGbMap(from)
         gbScale[key] = tonumber(meta.scale) == 2 and 2 or 1
+        gbStrips[key] = NPCS_DIR .. "/" .. from .. "/strips"
       end
       local label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper()
       for _, family in ipairs(FAMILIES) do
@@ -195,7 +197,7 @@ function npcs.init(mod)
     for _, set in ipairs(sets) do
       if set.key ~= selected and not set.test then table.insert(setKeys, set.key) end
     end
-    return { setKeys = setKeys, npcsDir = NPCS_DIR, gbMaps = gbMaps, gbScale = gbScale }
+    return { setKeys = setKeys, npcsDir = NPCS_DIR, gbMaps = gbMaps, gbScale = gbScale, gbStrips = gbStrips }
   end
 
   local handle = require("mods.facets.gen3").init(mod, resolve())
