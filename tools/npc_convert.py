@@ -8,6 +8,8 @@ one     Convert one charset into a set folder:
           python3 npc_convert.py one 123.png <mod folder> --set hgss --family frlg --name NURSE
         --extra bow.png adds a hand-drawn frame 9 (the nurse's bow, or an
         FR/LG trainer's VS Seeker hand raise), the same size as one frame.
+        --cells picks the cell for each frame when a sheet isn't laid out
+        the usual way (some packs draw a bow into the charset).
 
 recipe  Convert a whole pack from a recipe (see recipes/example.json):
           python3 npc_convert.py recipe hgss.json <pack folder> <mod folder>
@@ -68,7 +70,15 @@ def lowest_row(im):
     return None if bbox is None else bbox[3] - 1
 
 
-def convert(path, extra=None):
+def convert(path, extra=None, order=None):
+    """order: (row, column) for each frame, instead of ORDER, for a sheet
+    laid out its own way; a 10th entry is frame 9 taken from the sheet
+    (a bow drawn into the charset). -Elvie"""
+    order = [tuple(rc) for rc in order] if order else ORDER
+    if len(order) not in (9, 10) or any(len(rc) != 2 or not all(0 <= v < 4 for v in rc) for rc in order):
+        fail(f"{path}: cells must list 9 or 10 [row, column] pairs, each 0-3")
+    if extra and len(order) == 10:
+        fail(f"{path}: frame 9 given twice (a 10th cell and --extra)")
     im = clear_background(Image.open(path))
     w, h = im.size
     if w % 4 or h % 4:
@@ -79,7 +89,7 @@ def convert(path, extra=None):
     cw, ch = im.size[0] // 4, im.size[1] // 4
     if cw > FRAME or ch > FRAME:
         fail(f"{path}: frames are {cw}x{ch} after shrinking by {k}; Facets takes up to {FRAME}x{FRAME}")
-    cells = [im.crop((c * cw, r * ch, (c + 1) * cw, (r + 1) * ch)) for r, c in ORDER]
+    cells = [im.crop((c * cw, r * ch, (c + 1) * cw, (r + 1) * ch)) for r, c in order]
     if extra:
         e = clear_background(Image.open(extra))
         if e.size != (cw, ch) and e.size != (FRAME, FRAME):
@@ -95,7 +105,7 @@ def convert(path, extra=None):
     for i, cell in enumerate(cells):
         dx = (FRAME - cell.size[0]) // 2
         # A hand-drawn frame 9 lines up by its own feet. -Elvie
-        own = lowest_row(cell) if i >= len(ORDER) else low
+        own = lowest_row(cell) if i >= 9 else low
         dy = (FRAME - 2) - (own if own is not None else low)
         bbox = cell.getbbox()
         if bbox and (bbox[1] + dy < 0 or bbox[3] + dy > FRAME):
@@ -149,6 +159,7 @@ def main():
     one.add_argument("--family", required=True, choices=["frlg", "rse"])
     one.add_argument("--name", required=True, help="the game's sprite name, e.g. NURSE")
     one.add_argument("--extra", help="frame 9 (bow or hand raise)")
+    one.add_argument("--cells", help="row,column per frame for a sheet laid out its own way, e.g. \"0,2 3,0 1,0 0,1 0,3 3,1 3,2 1,1 1,3 0,0\"")
     rec = sub.add_parser("recipe")
     rec.add_argument("recipe")
     rec.add_argument("pack")
@@ -156,7 +167,8 @@ def main():
     a = ap.parse_args()
 
     if a.cmd == "one":
-        out, k = convert(a.charset, a.extra)
+        cells = [[int(v) for v in rc.split(",")] for rc in a.cells.split()] if a.cells else None
+        out, k = convert(a.charset, a.extra, cells)
         dest = write(out, a.mod_dir, a.set_key, a.family, a.name)
         ensure_meta(a.mod_dir, a.set_key)
         print(f"{dest} ({out.size[1] // FRAME} frames, shrunk by {k})")
@@ -169,11 +181,11 @@ def main():
     for family in ("frlg", "rse"):
         for name, ref in (recipe.get(family) or {}).items():
             if isinstance(ref, dict):
-                src, extra = ref.get("file"), ref.get("extra")
+                src, extra, cells = ref.get("file"), ref.get("extra"), ref.get("cells")
             else:
-                src, extra = ref, None
+                src, extra, cells = ref, None, None
             out, _ = convert(find_in_pack(a.pack, str(src)),
-                             extra and find_in_pack(a.pack, str(extra)))
+                             extra and find_in_pack(a.pack, str(extra)), cells)
             write(out, a.mod_dir, set_key, family, name)
             count += 1
     ensure_meta(a.mod_dir, set_key, recipe.get("label"), recipe.get("credit"))

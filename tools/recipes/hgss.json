@@ -1,0 +1,166 @@
+{
+  "set": "hgss",
+  "label": "HGSS",
+  "credit": [
+    "HGSS overworld sprites by Nintendo / Game Freak, from Neo-Spriteman's Resource Pack"
+  ],
+  "about": "Pack: Neo-Spriteman's Resource Pack, folder 'HGSS OVERWORLDS/Humans'. File numbers are HGSS's own overworld model indexes (MMODEL_* in pret/pokeheartgold include/constants/mmodel.h). 'confidence' is how sure the match is; 'guess' rows are generic townsfolk with no exact HGSS twin.",
+  "frlg": {
+    "LITTLE_BOY": "HGSS_113",
+    "LITTLE_GIRL": "HGSS_114",
+    "YOUNGSTER": "HGSS_115",
+    "BUG_CATCHER": "HGSS_116",
+    "LASS": "HGSS_117",
+    "WOMAN_1": "HGSS_123",
+    "MAN": "HGSS_120",
+    "FAT_MAN": "HGSS_130",
+    "WOMAN_2": "HGSS_127",
+    "BEAUTY": "HGSS_124",
+    "BALDING_MAN": "HGSS_126",
+    "WOMAN_3": "HGSS_118",
+    "OLD_MAN_1": "HGSS_128",
+    "OLD_WOMAN": "HGSS_129",
+    "CAMPER": "HGSS_141",
+    "PICNICKER": "HGSS_142",
+    "COOLTRAINER_M": "HGSS_122",
+    "COOLTRAINER_F": "HGSS_125",
+    "SWIMMER_M_WATER": "HGSS_138",
+    "SWIMMER_F_WATER": "HGSS_139",
+    "WORKER_M": "HGSS_041",
+    "ROCKET_M": "HGSS_174",
+    "ROCKET_F": "HGSS_173",
+    "GBA_KID": "HGSS_161",
+    "POKE_MANIAC": "HGSS_184",
+    "BIKER": "HGSS_179",
+    "BLACK_BELT": "HGSS_140",
+    "SCIENTIST": "HGSS_136",
+    "HIKER": "HGSS_131",
+    "FISHER": "HGSS_143",
+    "CHANNELER": "HGSS_145",
+    "POLICEMAN": "HGSS_037",
+    "GENTLEMAN": "HGSS_137",
+    "SAILOR": "HGSS_144",
+    "CAPTAIN": "HGSS_182",
+    "NURSE": {
+      "file": "HGSS_133",
+      "cells": [
+        [
+          0,
+          2
+        ],
+        [
+          3,
+          0
+        ],
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          3
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          3,
+          3
+        ]
+      ]
+    },
+    "CABLE_CLUB_RECEPTIONIST": "HGSS_134",
+    "UNION_ROOM_RECEPTIONIST": "HGSS_135",
+    "CLERK": "HGSS_132",
+    "MG_DELIVERYMAN": "HGSS_250",
+    "PROF_OAK": "HGSS_160",
+    "BILL": "HGSS_181",
+    "LANCE": "HGSS_158",
+    "DAISY": "HGSS_191",
+    "BRUNO": "HGSS_156",
+    "BROCK": "HGSS_167",
+    "MISTY": "HGSS_164",
+    "LT_SURGE": "HGSS_162",
+    "ERIKA": "HGSS_165",
+    "KOGA": "HGSS_155",
+    "SABRINA": "HGSS_163",
+    "BLAINE": "HGSS_168",
+    "GIOVANNI": "HGSS_225",
+    "MOM": "HGSS_192"
+  },
+  "confidence": {
+    "frlg": {
+      "LITTLE_BOY": "sure (GSBABYBOY1)",
+      "LITTLE_GIRL": "sure (GSBABYGIRL1)",
+      "YOUNGSTER": "sure (GSBOY2)",
+      "BUG_CATCHER": "sure (GSBOY3)",
+      "LASS": "likely (GSGIRL1)",
+      "WOMAN_1": "guess (GSWOMAN1)",
+      "MAN": "guess (GSMAN1)",
+      "FAT_MAN": "likely (GSBIGMAN)",
+      "WOMAN_2": "guess (MIDDLEWOMAN1_2)",
+      "BEAUTY": "likely (GSWOMAN2)",
+      "BALDING_MAN": "likely (GSMIDDLEMAN1)",
+      "WOMAN_3": "guess (GSGIRL2)",
+      "OLD_MAN_1": "likely (GSOLDMAN1)",
+      "OLD_WOMAN": "sure (GSOLDWOMAN1)",
+      "CAMPER": "sure (CAMPBOY_2)",
+      "PICNICKER": "sure (PICNICGIRL_2)",
+      "COOLTRAINER_M": "likely (GSMAN3)",
+      "COOLTRAINER_F": "likely (GSWOMAN3)",
+      "SWIMMER_M_WATER": "likely (GSSWIMMERM)",
+      "SWIMMER_F_WATER": "likely (GSSWIMMERW)",
+      "WORKER_M": "sure (WORKMAN)",
+      "ROCKET_M": "sure (ROCKETM)",
+      "ROCKET_F": "sure (ROCKETW)",
+      "GBA_KID": "sure (GSDSBOY)",
+      "POKE_MANIAC": "sure (MANIA)",
+      "BIKER": "sure (GANG)",
+      "BLACK_BELT": "sure (GSFIGHTER)",
+      "SCIENTIST": "likely (GSASSISTANTM)",
+      "HIKER": "sure (MOUNT_2)",
+      "FISHER": "sure (FISHING_2)",
+      "CHANNELER": "sure (MYSTERY_2)",
+      "POLICEMAN": "sure (POLICEMAN)",
+      "GENTLEMAN": "sure (GSGENTLEMAN)",
+      "SAILOR": "sure (SEAMAN_2)",
+      "CAPTAIN": "sure (CAPTAIN)",
+      "NURSE": "sure (PCWOMAN1); this sheet has her bows drawn into the stand-down and last walk-up cells, so 'cells' puts her standing pose back and uses the front-facing bow as frame 9 (the deep bow, from above, reads as her back at this size)",
+      "CABLE_CLUB_RECEPTIONIST": "guess (PCWOMAN2)",
+      "UNION_ROOM_RECEPTIONIST": "guess (PCWOMAN3)",
+      "CLERK": "sure (SHOPM1_2)",
+      "MG_DELIVERYMAN": "likely (DELIVERY2)",
+      "PROF_OAK": "sure (OOKIDO)",
+      "BILL": "sure (MASAKI)",
+      "LANCE": "sure (WATARU)",
+      "DAISY": "sure (NANAMI)",
+      "BRUNO": "sure (GSBIGFOUR3)",
+      "BROCK": "sure (GSLEADER14)",
+      "MISTY": "sure (GSLEADER11)",
+      "LT_SURGE": "sure (GSLEADER9)",
+      "ERIKA": "sure (GSLEADER12)",
+      "KOGA": "sure (GSBIGFOUR2)",
+      "SABRINA": "sure (GSLEADER10)",
+      "BLAINE": "sure (GSLEADER15)",
+      "GIOVANNI": "sure (SAKAKI)",
+      "MOM": "sure (REDMAMA)"
+    }
+  }
+}

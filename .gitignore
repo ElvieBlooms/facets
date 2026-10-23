@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
 tests/out/
+
+# Converted art stays on your machine; only the test set is shipped. -Elvie
+assets/npcs/*
+!assets/npcs/test_frames/
