@@ -1,3 +1,5 @@
+<img width="910" height="568" alt="facets-gem-labelled-logo" src="https://github.com/user-attachments/assets/ff8c5589-1c21-4dc4-95e4-0cfa1d08c593" />
+
 # Facets
 
 NPC overworld sprites for the Gen 3 games in gen1recomp: FireRed, LeafGreen, Ruby, Sapphire and Emerald. Townsfolk, trainers, nurses, gym leaders and villains can each get new art, one sheet at a time. Anything without a sheet stays the game's own.
