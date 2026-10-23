@@ -4,7 +4,7 @@ NPC overworld sprites for the Gen 3 games in gen1recomp: FireRed, LeafGreen, Rub
 
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
-**Status: 0.1.0.** Works in all five games. It ships with four sprite sets, all free to use with credit:
+**Status: 0.2.0.** Works in all five games. It ships with four sprite sets, all free to use with credit:
 
 - **DIEGO:** DiegoWT's Black/White-style trainers and townsfolk.
 - **TAIGA:** Taiga's ORAS-style trainers.
@@ -12,6 +12,8 @@ Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald
 - **COMMUNITY:** custom sprites by KyleDove, Jext and Hyo (with some by DiegoWT and Aqua) for everyone else: Kanto's gym leaders, Bruno and Lance, Team Rocket, Oak, Bill and Daisy, Hoenn's Elite Four, Aqua and Magma, Birch, Wally, Steven, the Frontier Brains, Pokémon Center staff and townsfolk.
 
 Together they give **every person in all five games** new art, with no converting needed: 74 NPCs in FireRed/LeafGreen, 104 in Emerald and 98 in Ruby/Sapphire. That's every trainer, townsperson, staff member and story character; checked against the games' sprite tables and pret's maps. Pokémon and objects keep the game's art. HGSS art (Nintendo's) isn't included; its recipe is still there if you'd like HGSS's look for the NPCs it has. A numbered TEST FRAMES set is included for checking frame order; it's only used when picked.
+
+There are also two Game Boy looks, **GBC** and **GBC 2X** (below): Gen 1/2 overworld sprites read from your own imported Crystal, Gold, Silver, Yellow, Red or Blue, with Catwithnojob's Gen 2-style sprites for everyone the Game Boy games never had. With a Gen 1/2 game imported, they cover every person in all five games too.
 
 ## Options
 
