@@ -108,13 +108,33 @@ function npcs.init(mod)
     { id = "frlg", suffix = "Frlg", label = "FR/LG" },
     { id = "rse",  suffix = "Rse",  label = "R/S/E" },
   }
+  -- A Game Boy set (meta.json "source": "gb") has no art, only gb.json:
+  -- which Gen 1/2 sprite stands in for each Gen 3 NPC, read from the
+  -- player's own install (gb.lua). "scale": 2 draws them at double size,
+  -- and "map": "<set>" borrows another set's gb.json instead of its own. -Elvie
+  local gbMaps, gbScale = {}, {}
+  local function readGbMap(key)
+    local rel = NPCS_DIR .. "/" .. key .. "/gb.json"
+    if not mod.assets:info(rel) then return nil end
+    local ok, decoded = pcall(decodeJson, mod:read(rel))
+    if ok and type(decoded) == "table" then return decoded end
+    mod.log:warn("%s/gb.json couldn't be read: %s", key, tostring(decoded))
+    return nil
+  end
   local setsFor, any = { frlg = {}, rse = {} }, false
   for _, key in ipairs(mod.assets:list(NPCS_DIR)) do
     if isDirectory(NPCS_DIR .. "/" .. key) then
       local meta = readMeta(key)
+      if meta.source == "gb" then
+        local from = type(meta.map) == "string" and meta.map:match("^[%w_%-]+$") and meta.map or key
+        gbMaps[key] = readGbMap(from)
+        gbScale[key] = tonumber(meta.scale) == 2 and 2 or 1
+      end
       local label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper()
       for _, family in ipairs(FAMILIES) do
-        if isDirectory(NPCS_DIR .. "/" .. key .. "/gen3/" .. family.id) then
+        local map = gbMaps[key]
+        if isDirectory(NPCS_DIR .. "/" .. key .. "/gen3/" .. family.id)
+            or (map and type(map[family.id]) == "table" and next(map[family.id]) ~= nil) then
           table.insert(setsFor[family.id], { label = label, key = key, test = meta.test == true })
           any = true
         end
@@ -175,7 +195,7 @@ function npcs.init(mod)
     for _, set in ipairs(sets) do
       if set.key ~= selected and not set.test then table.insert(setKeys, set.key) end
     end
-    return { setKeys = setKeys, npcsDir = NPCS_DIR }
+    return { setKeys = setKeys, npcsDir = NPCS_DIR, gbMaps = gbMaps, gbScale = gbScale }
   end
 
   local handle = require("mods.facets.gen3").init(mod, resolve())

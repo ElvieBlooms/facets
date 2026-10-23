@@ -57,9 +57,52 @@ local function pngSize(path)
   end
   return u32(17), u32(21)
 end
+-- Pixel ImageData for Game Boy sheets (no PNG decoding headless: the
+-- cached Game Boy sprites are fixtures below, handed out by a CacheFs stub). -Elvie
+local function pixelData(w, h)
+  local px = {}
+  return {
+    getDimensions = function() return w, h end,
+    getPixel = function(_, x, y) local p = px[y * w + x] or { 0, 0, 0, 0 }; return p[1], p[2], p[3], p[4] end,
+    setPixel = function(_, x, y, r, g, b, a)
+      assert(x >= 0 and x < w and y >= 0 and y < h, ("setPixel %d,%d outside %dx%d"):format(x, y, w, h))
+      px[y * w + x] = { r, g, b, a }
+    end,
+  }
+end
+-- A 16x96 strip of 6 frames: frame f (0-5) has a black pixel at (f, 15)
+-- and a skin pixel (grey 170) at (15, f); the rest is white (see-through). -Elvie
+local function gbStrip(frames, drawn)
+  local d = pixelData(16, 16 * frames)
+  for y = 0, 16 * frames - 1 do for x = 0, 15 do d:setPixel(x, y, 1, 1, 1, 1) end end
+  for f = 0, (drawn or frames) - 1 do
+    d:setPixel(f, f * 16 + 15, 0, 0, 0, 1)
+    d:setPixel(15, f * 16 + f, 170 / 255, 170 / 255, 170 / 255, 1)
+  end
+  return d
+end
+local GB_FILES = {
+  ["crystal/assets/generated/sprites/gbnurse.png"] = function() return gbStrip(3) end,
+  ["red/assets/generated/sprites/gbkid.png"] = function() return gbStrip(6) end,
+  ["crystal/assets/generated/sprites/gbbiker.png"] = function() return gbStrip(6) end,
+  ["crystal/assets/generated/sprites/gbcaptain.png"] = function() return gbStrip(6, 3) end,
+  ["red/assets/generated/sprites/gbyoung.png"] = function() return gbStrip(6) end,
+  ["crystal/assets/generated/sprites/gbyoung.png"] = function() return gbStrip(6) end,
+}
+package.preload["src.import.CacheFs"] = function()
+  return { readAt = function(rel) return GB_FILES[rel] and ("bytes:" .. rel) or nil end }
+end
 love = {
+  data = { newByteData = function(str) return { bytes = str } end },
   image = {
-    newImageData = function(path)
+    newImageData = function(a, b)
+      if type(a) == "number" then return pixelData(a, b) end
+      if type(a) == "table" and a.bytes then
+        local make = GB_FILES[a.bytes:sub(7)]
+        assert(make, "no fixture for " .. a.bytes)
+        return make()
+      end
+      local path = a
       local w, h = pngSize(path)
       return { path = path, getDimensions = function() return w, h end }
     end,
@@ -384,6 +427,108 @@ do
   mod.options:set("setFrlg", "aaa_test")
   check(Ow.get(64) ~= vanilla[64], "test set: used when picked")
   check(Ow.get(18) ~= vanilla[18], "test set: real sets still fill its gaps")
+end
+
+-- Game Boy sets: sprites read from the player's install (gb.lua)
+-- --------------------------------------------------
+do
+  local Ow = fresh("firered")
+  local vanilla = {}
+  for id, r in pairs(Ow._loaded) do vanilla[id] = r end
+  local MOD_G = OUT .. "/modG"
+  copy(TF .. "frlg/BROCK.png", MOD_G .. "/assets/npcs/real/gen3/frlg/LASS.png")
+  sh(("mkdir -p '%s'"):format(MOD_G .. "/assets/npcs/gb"))
+  local f = io.open(MOD_G .. "/assets/npcs/gb/meta.json", "w"); f:write('{"label":"AAA GB","source":"gb"}'); f:close()
+  f = io.open(MOD_G .. "/assets/npcs/gb/gb.json", "w")
+  f:write([[{"frlg": {"NURSE": {"sprite": "gbnurse", "palette": "PAL_OW_RED"},
+    "YOUNGSTER": {"sprite": "gbyoung", "palette": "PAL_OW_BLUE"},
+    "LITTLE_BOY": {"sprite": "gbkid", "palette": "PAL_OW_GREEN"},
+    "BIKER": {"sprite": "gbbiker", "palette": "PAL_OW_BROWN"},
+    "LASS": {"sprite": "nobody_has_this", "palette": "PAL_OW_RED"},
+    "CAPTAIN": {"sprite": "gbcaptain", "palette": "PAL_OW_BROWN"},
+    "RED_NORMAL": {"sprite": "gbyoung", "palette": "PAL_OW_RED"}}}]]); f:close()
+  f = io.open(MOD_G .. "/assets/npcs/real/meta.json", "w"); f:write('{"label":"REAL"}'); f:close()
+  sh(("mkdir -p '%s'"):format(MOD_G .. "/assets/npcs/gb2"))
+  f = io.open(MOD_G .. "/assets/npcs/gb2/meta.json", "w"); f:write('{"label":"AAA GB 2X","source":"gb","scale":2,"map":"gb"}'); f:close()
+  local mod = newMod(MOD_G)
+  require("mods.facets.npcs").init(mod)
+  eq(mod.rows[2].default, "gb", "gb: a Game Boy set is offered for FR/LG")
+  local function px(spr, frame, x, y)
+    local r, g, b, a = spr.imageData:getPixel(x, frame * spr.height + y)
+    return math.floor(r * 255 + 0.5), math.floor(g * 255 + 0.5), math.floor(b * 255 + 0.5), a
+  end
+
+  local nurse = Ow.get(64)
+  check(nurse ~= vanilla[64], "gb: NURSE built from Crystal's sprite")
+  eq(nurse.width, 16, "gb: NURSE 16 wide (the game's size)"); eq(nurse.height, 32, "gb: NURSE 32 tall")
+  eq(nurse.frameCount, 9, "gb: 9 frames")
+  local r, g, b = px(nurse, 0, 0, 30)
+  eq(r + g + b, 0, "gb: black marker on the feet row (row 30)")
+  r, g, b = px(nurse, 0, 15, 15)
+  eq(("%d,%d,%d"):format(r, g, b), "255,156,82", "gb: grey 170 becomes Crystal's skin colour")
+  local _, _, _, a0 = px(nurse, 0, 5, 20)
+  eq(a0, 0, "gb: white is see-through")
+  r = px(nurse, 3, 0, 30)
+  eq(r, 0, "gb: standing-only sprite: walk frames reuse the stand frames")
+
+  local young = Ow.get(18)
+  eq(young.imageData:getDimensions(), 16, "gb: YOUNGSTER built")
+  r = px(young, 3, 3, 30); eq(r, 0, "gb: frame 3 is the walk-down frame")
+  r = px(young, 4, 12, 30); eq(r, 0, "gb: frame 4 is the walk-down frame mirrored")
+  r = px(young, 8, 2, 30); eq(r, 0, "gb: frame 8 (walk left, second step) is the stand-left frame")
+  r, g, b = px(young, 0, 15, 15)
+  eq(("%d,%d,%d"):format(r, g, b), "255,156,82", "gb: Crystal's copy used before Red's")
+
+  local kid = Ow.get(16)
+  eq(kid.height, 16, "gb: LITTLE_BOY stays 16x16"); r = px(kid, 0, 0, 15); eq(r, 0, "gb: 16x16 feet on row 15")
+  local biker = Ow.get(53)
+  eq(biker.width, 32, "gb: BIKER 32 wide"); r = px(biker, 0, 8, 30); eq(r, 0, "gb: centred in a 32-wide frame")
+
+  local cap = Ow.get(63)
+  r = px(cap, 3, 0, 30); eq(r, 0, "gb: 6-frame strip with blank walk frames walks on its stand frames")
+
+  check(Ow.get(22) ~= vanilla[22], "gb: LASS (not in any install) falls through to the next set")
+  eq(Ow.get(22).image.data.path:match("/(real)/"), "real", "gb: ...REAL's sheet")
+  eq(Ow.get(0), vanilla[0], "gb: the player is never replaced, even when mapped")
+  eq(Ow.get(80), vanilla[80], "gb: unmapped BROCK is the game's own")
+  local warns = 0
+  for _, l in ipairs(mod.logs) do if l:match("^warn") then warns = warns + 1 end end
+  eq(warns, 0, "gb: nothing logged")
+
+  -- 2x: the same map (borrowed), every pixel a 2x2 block, 32x32 frames -Elvie
+  local labels = {}
+  for _, c in ipairs(mod.rows[2].choices) do labels[#labels + 1] = c[2] end
+  eq(table.concat(labels, ","), "gb,gb2,real,__off", "gb2: a 2x set with a borrowed map is offered")
+  mod.options:set("setFrlg", "gb2")
+  local n2 = Ow.get(64)
+  eq(n2.width, 32, "gb2: NURSE 32 wide"); eq(n2.height, 32, "gb2: NURSE 32 tall"); eq(n2.frameCount, 9, "gb2: 9 frames")
+  local ok2 = true
+  for _, p in ipairs({ { 0, 30 }, { 1, 30 }, { 0, 31 }, { 1, 31 } }) do
+    local rr, gg, bb, aa = px(n2, 0, p[1], p[2]); ok2 = ok2 and aa == 1 and rr + gg + bb == 0
+  end
+  check(ok2, "gb2: the black marker is a 2x2 block on the bottom rows")
+  r, g, b = px(n2, 0, 30, 0)
+  eq(("%d,%d,%d"):format(r, g, b), "255,156,82", "gb2: skin pixel scaled to the top-right corner")
+  local k2 = Ow.get(16)
+  eq(k2.width .. "x" .. k2.height, "32x32", "gb2: LITTLE_BOY 32x32 over the game's 16x16")
+  local b2 = Ow.get(53)
+  eq(b2.width .. "x" .. b2.height, "32x32", "gb2: BIKER 32x32")
+  r = px(Ow.get(18), 4, 24, 31); eq(r, 0, "gb2: mirrored walk frame scaled too")
+  check(Ow.get(22) ~= vanilla[22], "gb2: LASS still falls through to the next set")
+end
+
+-- The repo's own sets: labels in the options, GBC 2X borrowing GBC's map -Elvie
+do
+  fresh("firered")
+  local mod = newMod(ROOT)
+  require("mods.facets.npcs").init(mod)
+  local labels = {}
+  for _, c in ipairs(mod.rows[2].choices) do labels[c[2]] = c[1] end
+  if labels.gbc then
+    eq(labels.gbc, "GBC", "shipped: GBC is offered")
+    eq(labels.gbc_2x, "GBC 2X", "shipped: GBC 2X is offered (borrowing GBC's map)")
+  end
+  eq(mod.rows[2].choices[#mod.rows[2].choices - 1][1], "TEST FRAMES", "shipped: TEST FRAMES listed last")
 end
 
 print(("%d passed, %d failed"):format(passed, failed))

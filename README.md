@@ -135,6 +135,19 @@ The art was gathered for Facets from KyleDove, Jext and Hyo, with some by DiegoW
 python3 tools/npc_convert.py recipe tools/recipes/community.json "<folder holding Facets Missing and Townsfolk>" .
 ```
 
+### GBC (from your own install)
+
+**GBC** gives Kanto and Hoenn a pseudo-demake look: the Gen 1/2 overworld sprites at their original 1x size, coloured with Crystal's daytime NPC palettes. It ships no art. `assets/npcs/gbc/gb.json` only says which Game Boy sprite and palette stands in for each NPC, and Facets reads the sprites from your gen1recomp install when the game starts. It looks in your imported Crystal first, then Gold, Silver, Yellow, Red and Blue, so Gen 1-only characters like Agatha, Lorelei and Mr. Fuji come from Yellow or Red.
+
+- **FR/LG (60):** all eight gym leaders, the Elite Four, Giovanni, Team Rocket, Oak, Bill, Daisy, Mom, Mr. Fuji, Pokémon Center and Mart staff, and most trainer classes and townsfolk.
+- **R/S/E (35):** the trainer classes, staff and townsfolk Gen 2 shares with Hoenn.
+
+If you haven't imported a game a sprite needs, or no Game Boy game has someone, that NPC comes from the next set instead, like any missing sheet. The sprites stay 16x16, so everyone is Game Boy-sized; standing-only Game Boy NPCs (like Crystal's nurse) walk on their standing frames.
+
+**GBC 2X** is the same set drawn at double size, each Game Boy pixel a 2x2 block in a 32x32 frame. Chunky, a bit bigger than everyone else, and still no art: its meta.json borrows GBC's `gb.json` with `"map": "gbc"` and sets `"scale": 2`.
+
+To change a pick, edit `gb.json`: each entry is a sprite name from `<game>/assets/generated/sprites/` in your install and a palette (`PAL_OW_RED`, `PAL_OW_BLUE`, `PAL_OW_GREEN`, `PAL_OW_BROWN` or `PAL_OW_PINK`). A set with `"source": "gb"` in its meta.json is read this way; `"scale": 2` doubles it and `"map": "<set>"` uses another set's `gb.json`.
+
 ### PurpleZaffre's overworlds
 
 `tools/recipes/zaffre.json` uses PurpleZaffre's own sheets (the `NPC_Z` files in the Ultimate Gen 4 Overworlds Pack). It's a fourth set, **ZAFFRE**, for the named characters no other pack has:
@@ -184,4 +197,5 @@ DIEGO, TAIGA, ZAFFRE and COMMUNITY are included, used with credit. HGSS is Ninte
 - **DIEGO (included):** overworld sprites by DiegoWT (OW PACK v2), free to use with credit.
 - **ZAFFRE (included):** overworld sprites by PurpleZaffre (Zaffre's Overworlds, from the Ultimate Gen 4 Overworlds Pack), used with credit. Get the full pack from PurpleZaffre's own release, not from this repo.
 - **COMMUNITY (included):** overworld sprites by KyleDove, Jext and Hyo, with some by DiegoWT and Aqua, all free to use with credit.
+- **GBC and GBC 2X:** Gen 1/2 overworld sprites by Nintendo / Game Freak, read from your own imported games; none of it is included.
 - **Sprite data:** which sprite each trainer class uses, and the HGSS overworld model names, come from pret's pokeemerald, pokefirered and pokeheartgold decompilations.

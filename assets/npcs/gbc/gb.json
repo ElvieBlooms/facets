@@ -1,0 +1,386 @@
+{
+  "frlg": {
+    "LITTLE_BOY": {
+      "sprite": "little_boy",
+      "palette": "PAL_OW_BLUE"
+    },
+    "LITTLE_GIRL": {
+      "sprite": "little_girl",
+      "palette": "PAL_OW_RED"
+    },
+    "YOUNGSTER": {
+      "sprite": "youngster",
+      "palette": "PAL_OW_BLUE"
+    },
+    "BOY": {
+      "sprite": "youngster",
+      "palette": "PAL_OW_RED"
+    },
+    "BUG_CATCHER": {
+      "sprite": "bug_catcher",
+      "palette": "PAL_OW_BLUE"
+    },
+    "LASS": {
+      "sprite": "lass",
+      "palette": "PAL_OW_RED"
+    },
+    "WOMAN_1": {
+      "sprite": "girl",
+      "palette": "PAL_OW_RED"
+    },
+    "MAN": {
+      "sprite": "middle_aged_man",
+      "palette": "PAL_OW_BROWN"
+    },
+    "ROCKER": {
+      "sprite": "rocker",
+      "palette": "PAL_OW_GREEN"
+    },
+    "WOMAN_2": {
+      "sprite": "middle_aged_woman",
+      "palette": "PAL_OW_RED"
+    },
+    "BEAUTY": {
+      "sprite": "beauty",
+      "palette": "PAL_OW_BLUE"
+    },
+    "BALDING_MAN": {
+      "sprite": "balding_guy",
+      "palette": "PAL_OW_BROWN"
+    },
+    "WOMAN_3": {
+      "sprite": "brunette_girl",
+      "palette": "PAL_OW_BROWN"
+    },
+    "OLD_MAN_1": {
+      "sprite": "gambler",
+      "palette": "PAL_OW_BLUE"
+    },
+    "OLD_MAN_2": {
+      "sprite": "gramps",
+      "palette": "PAL_OW_BROWN"
+    },
+    "OLD_MAN_LYING_DOWN": {
+      "sprite": "gambler_asleep",
+      "palette": "PAL_OW_BROWN"
+    },
+    "OLD_WOMAN": {
+      "sprite": "granny",
+      "palette": "PAL_OW_BROWN"
+    },
+    "CAMPER": {
+      "sprite": "youngster",
+      "palette": "PAL_OW_GREEN"
+    },
+    "PICNICKER": {
+      "sprite": "lass",
+      "palette": "PAL_OW_GREEN"
+    },
+    "COOLTRAINER_M": {
+      "sprite": "cooltrainer_m",
+      "palette": "PAL_OW_BLUE"
+    },
+    "COOLTRAINER_F": {
+      "sprite": "cooltrainer_f",
+      "palette": "PAL_OW_BLUE"
+    },
+    "SWIMMER_M_WATER": {
+      "sprite": "swimmer_guy",
+      "palette": "PAL_OW_BLUE"
+    },
+    "SWIMMER_F_WATER": {
+      "sprite": "swimmer_girl",
+      "palette": "PAL_OW_BLUE"
+    },
+    "ROCKET_M": {
+      "sprite": "rocket",
+      "palette": "PAL_OW_BROWN"
+    },
+    "ROCKET_F": {
+      "sprite": "rocket_girl",
+      "palette": "PAL_OW_BROWN"
+    },
+    "GBA_KID": {
+      "sprite": "gameboy_kid",
+      "palette": "PAL_OW_GREEN"
+    },
+    "POKE_MANIAC": {
+      "sprite": "super_nerd",
+      "palette": "PAL_OW_BLUE"
+    },
+    "BIKER": {
+      "sprite": "biker",
+      "palette": "PAL_OW_BROWN"
+    },
+    "BLACK_BELT": {
+      "sprite": "black_belt",
+      "palette": "PAL_OW_BROWN"
+    },
+    "SCIENTIST": {
+      "sprite": "scientist",
+      "palette": "PAL_OW_BLUE"
+    },
+    "HIKER": {
+      "sprite": "hiker",
+      "palette": "PAL_OW_BROWN"
+    },
+    "FISHER": {
+      "sprite": "fisher",
+      "palette": "PAL_OW_BLUE"
+    },
+    "CHANNELER": {
+      "sprite": "channeler",
+      "palette": "PAL_OW_RED"
+    },
+    "CHEF": {
+      "sprite": "cook",
+      "palette": "PAL_OW_BROWN"
+    },
+    "POLICEMAN": {
+      "sprite": "officer",
+      "palette": "PAL_OW_BLUE"
+    },
+    "GENTLEMAN": {
+      "sprite": "gentleman",
+      "palette": "PAL_OW_BLUE"
+    },
+    "SAILOR": {
+      "sprite": "sailor",
+      "palette": "PAL_OW_BLUE"
+    },
+    "CAPTAIN": {
+      "sprite": "captain",
+      "palette": "PAL_OW_BROWN"
+    },
+    "NURSE": {
+      "sprite": "nurse",
+      "palette": "PAL_OW_RED"
+    },
+    "CABLE_CLUB_RECEPTIONIST": {
+      "sprite": "link_receptionist",
+      "palette": "PAL_OW_RED"
+    },
+    "UNION_ROOM_RECEPTIONIST": {
+      "sprite": "receptionist",
+      "palette": "PAL_OW_BLUE"
+    },
+    "CLERK": {
+      "sprite": "clerk",
+      "palette": "PAL_OW_GREEN"
+    },
+    "PROF_OAK": {
+      "sprite": "oak",
+      "palette": "PAL_OW_BROWN"
+    },
+    "BILL": {
+      "sprite": "bill",
+      "palette": "PAL_OW_RED"
+    },
+    "LANCE": {
+      "sprite": "lance",
+      "palette": "PAL_OW_RED"
+    },
+    "AGATHA": {
+      "sprite": "agatha",
+      "palette": "PAL_OW_BLUE"
+    },
+    "DAISY": {
+      "sprite": "daisy",
+      "palette": "PAL_OW_BLUE"
+    },
+    "LORELEI": {
+      "sprite": "lorelei",
+      "palette": "PAL_OW_RED"
+    },
+    "MR_FUJI": {
+      "sprite": "mr_fuji",
+      "palette": "PAL_OW_BROWN"
+    },
+    "BRUNO": {
+      "sprite": "bruno",
+      "palette": "PAL_OW_RED"
+    },
+    "BROCK": {
+      "sprite": "brock",
+      "palette": "PAL_OW_BROWN"
+    },
+    "MISTY": {
+      "sprite": "misty",
+      "palette": "PAL_OW_BLUE"
+    },
+    "LT_SURGE": {
+      "sprite": "surge",
+      "palette": "PAL_OW_GREEN"
+    },
+    "ERIKA": {
+      "sprite": "erika",
+      "palette": "PAL_OW_GREEN"
+    },
+    "KOGA": {
+      "sprite": "koga",
+      "palette": "PAL_OW_BROWN"
+    },
+    "SABRINA": {
+      "sprite": "sabrina",
+      "palette": "PAL_OW_RED"
+    },
+    "BLAINE": {
+      "sprite": "blaine",
+      "palette": "PAL_OW_BROWN"
+    },
+    "GIOVANNI": {
+      "sprite": "giovanni",
+      "palette": "PAL_OW_BROWN"
+    },
+    "MOM": {
+      "sprite": "reds_mom",
+      "palette": "PAL_OW_RED"
+    },
+    "GYM_GUY": {
+      "sprite": "gym_guide",
+      "palette": "PAL_OW_BLUE"
+    }
+  },
+  "rse": {
+    "LITTLE_BOY": {
+      "sprite": "little_boy",
+      "palette": "PAL_OW_BLUE"
+    },
+    "LITTLE_GIRL": {
+      "sprite": "little_girl",
+      "palette": "PAL_OW_RED"
+    },
+    "TWIN": {
+      "sprite": "twin",
+      "palette": "PAL_OW_RED"
+    },
+    "YOUNGSTER": {
+      "sprite": "youngster",
+      "palette": "PAL_OW_BLUE"
+    },
+    "BUG_CATCHER": {
+      "sprite": "bug_catcher",
+      "palette": "PAL_OW_BLUE"
+    },
+    "LASS": {
+      "sprite": "lass",
+      "palette": "PAL_OW_RED"
+    },
+    "BEAUTY": {
+      "sprite": "beauty",
+      "palette": "PAL_OW_BLUE"
+    },
+    "CAMPER": {
+      "sprite": "youngster",
+      "palette": "PAL_OW_GREEN"
+    },
+    "PICNICKER": {
+      "sprite": "lass",
+      "palette": "PAL_OW_GREEN"
+    },
+    "MAN_3": {
+      "sprite": "cooltrainer_m",
+      "palette": "PAL_OW_BLUE"
+    },
+    "WOMAN_5": {
+      "sprite": "cooltrainer_f",
+      "palette": "PAL_OW_BLUE"
+    },
+    "MAN_5": {
+      "sprite": "rocker",
+      "palette": "PAL_OW_GREEN"
+    },
+    "POKEFAN_M": {
+      "sprite": "pokefan_m",
+      "palette": "PAL_OW_BROWN"
+    },
+    "POKEFAN_F": {
+      "sprite": "pokefan_f",
+      "palette": "PAL_OW_BROWN"
+    },
+    "MANIAC": {
+      "sprite": "super_nerd",
+      "palette": "PAL_OW_BLUE"
+    },
+    "SWIMMER_M": {
+      "sprite": "swimmer_guy",
+      "palette": "PAL_OW_BLUE"
+    },
+    "SWIMMER_F": {
+      "sprite": "swimmer_girl",
+      "palette": "PAL_OW_BLUE"
+    },
+    "BLACK_BELT": {
+      "sprite": "black_belt",
+      "palette": "PAL_OW_BROWN"
+    },
+    "SCIENTIST_1": {
+      "sprite": "scientist",
+      "palette": "PAL_OW_BLUE"
+    },
+    "SCIENTIST_2": {
+      "sprite": "scientist",
+      "palette": "PAL_OW_GREEN"
+    },
+    "GENTLEMAN": {
+      "sprite": "gentleman",
+      "palette": "PAL_OW_BLUE"
+    },
+    "SAILOR": {
+      "sprite": "sailor",
+      "palette": "PAL_OW_BLUE"
+    },
+    "FISHERMAN": {
+      "sprite": "fisher",
+      "palette": "PAL_OW_BLUE"
+    },
+    "HIKER": {
+      "sprite": "hiker",
+      "palette": "PAL_OW_BROWN"
+    },
+    "EXPERT_M": {
+      "sprite": "sage",
+      "palette": "PAL_OW_BROWN"
+    },
+    "EXPERT_F": {
+      "sprite": "granny",
+      "palette": "PAL_OW_BROWN"
+    },
+    "OLD_MAN": {
+      "sprite": "gramps",
+      "palette": "PAL_OW_BROWN"
+    },
+    "OLD_WOMAN": {
+      "sprite": "granny",
+      "palette": "PAL_OW_BROWN"
+    },
+    "COOK": {
+      "sprite": "cook",
+      "palette": "PAL_OW_BROWN"
+    },
+    "NURSE": {
+      "sprite": "nurse",
+      "palette": "PAL_OW_RED"
+    },
+    "MART_EMPLOYEE": {
+      "sprite": "clerk",
+      "palette": "PAL_OW_GREEN"
+    },
+    "LINK_RECEPTIONIST": {
+      "sprite": "link_receptionist",
+      "palette": "PAL_OW_RED"
+    },
+    "UNION_ROOM_NURSE": {
+      "sprite": "receptionist",
+      "palette": "PAL_OW_BLUE"
+    },
+    "GAMEBOY_KID": {
+      "sprite": "gameboy_kid",
+      "palette": "PAL_OW_GREEN"
+    },
+    "TEALA": {
+      "sprite": "teacher",
+      "palette": "PAL_OW_RED"
+    }
+  }
+}

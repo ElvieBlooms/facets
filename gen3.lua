@@ -12,6 +12,7 @@
 -- --------------------------------------------------
 
 local names = require("mods.facets.names")
+local gb = require("mods.facets.gb")
 
 local gen3 = {}
 
@@ -57,22 +58,37 @@ function gen3.init(mod, ctx)
 
   -- The current choice. Everything below reads these, so configure() only
   -- has to replace them. -Elvie
-  local bases = {}    -- folders to look in, in fallback order
-  local fileFor       -- [graphics id] = file; nil = look again
+  local bases = {}    -- sets to look in, in fallback order: { dir, gb = map or nil }
+  local fileFor       -- [graphics id] = file, or a Game Boy entry; nil = look again
   local built         -- [vanilla record] = our record, or false if it failed
   local replaced = {} -- [graphics id] = true once handed out, for cache drops
 
   -- Lists each folder once and keeps the first file found for each id,
   -- by the sprite's own name, then its other-game alias. File names are
-  -- matched without regard to case. -Elvie
+  -- matched without regard to case. A Game Boy set offers the names in its
+  -- map whose sprite the player's install has, so a missing one falls
+  -- through to the next set like a missing file. -Elvie
   local function resolveFiles()
     fileFor = {}
     local filesIn = {}
     for i, base in ipairs(bases) do
       local byName = {}
-      for _, file in ipairs(mod.assets:list(base)) do
-        local stem = file:match("^(.+)%.[Pp][Nn][Gg]$")
-        if stem then byName[stem:upper()] = base .. "/" .. file end
+      if base.gb then
+        for name, entry in pairs(base.gb) do
+          if type(entry) == "string" then entry = { sprite = entry } end
+          if type(entry) == "table" and type(entry.sprite) == "string" then
+            local src, game = gb.read(entry.sprite, entry.games)
+            if src then
+              byName[name:upper()] = { gb = entry, src = src, scale = base.scale,
+                label = ("%s (%s's %s)"):format(name:upper(), game, entry.sprite) }
+            end
+          end
+        end
+      else
+        for _, file in ipairs(mod.assets:list(base.dir)) do
+          local stem = file:match("^(.+)%.[Pp][Nn][Gg]$")
+          if stem then byName[stem:upper()] = base.dir .. "/" .. file end
+        end
       end
       filesIn[i] = byName
     end
@@ -96,7 +112,8 @@ function gen3.init(mod, ctx)
   -- FR/LG trainers have a 10th frame (the VS Seeker hand raise) and the
   -- nurse a bow; with 9 frames those show the standing frame instead,
   -- since the engine only uses frame 9 when frameCount > 9. -Elvie
-  local function build(vanilla, rel, id)
+  local function build(vanilla, ref, id)
+    local rel = type(ref) == "table" and ref.label or ref
     local w0, h0, n0 = vanilla.width, vanilla.height, vanilla.frameCount
     if not (w0 and h0 and n0) then return nil end
     if vanilla.inanimate or n0 < 9 or w0 > WIDE or h0 > WIDE then
@@ -105,7 +122,21 @@ function gen3.init(mod, ctx)
       return nil
     end
     if not (love and love.image and love.graphics) then return nil end
-    local ok, data = pcall(love.image.newImageData, mod.assets:path(rel))
+    local ok, data
+    if type(ref) == "table" then
+      -- Game Boy sprite: built at the game's own size, 9 frames. -Elvie
+      local why
+      local scale = ref.scale == 2 and 2 or 1
+      local fw0, fh0 = w0, h0
+      if scale == 2 then fw0, fh0 = WIDE, WIDE end
+      ok, data, why = pcall(gb.sheet, ref.src, ref.gb.palette, fw0, fh0, scale)
+      if ok and not data then
+        warnOnce(mod, rel, "%s: %s; skipping it", rel, tostring(why))
+        return nil
+      end
+    else
+      ok, data = pcall(love.image.newImageData, mod.assets:path(rel))
+    end
     if not ok or not data then
       warnOnce(mod, rel, "could not load %s; skipping it", rel)
       return nil
@@ -180,7 +211,10 @@ function gen3.init(mod, ctx)
     for _, key in ipairs(newCtx and newCtx.setKeys or {}) do
       if not seen[key] then
         seen[key] = true
-        bases[#bases + 1] = newCtx.npcsDir .. "/" .. key .. "/gen3/" .. family
+        local map = newCtx.gbMaps and newCtx.gbMaps[key]
+        bases[#bases + 1] = { dir = newCtx.npcsDir .. "/" .. key .. "/gen3/" .. family,
+          gb = type(map) == "table" and type(map[family]) == "table" and map[family] or nil,
+          scale = newCtx.gbScale and newCtx.gbScale[key] or 1 }
       end
     end
     fileFor = nil
