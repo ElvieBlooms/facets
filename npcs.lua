@@ -100,7 +100,9 @@ function npcs.init(mod)
   end
 
   -- Sets per family, in label order. A set shows up for a family when it
-  -- has that family's folder. -Elvie
+  -- has that family's folder. A set with "test": true in its meta.json
+  -- (TEST FRAMES) goes last, is never the default, and is only used when
+  -- picked: it never fills gaps in another set. -Elvie
   -- --------------------------------------------------
   local FAMILIES = {
     { id = "frlg", suffix = "Frlg", label = "FR/LG" },
@@ -113,14 +115,17 @@ function npcs.init(mod)
       local label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper()
       for _, family in ipairs(FAMILIES) do
         if isDirectory(NPCS_DIR .. "/" .. key .. "/gen3/" .. family.id) then
-          table.insert(setsFor[family.id], { label = label, key = key })
+          table.insert(setsFor[family.id], { label = label, key = key, test = meta.test == true })
           any = true
         end
       end
     end
   end
   for _, sets in pairs(setsFor) do
-    table.sort(sets, function(a, b) return a.label < b.label end)
+    table.sort(sets, function(a, b)
+      if a.test ~= b.test then return b.test end
+      return a.label < b.label
+    end)
   end
   if not any then
     mod.log:info("no sprite sets with gen3 art in %s; nothing to replace", NPCS_DIR)
@@ -158,7 +163,7 @@ function npcs.init(mod)
   if not running or #setsFor[running.id] == 0 then return end
 
   -- Fallback: the selected set, then the family's other sets in menu
-  -- order, then the game's own. nil means OFF. -Elvie
+  -- order (test sets left out), then the game's own. nil means OFF. -Elvie
   local function resolve()
     local sets = setsFor[running.id]
     local selected = mod.options:get("set" .. running.suffix)
@@ -168,7 +173,7 @@ function npcs.init(mod)
     if not known then selected = sets[1].key end
     local setKeys = { selected }
     for _, set in ipairs(sets) do
-      if set.key ~= selected then table.insert(setKeys, set.key) end
+      if set.key ~= selected and not set.test then table.insert(setKeys, set.key) end
     end
     return { setKeys = setKeys, npcsDir = NPCS_DIR }
   end

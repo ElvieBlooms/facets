@@ -177,6 +177,8 @@ copy(TF .. "frlg/NURSE.png", MOD_B .. "/assets/npcs/zzz/gen3/frlg/NURSE.png")
 copy(TF .. "rse/YOUNGSTER.png", MOD_B .. "/assets/npcs/aaa/gen3/rse/BRENDAN_NORMAL.png")
 copy(TF .. "rse/YOUNGSTER.png", MOD_B .. "/assets/npcs/aaa/gen3/rse/RIVAL_MAY_NORMAL.png")
 copy(TF .. "rse/YOUNGSTER.png", MOD_B .. "/assets/npcs/aaa/gen3/rse/LINK_BRENDAN.png")
+copy(TF .. "rse/YOUNGSTER.png", MOD_B .. "/assets/npcs/aaa/gen3/rse/LINK_RS_MAY.png")
+copy(TF .. "rse/YOUNGSTER.png", MOD_B .. "/assets/npcs/aaa/gen3/rse/LINK_RECEPTIONIST.png")
 do
   local f = io.open(MOD_B .. "/assets/npcs/aaa/meta.json", "w"); f:write('{"label":"AAA"}'); f:close()
   f = io.open(MOD_B .. "/assets/npcs/zzz/meta.json", "w"); f:write('{"label":"ZZZ"}'); f:close()
@@ -335,6 +337,8 @@ do
   eq(Ow.get(0), vanilla[0], "emerald skip: BRENDAN_NORMAL")
   eq(Ow.get(105), vanilla[105], "emerald skip: RIVAL_MAY_NORMAL")
   eq(Ow.get(216), vanilla[216], "emerald skip: LINK_BRENDAN")
+  eq(Ow.get(236), vanilla[236], "emerald skip: LINK_RS_MAY")
+  check(Ow.get(28) ~= vanilla[28], "emerald: LINK_RECEPTIONIST is an ordinary NPC")
 end
 
 -- npcs.lua: sets, options rows, live switching
@@ -356,6 +360,30 @@ do
   mod.options:set("setFrlg", "zzz")
   check(Ow.get(64) ~= vanilla[64], "options: ZZZ applies live")
   check(Ow.get(22) ~= vanilla[22], "options: ZZZ selected, AAA still fills LASS")
+end
+
+-- A test set (TEST FRAMES) goes last, is never the default, and never
+-- fills gaps in another set. -Elvie
+do
+  local Ow = fresh("firered")
+  local vanilla = {}
+  for id, r in pairs(Ow._loaded) do vanilla[id] = r end
+  local MOD_D = OUT .. "/modD"
+  copy(TF .. "frlg/NURSE.png", MOD_D .. "/assets/npcs/aaa_test/gen3/frlg/NURSE.png")
+  copy(TF .. "frlg/YOUNGSTER.png", MOD_D .. "/assets/npcs/real/gen3/frlg/YOUNGSTER.png")
+  local f = io.open(MOD_D .. "/assets/npcs/aaa_test/meta.json", "w"); f:write('{"label":"AAA TEST","test":true}'); f:close()
+  f = io.open(MOD_D .. "/assets/npcs/real/meta.json", "w"); f:write('{"label":"REAL"}'); f:close()
+  local mod = newMod(MOD_D)
+  require("mods.facets.npcs").init(mod)
+  local row = mod.rows[2]
+  eq(row.default, "real", "test set: not the default, though its label sorts first")
+  eq(row.choices[1][2], "real", "test set: real sets listed first")
+  eq(row.choices[2][2], "aaa_test", "test set: listed after them")
+  check(Ow.get(18) ~= vanilla[18], "test set: REAL's YOUNGSTER used")
+  eq(Ow.get(64), vanilla[64], "test set: doesn't fill REAL's gaps")
+  mod.options:set("setFrlg", "aaa_test")
+  check(Ow.get(64) ~= vanilla[64], "test set: used when picked")
+  check(Ow.get(18) ~= vanilla[18], "test set: real sets still fill its gaps")
 end
 
 print(("%d passed, %d failed"):format(passed, failed))

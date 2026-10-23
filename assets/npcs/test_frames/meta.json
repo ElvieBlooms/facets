@@ -2,5 +2,6 @@
   "label": "TEST FRAMES",
   "credit": [
     "Test frames by Elvie"
-  ]
+  ],
+  "test": true
 }
