@@ -31,7 +31,7 @@ Below those, **POKEMON** has its own **SET** for Pokémon pictures (battle, summ
 
 Every Pokémon picture in the Gen 3 games goes through two engine functions, `Pokemon.frontPic` and `Pokemon.backPic`, and Facets wraps both, so a set reaches every screen at once. Emerald's two-frame front animations are covered too, so a replaced Pokémon never flickers back to the game's own.
 
-**GBC** reads Crystal's battle sprites from your own install (then Gold's, then Silver's) and colours them with Crystal's own palette for each species, so shinies are Crystal's shinies. That's all 251 Kanto and Johto Pokémon, Unown A to Z and the egg, none of it included. Hoenn's 135, Castform's weather forms, every Deoxys form and Unown ! and ? come from E-SY's GBC-style sprite compilation, which is included (`assets/mons/gbc/front` and `back`). That sheet has no shiny colours, so shiny Hoenn Pokémon stay the game's own, and Spinda's front stays the game's own so it keeps its spots. Each picture stands where the game's own would: centred, with its feet on the row the Gen 3 picture ends on. Without Crystal imported, only the Hoenn side changes.
+**GBC** reads Crystal's battle sprites from your own install (then Gold's, then Silver's) and colours them with Crystal's own palette for each species, so shinies are Crystal's shinies. That's all 251 Kanto and Johto Pokémon, Unown A to Z and the egg, none of it included. Hoenn's 135, Castform's weather forms, every Deoxys form and Unown ! and ? come from E-SY's GBC-style sprite compilation, which is included (`assets/mons/gbc/front` and `back`). The sheet has no shinies, so their shiny colours were worked out from the games' own Gen 3 shiny pictures (`tools/make_gbc_shinies.py`), matching what each shiny looks like in game. Spinda's front stays the game's own so it keeps its spots. Each picture stands where the game's own would: centred, with its feet on the row the Gen 3 picture ends on. Without Crystal imported, only the Hoenn side changes.
 
 **DS** is the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush and many others: Gen 4-style fronts, backs and shinies for all 386 Pokémon, plus Castform's weather forms and each game's Deoxys (Attack in FireRed, Defense in LeafGreen, Speed in Emerald). It's included, used with credit. The resource has no Unown, so Unown stays the game's own; so does Spinda's front, since the game draws each Spinda's own spots.
 
@@ -51,6 +51,14 @@ The GBC set's Hoenn sprites were cut from E-SY's sheet with:
 ```
 python3 tools/make_gbc_hoenn.py tools/recipes/gbc_hoenn.json "<E-SY's GBC sprite sheet>.png" .
 ```
+
+and their shiny colours with:
+
+```
+python3 tools/make_gbc_shinies.py gen3 "<your gen1recomp install folder>" .
+```
+
+(`ds "<resource folder>"` instead of `gen3` takes the colours from a DS-style resource's normal and shiny frames instead.)
 
 `tools/mon_convert.py` builds a set from a sprite resource of 256-wide sheets (front, shiny front, back, shiny back, on a solid background). The DS set was made with:
 
@@ -185,11 +193,13 @@ python3 tools/npc_convert.py recipe tools/recipes/community.json "<folder holdin
 
 Everyone no Game Boy game has (14 in FR/LG, 69 in R/S/E: the Hoenn gym leaders, Elite Four, Frontier Brains, Aqua and Magma, Birch, Steven, Wally, tubers, triathletes and the rest) comes from Catwithnojob's Gen 2 Additional NPCs Pack, made in the Gen 2 style from TCG, Monster Race and Robopon characters. These are shipped as strips in `assets/npcs/gbc/strips/`, in the same layout as a Game Boy sprite and in their own colours; GBC 2X borrows them with the map. They're lookalikes, not the characters themselves, so swap any you'd pick differently.
 
+The Pokémon standing around on the overworld (Snorlax, Lapras, the legendaries, Kecleon, Sudowoodo, Zigzagoon, the Pokémon in people's houses: 42 in FR/LG, 26 in R/S/E) are drawn the way Crystal draws its own: Crystal's overworld Pokémon where it has one (Entei, Raikou, Suicune, Sudowoodo, Slowpoke, the big Snorlax doll, and the generic bird, monster and fairy), Yellow's walking Pikachu, Seel, Chansey and Jigglypuff, and otherwise the party icon Crystal shows that Pokémon with on its maps (`{"icon": "fox", ...}` in `gb.json`). Rayquaza and the Regis stay the game's own. The Game Boy sets only fill gaps for each other, so picking another set never brings in Game Boy Pokémon.
+
 If you haven't imported a game a sprite needs, that NPC comes from the next set instead, like any missing sheet. The sprites stay 16x16, so everyone is Game Boy-sized; standing-only Game Boy NPCs (like Crystal's nurse) walk on their standing frames.
 
 **GBC 2X** is the same set drawn at double size, each Game Boy pixel a 2x2 block in a 32x32 frame. Chunky, a bit bigger than everyone else, and still no art: its meta.json borrows GBC's `gb.json` with `"map": "gbc"` and sets `"scale": 2`.
 
-To change a pick, edit `gb.json`: each entry is a sprite name from `<game>/assets/generated/sprites/` in your install and a palette (`PAL_OW_RED`, `PAL_OW_BLUE`, `PAL_OW_GREEN`, `PAL_OW_BROWN` or `PAL_OW_PINK`). A set with `"source": "gb"` in its meta.json is read this way; `"scale": 2` doubles it and `"map": "<set>"` uses another set's `gb.json` and `strips/`. An entry of `{"strip": "NAME"}` uses `strips/NAME.png` instead: 16 wide, 16x16 frames stacked (stand down, up, left, then walk down, up, left, or just the first three), alpha for see-through.
+To change a pick, edit `gb.json`: each entry is a sprite name from `<game>/assets/generated/sprites/` in your install (or `"icon"`, a party icon from Crystal's `assets/generated/icons/gen2/`; `"big": true` draws a big doll like Snorlax's, its left half mirrored) and a palette (`PAL_OW_RED`, `PAL_OW_BLUE`, `PAL_OW_GREEN`, `PAL_OW_BROWN` or `PAL_OW_PINK`). A set with `"source": "gb"` in its meta.json is read this way; `"scale": 2` doubles it and `"map": "<set>"` uses another set's `gb.json` and `strips/`. An entry of `{"strip": "NAME"}` uses `strips/NAME.png` instead: 16 wide, 16x16 frames stacked (stand down, up, left, then walk down, up, left, or just the first three), alpha for see-through.
 
 The strips are built from the pack by `tools/make_gbc_strips.py`, from `tools/recipes/gbc_strips.json`. Each strip names a pack sheet and its colour variant (`A` red, `B` blue, `C` green, `D` brown, the same as Crystal's palettes, or `-` for the sheet without a letter), and can be repainted in a Crystal palette (`"recolor": "PAL_OW_RED"`, used for Team Magma) or sat down (`"sit": 2`). It writes the strips and points `gb.json` at them; a sprite from your games always wins over a strip.
 

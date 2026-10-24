@@ -281,6 +281,175 @@
     },
     "TEACHY_TV_HOST": {
       "strip": "TEACHY_TV_HOST"
+    },
+    "ARTICUNO": {
+      "sprite": "bird",
+      "palette": "PAL_OW_BLUE"
+    },
+    "ZAPDOS": {
+      "sprite": "bird",
+      "palette": "PAL_OW_BROWN"
+    },
+    "MOLTRES": {
+      "sprite": "bird",
+      "palette": "PAL_OW_RED"
+    },
+    "CELEBI": {
+      "icon": "humanshape",
+      "palette": "PAL_OW_GREEN"
+    },
+    "CHANSEY": {
+      "sprite": "chansey",
+      "palette": "PAL_OW_PINK"
+    },
+    "CLEFAIRY": {
+      "sprite": "fairy",
+      "palette": "PAL_OW_PINK"
+    },
+    "CUBONE": {
+      "sprite": "monster",
+      "palette": "PAL_OW_BROWN"
+    },
+    "DODUO": {
+      "sprite": "bird",
+      "palette": "PAL_OW_BROWN"
+    },
+    "ENTEI": {
+      "sprite": "entei",
+      "palette": "PAL_OW_RED"
+    },
+    "RAIKOU": {
+      "sprite": "raikou",
+      "palette": "PAL_OW_RED"
+    },
+    "SUICUNE": {
+      "sprite": "suicune",
+      "palette": "PAL_OW_BLUE"
+    },
+    "FEAROW": {
+      "sprite": "bird",
+      "palette": "PAL_OW_BROWN"
+    },
+    "PIDGEY": {
+      "sprite": "bird",
+      "palette": "PAL_OW_BROWN"
+    },
+    "PIDGEOT": {
+      "sprite": "bird",
+      "palette": "PAL_OW_BROWN"
+    },
+    "SPEAROW": {
+      "sprite": "bird",
+      "palette": "PAL_OW_BROWN"
+    },
+    "HO_OH": {
+      "icon": "ho_oh",
+      "palette": "PAL_OW_RED"
+    },
+    "LUGIA": {
+      "icon": "lugia",
+      "palette": "PAL_OW_BLUE"
+    },
+    "JIGGLYPUFF": {
+      "sprite": "jigglypuff",
+      "palette": "PAL_OW_PINK"
+    },
+    "WIGGLYTUFF": {
+      "icon": "jigglypuff",
+      "palette": "PAL_OW_PINK"
+    },
+    "KABUTO": {
+      "icon": "shell",
+      "palette": "PAL_OW_BROWN"
+    },
+    "OMANYTE": {
+      "icon": "shell",
+      "palette": "PAL_OW_BLUE"
+    },
+    "KANGASKHAN": {
+      "sprite": "monster",
+      "palette": "PAL_OW_BROWN"
+    },
+    "LAPRAS": {
+      "icon": "lapras",
+      "palette": "PAL_OW_BLUE"
+    },
+    "MACHOP": {
+      "icon": "fighter",
+      "palette": "PAL_OW_BLUE"
+    },
+    "MACHOKE": {
+      "icon": "fighter",
+      "palette": "PAL_OW_BLUE"
+    },
+    "MEOWTH": {
+      "icon": "fox",
+      "palette": "PAL_OW_BROWN"
+    },
+    "MEW": {
+      "icon": "humanshape",
+      "palette": "PAL_OW_PINK"
+    },
+    "MEWTWO": {
+      "icon": "humanshape",
+      "palette": "PAL_OW_PINK"
+    },
+    "NIDORAN_F": {
+      "icon": "fox",
+      "palette": "PAL_OW_BLUE"
+    },
+    "NIDORAN_M": {
+      "icon": "fox",
+      "palette": "PAL_OW_PINK"
+    },
+    "NIDORINO": {
+      "icon": "fox",
+      "palette": "PAL_OW_PINK"
+    },
+    "PIKACHU": {
+      "sprite": "pikachu",
+      "palette": "PAL_OW_RED"
+    },
+    "POLIWRATH": {
+      "icon": "poliwag",
+      "palette": "PAL_OW_BLUE"
+    },
+    "PSYDUCK": {
+      "sprite": "monster",
+      "palette": "PAL_OW_BROWN"
+    },
+    "SEEL": {
+      "sprite": "seel",
+      "palette": "PAL_OW_BLUE"
+    },
+    "SLOWPOKE": {
+      "sprite": "slowpoke",
+      "palette": "PAL_OW_PINK"
+    },
+    "SLOWBRO": {
+      "icon": "slowpoke",
+      "palette": "PAL_OW_PINK"
+    },
+    "SNORLAX": {
+      "sprite": "big_snorlax",
+      "palette": "PAL_OW_BLUE",
+      "big": true
+    },
+    "VOLTORB": {
+      "icon": "voltorb",
+      "palette": "PAL_OW_RED"
+    },
+    "DEOXYS_A": {
+      "icon": "humanshape",
+      "palette": "PAL_OW_RED"
+    },
+    "DEOXYS_D": {
+      "icon": "humanshape",
+      "palette": "PAL_OW_RED"
+    },
+    "DEOXYS_N": {
+      "icon": "humanshape",
+      "palette": "PAL_OW_RED"
     }
   },
   "rse": {
@@ -630,6 +799,110 @@
     },
     "CYCLING_TRIATHLETE_F": {
       "strip": "CYCLING_TRIATHLETE_F"
+    },
+    "AZUMARILL": {
+      "icon": "jigglypuff",
+      "palette": "PAL_OW_BLUE"
+    },
+    "AZURILL": {
+      "icon": "jigglypuff",
+      "palette": "PAL_OW_BLUE"
+    },
+    "DEOXYS": {
+      "icon": "humanshape",
+      "palette": "PAL_OW_RED"
+    },
+    "DUSCLOPS": {
+      "icon": "ghost",
+      "palette": "PAL_OW_BLUE"
+    },
+    "GROUDON_ASLEEP": {
+      "icon": "bigmon",
+      "palette": "PAL_OW_RED"
+    },
+    "GROUDON_FRONT": {
+      "icon": "bigmon",
+      "palette": "PAL_OW_RED"
+    },
+    "GROUDON_SIDE": {
+      "icon": "bigmon",
+      "palette": "PAL_OW_RED"
+    },
+    "KYOGRE_ASLEEP": {
+      "icon": "lapras",
+      "palette": "PAL_OW_BLUE"
+    },
+    "KYOGRE_FRONT": {
+      "icon": "lapras",
+      "palette": "PAL_OW_BLUE"
+    },
+    "KYOGRE_SIDE": {
+      "icon": "lapras",
+      "palette": "PAL_OW_BLUE"
+    },
+    "HOOH": {
+      "icon": "ho_oh",
+      "palette": "PAL_OW_RED"
+    },
+    "LUGIA": {
+      "icon": "lugia",
+      "palette": "PAL_OW_BLUE"
+    },
+    "KECLEON": {
+      "sprite": "monster",
+      "palette": "PAL_OW_GREEN"
+    },
+    "KIRLIA": {
+      "icon": "humanshape",
+      "palette": "PAL_OW_GREEN"
+    },
+    "LATIAS": {
+      "sprite": "bird",
+      "palette": "PAL_OW_RED"
+    },
+    "LATIOS": {
+      "sprite": "bird",
+      "palette": "PAL_OW_BLUE"
+    },
+    "MEW": {
+      "icon": "humanshape",
+      "palette": "PAL_OW_PINK"
+    },
+    "PIKACHU": {
+      "sprite": "pikachu",
+      "palette": "PAL_OW_RED"
+    },
+    "POOCHYENA": {
+      "icon": "fox",
+      "palette": "PAL_OW_BROWN"
+    },
+    "SKITTY": {
+      "icon": "fox",
+      "palette": "PAL_OW_PINK"
+    },
+    "SUDOWOODO": {
+      "sprite": "sudowoodo",
+      "palette": "PAL_OW_GREEN"
+    },
+    "VIGOROTH_CARRYING_BOX": {
+      "sprite": "monster",
+      "palette": "PAL_OW_BROWN"
+    },
+    "VIGOROTH_FACING_AWAY": {
+      "sprite": "monster",
+      "palette": "PAL_OW_BROWN"
+    },
+    "WINGULL": {
+      "sprite": "bird",
+      "palette": "PAL_OW_BLUE"
+    },
+    "ZIGZAGOON_1": {
+      "icon": "fox",
+      "palette": "PAL_OW_BROWN"
+    },
+    "ZIGZAGOON_2": {
+      "icon": "fox",
+      "palette": "PAL_OW_BROWN"
     }
   }
 }
