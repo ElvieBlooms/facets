@@ -4,17 +4,21 @@
 -- falling back to the game's own. Emerald Lens keeps the player and the
 -- rival. -Elvie
 --
--- Each part adds its option rows, then starts once the rows are defined.
+-- Each part adds its option rows and its rows on the FACETS screen
+-- (menu.lua, screen.lua), then starts once the rows are defined.
 -- An NPC-only build drops "mons" from this list (and mons.lua,
 -- mon_names.lua and assets/mons/). -Elvie
 local PARTS = { "npcs", "mons" }
 
 return function(mod)
   local rows, starts = {}, {}
+  local menu = require("mods.facets.menu").new(mod)
   for _, name in ipairs(PARTS) do
-    local start = require("mods.facets." .. name).init(mod, rows)
+    local start = require("mods.facets." .. name).init(mod, rows, menu)
     if start then starts[#starts + 1] = start end
   end
   if #rows > 0 then mod.options:define(rows) end
   for _, start in ipairs(starts) do start() end
+  local ok, err = pcall(menu.start)
+  if not ok then mod.log:warn("FACETS screen is off: %s", tostring(err)) end
 end

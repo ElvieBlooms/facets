@@ -87,8 +87,9 @@ npcs.decodeJson = decodeJson
 
 -- Adds the NPC option rows to `rows` and returns a function to call once
 -- the options are defined, or nil if there's nothing to replace. Called
--- without rows, it defines its own options and starts. -Elvie
-function npcs.init(mod, rows)
+-- without rows, it defines its own options and starts. menu (menu.lua),
+-- if given, gets the NPC row for the FACETS screen. -Elvie
+function npcs.init(mod, rows, menu)
   if rows == nil then
     local own = {}
     local start = npcs.init(mod, own)
@@ -135,9 +136,11 @@ function npcs.init(mod, rows)
     return nil
   end
   local setsFor, any = { frlg = {}, rse = {} }, false
+  local credits = {} -- [set key] = meta.json credit
   for _, key in ipairs(mod.assets:list(NPCS_DIR)) do
     if isDirectory(NPCS_DIR .. "/" .. key) then
       local meta = readMeta(key)
+      credits[key] = meta.credit
       if meta.source == "gb" then
         local from = type(meta.map) == "string" and meta.map:match("^[%w_%-]+$") and meta.map or key
         gbMaps[key] = readGbMap(from)
@@ -185,6 +188,8 @@ function npcs.init(mod, rows)
         choices = choices, default = sets[1].key })
     end
   end
+  if menu then npcs.screenPart(mod, menu, setsFor, credits) end
+
   return function()
   -- Only the running game's family is set up. -Elvie
   local okVersion, GameVersion = pcall(require, "src.core.GameVersion")
@@ -231,6 +236,125 @@ function npcs.init(mod, rows)
     end)
   end
   end
+end
+
+-- The FACETS screen
+-- NPCS: the family's SET. The preview walks a few everyday NPCs through
+-- OwSprites.getDraw, the way the game fetches them, so it shows the set
+-- with its fallbacks exactly as the overworld will. -Elvie
+-- --------------------------------------------------
+local SHOWCASE = {
+  frlg = { "NURSE", "YOUNGSTER", "LASS", "BUG_CATCHER", "HIKER", "GENTLEMAN", "FISHER", "SCIENTIST", "BEAUTY" },
+  rse = { "NURSE", "YOUNGSTER", "LASS", "BUG_CATCHER", "HIKER", "GENTLEMAN", "FISHERMAN", "SCIENTIST_1", "BEAUTY" },
+}
+-- Down, left, up, right, each stand, step, stand, step, in pret's
+-- ANIM_STD frame order; right is left flipped. Same as Emerald Lens. -Elvie
+local WALK = {
+  { 0, 3, 0, 4 },
+  { 2, 7, 2, 8 },
+  { 1, 5, 1, 6 },
+  { 2, 7, 2, 8, flip = true },
+}
+local STEP_TIME, TURN_TIME = 8 / 60, 64 / 60
+local WALK_X, WALK_BOTTOM, WALK_SCALE = 196, 152, 2
+npcs.SHOWCASE, npcs.WALK, npcs.TURN_TIME = SHOWCASE, WALK, TURN_TIME
+
+-- Which NPC and frame the preview shows at `clock`: one NPC per turn of
+-- all four facings. -Elvie
+function npcs.walkAt(clock, count)
+  local turns = math.floor(clock / TURN_TIME)
+  local turn = WALK[turns % #WALK + 1]
+  local frame = turn[math.floor(clock / STEP_TIME) % 4 + 1]
+  return math.floor(turns / #WALK) % math.max(1, count) + 1, frame, turn.flip == true
+end
+
+function npcs.screenPart(mod, menu, setsFor, credits)
+  local ids = {} -- [family] = graphics ids of the showcase NPCs this game has
+  local function showcase(family)
+    if ids[family.id] then return ids[family.id] end
+    local list = {}
+    local okV, GameVersion = pcall(require, "src.core.GameVersion")
+    local okC, Constants = pcall(require, "src.core.game3.constants")
+    if okV and okC and type(Constants.of) == "function" then
+      local ok, objects = pcall(function() return Constants.of(GameVersion.get()):raw("event_objects") end)
+      local byId = ok and type(objects) == "table" and type(objects.byId) == "table" and objects.byId.OBJ_EVENT_GFX_
+      if type(byId) == "table" then
+        local idOf = {}
+        for id, full in pairs(byId) do
+          if type(full) == "string" then idOf[(full:gsub("^OBJ_EVENT_GFX_", ""))] = tonumber(id) end
+        end
+        for _, name in ipairs(SHOWCASE[family.id] or {}) do
+          if idOf[name] then list[#list + 1] = idOf[name] end
+        end
+      end
+    end
+    ids[family.id] = list
+    return list
+  end
+
+  local function selected(family)
+    local sets = setsFor[family.id]
+    local value = mod.options:get("set" .. family.suffix)
+    if value == OFF then return nil end
+    for _, set in ipairs(sets) do
+      if set.key == value then return set end
+    end
+    return sets[1]
+  end
+
+  menu.register({
+    rows = function(family)
+      local sets = setsFor[family.id]
+      if #sets == 0 then return {} end
+      local choices = {}
+      for _, set in ipairs(sets) do choices[#choices + 1] = { set.label, set.key } end
+      choices[#choices + 1] = { "OFF", OFF }
+      local set = selected(family)
+      return { { key = "set" .. family.suffix, label = "NPCS", who = "npcs", choices = choices,
+        value = set and set.key or OFF } }
+    end,
+    preview = function(who, family)
+      if who ~= "npcs" then return nil end
+      local set = selected(family)
+      if not set then return { lines = { { text = "The game's own NPCs." } } } end
+      local lines = {}
+      if set.test then lines[1] = { text = "Test frames: numbered, for checking." } end
+      return { lines = require("mods.facets.menu").creditLines(credits[set.key], lines) }
+    end,
+    draw = function(clock, family)
+      if not (love and love.graphics) then return end
+      local list = showcase(family)
+      if #list == 0 then return end
+      local OwSprites = package.loaded["src.core.game3.ow_sprites"] or require("src.core.game3.ow_sprites")
+      local which, frame, flip = npcs.walkAt(clock, #list)
+      local get = OwSprites.getDraw or OwSprites.get
+      local record = get(list[which])
+      if type(record) ~= "table" or not record.image then return end
+      local quad = record.quads and (record.quads[frame] or record.quads[0])
+      local w = tonumber(record.width or record.w) or 16
+      local h = tonumber(record.height or record.h) or 32
+      local x, y = WALK_X - w * WALK_SCALE / 2, WALK_BOTTOM - h * WALK_SCALE
+      local sx = WALK_SCALE
+      if flip then x, sx = x + w * WALK_SCALE, -WALK_SCALE end
+      if quad then
+        love.graphics.draw(record.image, quad, x, y, 0, sx, WALK_SCALE)
+      else
+        love.graphics.draw(record.image, x, y, 0, sx, WALK_SCALE)
+      end
+    end,
+    credits = function(family)
+      local out = {}
+      for _, set in ipairs(setsFor[family.id]) do
+        if not set.test then
+          out[#out + 1] = { text = "NPCS: " .. set.label, heading = true }
+          local lines = require("mods.facets.menu").creditLines(credits[set.key])
+          if #lines == 0 then lines[1] = { text = "No credit listed." } end
+          for _, line in ipairs(lines) do out[#out + 1] = { text = line.text } end
+        end
+      end
+      return out
+    end,
+  })
 end
 
 return npcs

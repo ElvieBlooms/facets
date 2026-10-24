@@ -251,7 +251,38 @@ local function ownColour(r, g, b, a)
   return { r * 255, g * 255, b * 255, a }
 end
 
-function mons.init(mod, rows)
+-- Crystal's party icons: icons.lua names an icon for each species
+-- (NAME = "ICON_BIRD") and an image for each icon. Read as text. -Elvie
+function mons.parseIcons(text)
+  if type(text) ~= "string" then return nil end
+  local out = { species = {}, image = {} }
+  for name, id in text:gmatch('\n    ([%w_]+) = "(ICON_[%w_]+)"') do out.species[name] = id end
+  for id, body in text:gmatch("\n    (ICON_[%w_]+) = {(.-)\n    }") do
+    local image = body:match('image = "([^"]+)"')
+    if image then out.image[id] = image end
+  end
+  if next(out.species) == nil or next(out.image) == nil then return nil end
+  return out
+end
+
+-- Crystal's party-menu palette, colours 1 and 2 (orange and red); the
+-- usual ones if palettes.lua doesn't have it. -Elvie
+function mons.parsePartyPalette(text)
+  local fallback = { { 255, 156, 82 }, { 255, 58, 33 } }
+  if type(text) ~= "string" then return fallback end
+  local at = text:find("\n  partyMenu = {", 1, true)
+  if not at then return fallback end
+  local v = {}
+  for num in text:sub(at, at + 600):gmatch("%d+") do
+    v[#v + 1] = tonumber(num)
+    if #v == 9 then break end
+  end
+  if #v < 9 then return fallback end
+  return { { v[4], v[5], v[6] }, { v[7], v[8], v[9] } }
+end
+
+-- menu (menu.lua), if given, gets the POKEMON rows for the FACETS screen. -Elvie
+function mons.init(mod, rows, menu)
   local okP, Pokemon = pcall(require, "src.core.game3.pokemon")
   if not okP or type(Pokemon) ~= "table" or type(Pokemon.frontPic) ~= "function"
       or type(Pokemon.backPic) ~= "function" then
@@ -278,7 +309,7 @@ function mons.init(mod, rows)
     if isDirectory(MONS_DIR .. "/" .. key) then
       local meta = readMeta(key)
       local label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper()
-      sets[#sets + 1] = { key = key, label = label, gb = meta.source == "gb" }
+      sets[#sets + 1] = { key = key, label = label, gb = meta.source == "gb", credit = meta.credit }
     end
   end
   table.sort(sets, function(a, b) return a.label < b.label end)
@@ -296,6 +327,11 @@ function mons.init(mod, rows)
   -- plays Emerald's, read from the player's imported Emerald. -Elvie
   rows[#rows + 1] = { key = "animMons", type = "choice", label = "  FR/LG ANIMS",
     choices = { { "EMERALD", "emerald" }, { "OFF", OFF } }, default = OFF }
+  -- Game Boy party icons are 16x16 and Gen 3's are 32x32: 2X fills the
+  -- slot, 1X keeps the Game Boy size, standing at the bottom. -Elvie
+  rows[#rows + 1] = { key = "iconsMons", type = "choice", label = "  GBC ICONS",
+    choices = { { "2X", "2x" }, { "1X", "1x" } }, default = "2x" }
+  if menu then mons.screenPart(mod, menu, sets, choices, Pokemon) end
 
   return function()
     local okC, PicCoords = pcall(require, "src.core.game3.battle.pic_coords")
@@ -447,6 +483,98 @@ function mons.init(mod, rows)
     end
     mons.lookup = lookup
 
+    -- Party icons
+    -- A set's own icons/NNN.png (two 16x16 frames stacked, or two 32x32),
+    -- else for a Game Boy set Crystal's own icon, coloured with Crystal's
+    -- party-menu palette. 16x16 icons are drawn at double size to fill
+    -- Gen 3's 32x32 icon. -Elvie
+    -- --------------------------------------------------
+    local crystalIcons -- { species = { NAME = ICON_ID }, image = { ICON_ID = path } }; false if missing
+    local partyPal     -- Crystal's party-menu colours 1 and 2
+    local function crystalIconFile(nat)
+      if crystalIcons == nil then
+        crystalIcons = mons.parseIcons(gb.readAt("data/generated/icons.lua", GB_GAMES)) or false
+        partyPal = mons.parsePartyPalette(gb.readAt("data/generated/palettes.lua", { "crystal" }))
+      end
+      if not crystalIcons then return nil end
+      local id
+      if nat == "egg" then id = "ICON_EGG"
+      else
+        local row = type(nat) == "number" and NAMES[nat]
+        id = row and crystalIcons.species[row[2]]
+      end
+      return id and crystalIcons.image[id]
+    end
+
+    local function buildIcon(nat)
+      local src, colour
+      local name = nat == "egg" and "egg" or ("%03d"):format(nat)
+      local rel = MONS_DIR .. "/" .. current.key .. "/icons/" .. name .. ".png"
+      if mod.assets:info(rel) then
+        local ok, data = pcall(love.image.newImageData, mod.assets:path(rel))
+        if ok and data then src, colour = data, ownColour end
+      end
+      if not src and current.gb then
+        local file = crystalIconFile(nat)
+        src = file and gb.readImage(file, GB_GAMES)
+        if src then colour = gbColour(partyPal, src) end
+      end
+      if not src then return nil end
+      local w, h = src:getDimensions()
+      local small = w == 16 and h == 32
+      if not (small or (w == 32 and h == 64)) then
+        mod.log:warn("%s icon is %dx%d; icons need two 16x16 or 32x32 frames, stacked", name, w, h)
+        return nil
+      end
+      -- 16x16 frames: doubled (2X), or at the bottom-centre of the 32x32
+      -- frame (1X), where Gen 3's icons have their feet. -Elvie
+      local scale = small and mod.options:get("iconsMons") ~= "1x" and 2 or 1
+      local frameH = h / 2
+      local ox = small and scale == 1 and 8 or 0
+      local oy = small and scale == 1 and 16 or 0
+      local out = love.image.newImageData(32, 64)
+      for y = 0, h - 1 do
+        local f, ly = math.floor(y / frameH), y % frameH
+        for x = 0, w - 1 do
+          local c = colour(src:getPixel(x, y))
+          if c then
+            for dy = 0, scale - 1 do
+              for dx = 0, scale - 1 do
+                out:setPixel(ox + x * scale + dx, f * 32 + oy + ly * scale + dy, c[1] / 255, c[2] / 255, c[3] / 255, c[4] or 1)
+              end
+            end
+          end
+        end
+      end
+      return out
+    end
+
+    local function iconLookup(species)
+      if not current then return nil end
+      species = tonumber(species)
+      if not species or species < 1 then return nil end
+      local nat = identify(species)
+      if nat == nil then return nil end
+      local key = "icon:" .. species
+      local hit = cache[key]
+      if hit ~= nil then return hit or nil end
+      local ok, data = pcall(buildIcon, nat)
+      if not ok then
+        mod.log:warn("icon %d: %s", species, tostring(data))
+        data = nil
+      end
+      local entry = false
+      if data and love and love.graphics then
+        local image = love.graphics.newImage(data)
+        image:setFilter("nearest", "nearest")
+        entry = { image = image, imageData = data, w = 32, h = 32, sheetH = 64, frames = 2,
+          quads = { [0] = love.graphics.newQuad(0, 0, 32, 32, 32, 64), [1] = love.graphics.newQuad(0, 32, 32, 32, 32, 64) } }
+      end
+      cache[key] = entry
+      return entry or nil
+    end
+    mons.iconLookup = iconLookup
+
     -- Crystal's animations, for Game Boy fronts
     -- --------------------------------------------------
     local okR, Gen2Anim = pcall(require, "src.render.MonAnim")
@@ -564,6 +692,12 @@ function mons.init(mod, rows)
       return lookup("back", species, form, shiny) or origBack(species, form, shiny, ...)
     end
     Pokemon.frontSprite = Pokemon.frontPic
+    if type(Pokemon.icon) == "function" then
+      local origIcon = Pokemon.icon
+      Pokemon.icon = function(species, ...)
+        return iconLookup(species) or origIcon(species, ...)
+      end
+    end
     local okA, MonAnim = pcall(require, "src.core.game3.mon_anim")
     if okA and type(MonAnim) == "table" and type(MonAnim.framePic) == "function" then
       local origFrame = MonAnim.framePic
@@ -603,11 +737,138 @@ function mons.init(mod, rows)
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
         if type(change) ~= "table" or change.mod ~= mod.id then return end
-        if change.key == "setMons" then configure() end
+        if change.key == "setMons" or change.key == "iconsMons" then configure() end
         if change.key == "animMons" then configureAnims() end
       end)
     end
   end
+end
+
+-- The FACETS screen
+-- POKEMON: the SET; ANIMS: FR/LG ANIMS, in FireRed and LeafGreen only. The
+-- preview shows a starter from each region in turn through
+-- Pokemon.frontPic, the way the game draws them, and plays its front
+-- animation's frames when the game has one (Emerald, FR/LG with ANIMS
+-- on), so a GBC Pokémon flips through Crystal's. -Elvie
+-- --------------------------------------------------
+-- Engine species: Bulbasaur, Charmander, Squirtle, Pikachu, Chikorita,
+-- Cyndaquil, Totodile, Treecko, Torchic, Mudkip. -Elvie
+local SHOWCASE = { 1, 4, 7, 25, 152, 155, 158, 277, 280, 283 }
+local SLOT_TIME, ANIM_DELAY = 3, 0.5
+local FRONT_X, FRONT_Y = 160, 24
+mons.SHOWCASE, mons.SLOT_TIME = SHOWCASE, SLOT_TIME
+
+-- The frame a sprite command list shows `tick` ticks in (0 after it ends). -Elvie
+function mons.frameAt(cmds, tick)
+  if type(cmds) ~= "table" then return 0 end
+  local t = 0
+  for _, c in ipairs(cmds) do
+    if c.op == "end" then return 0 end
+    if c.frame ~= nil then
+      local d = math.max(1, tonumber(c.duration) or 1)
+      if tick < t + d then return c.frame end
+      t = t + d
+    end
+  end
+  return 0
+end
+
+-- Which showcase Pokémon and frame the preview shows at `clock`. -Elvie
+function mons.showcaseAt(clock, anims)
+  local slot = math.floor(clock / SLOT_TIME) % #SHOWCASE + 1
+  local species = SHOWCASE[slot]
+  local t = clock % SLOT_TIME - ANIM_DELAY
+  local frame = 0
+  if t >= 0 and type(anims) == "function" then
+    local ok, list = pcall(anims, species)
+    if ok and type(list) == "table" then frame = mons.frameAt(list[1], math.floor(t * 60)) end
+  end
+  return species, frame
+end
+
+function mons.screenPart(mod, menu, sets, choices, Pokemon)
+  local emeraldThere
+  local function hasEmerald()
+    if emeraldThere == nil then
+      emeraldThere = gb.readAt("data/generated/gba/pokemon/front_anims.lua", { "emerald" }) ~= nil
+    end
+    return emeraldThere
+  end
+  local function selected()
+    local value = mod.options:get("setMons")
+    for _, set in ipairs(sets) do
+      if set.key == value then return set end
+    end
+    return nil
+  end
+  menu.register({
+    rows = function(family)
+      local out = { { key = "setMons", label = "POKéMON", who = "mons", choices = choices,
+        value = (selected() or {}).key or OFF } }
+      if family.id == "frlg" then
+        out[2] = { key = "animMons", label = "ANIMS", who = "anims",
+          choices = { { "EMERALD", "emerald" }, { "OFF", OFF } },
+          value = mod.options:get("animMons") == "emerald" and "emerald" or OFF }
+      end
+      local set = selected()
+      if set and set.gb then
+        out[#out + 1] = { key = "iconsMons", label = "ICONS", who = "icons",
+          choices = { { "2X", "2x" }, { "1X", "1x" } },
+          value = mod.options:get("iconsMons") == "1x" and "1x" or "2x" }
+      end
+      return out
+    end,
+    preview = function(who)
+      if who == "mons" then
+        local set = selected()
+        if not set then return { lines = { { text = "The game's own POKéMON." } } } end
+        return { lines = require("mods.facets.menu").creditLines(set.credit) }
+      elseif who == "icons" then
+        if mod.options:get("iconsMons") == "1x" then
+          return { lines = { { text = "Game Boy size party icons." } } }
+        end
+        return { lines = { { text = "Party icons at double size," }, { text = "filling Gen 3's icon space." } } }
+      elseif who == "anims" then
+        if mod.options:get("animMons") ~= "emerald" then
+          return { lines = { { text = "FR/LG's still pictures." } } }
+        end
+        if not hasEmerald() then
+          return { lines = { { text = "Needs Emerald imported.", red = true } } }
+        end
+        return { lines = { { text = "Emerald's animations," }, { text = "from your Emerald." },
+          { text = "Kanto keeps FR/LG's art." } } }
+      end
+      return nil
+    end,
+    draw = function(clock)
+      if not (love and love.graphics) then return end
+      local okD, AnimData = pcall(require, "src.core.game3.mon_anim_data")
+      local species, frame = mons.showcaseAt(clock, okD and type(AnimData) == "table" and AnimData.anims or nil)
+      local pic
+      if frame ~= 0 then
+        local okA, MonAnim = pcall(require, "src.core.game3.mon_anim")
+        if okA and type(MonAnim) == "table" and type(MonAnim.framePic) == "function" then
+          local ok, got = pcall(MonAnim.framePic, species, frame, false)
+          pic = ok and got or nil
+        end
+      end
+      if not pic then
+        local ok, got = pcall(Pokemon.frontPic, species, 0, false, 0)
+        pic = ok and got or nil
+      end
+      if type(pic) == "table" and pic.image then love.graphics.draw(pic.image, FRONT_X, FRONT_Y) end
+    end,
+    credits = function()
+      local out = {}
+      for _, set in ipairs(sets) do
+        out[#out + 1] = { text = "POKEMON: " .. set.label, heading = true }
+        local lines = require("mods.facets.menu").creditLines(set.credit)
+        if #lines == 0 then lines[1] = { text = "No credit listed." } end
+        for _, line in ipairs(lines) do out[#out + 1] = { text = line.text } end
+      end
+      return out
+    end,
+  })
 end
 
 return mons
