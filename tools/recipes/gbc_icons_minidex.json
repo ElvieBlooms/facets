@@ -1,0 +1,12 @@
+{
+  "about": "The Minidex 001-251: a GBC-style party icon for every Kanto and Johto Pokémon, on an animated GIF (two frames, the icons' two poses). 16x16 icons, fifteen to a row in national order, the first at (10, 37), 34 pixels apart across and 25 down (a number label under each). The background, (218, 229, 214), is the GIF's see-through colour. Unown's one icon is used for every letter.",
+  "set": "gbc",
+  "credit": "Kanto and Johto party icons from the Minidex 001-251, by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25",
+  "frames": "gif",
+  "background": [218, 229, 214],
+  "inside": [255, 255, 255],
+  "grid": {"x0": 10, "y0": 37, "pitch_x": 34, "pitch_y": 25, "size": 16, "columns": 15},
+  "runs": [
+    {"national": 1, "count": 251}
+  ]
+}

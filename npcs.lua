@@ -321,8 +321,11 @@ function npcs.screenPart(mod, menu, setsFor, credits)
       if set.test then lines[1] = { text = "Test frames: numbered, for checking." } end
       return { lines = require("mods.facets.menu").creditLines(credits[set.key], lines) }
     end,
-    draw = function(clock, family)
+    -- spots.npc = { x (centre), bottom } moves it (PRISM's corner); there
+    -- a 16-wide sprite is doubled and a 32-wide one isn't. -Elvie
+    draw = function(clock, family, spots)
       if not (love and love.graphics) then return end
+      local at = type(spots) == "table" and spots.npc or nil
       local list = showcase(family)
       if #list == 0 then return end
       local OwSprites = package.loaded["src.core.game3.ow_sprites"] or require("src.core.game3.ow_sprites")
@@ -333,13 +336,15 @@ function npcs.screenPart(mod, menu, setsFor, credits)
       local quad = record.quads and (record.quads[frame] or record.quads[0])
       local w = tonumber(record.width or record.w) or 16
       local h = tonumber(record.height or record.h) or 32
-      local x, y = WALK_X - w * WALK_SCALE / 2, WALK_BOTTOM - h * WALK_SCALE
-      local sx = WALK_SCALE
-      if flip then x, sx = x + w * WALK_SCALE, -WALK_SCALE end
+      local scale = at and (w <= 16 and 2 or 1) or WALK_SCALE
+      local cx, bottom = at and at.x or WALK_X, at and at.bottom or WALK_BOTTOM
+      local x, y = cx - w * scale / 2, bottom - h * scale
+      local sx = scale
+      if flip then x, sx = x + w * scale, -scale end
       if quad then
-        love.graphics.draw(record.image, quad, x, y, 0, sx, WALK_SCALE)
+        love.graphics.draw(record.image, quad, x, y, 0, sx, scale)
       else
-        love.graphics.draw(record.image, x, y, 0, sx, WALK_SCALE)
+        love.graphics.draw(record.image, x, y, 0, sx, scale)
       end
     end,
     credits = function(family)
