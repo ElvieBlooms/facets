@@ -656,6 +656,7 @@ do
   local Pokemon = {
     SPECIES_EGG = 412,
     frontPic = function(sp) calls[#calls + 1] = "front" .. tostring(sp); return { vanilla = "front" .. tostring(sp) } end,
+    icon = function(sp) return { vanilla = "icon" .. tostring(sp) } end,
     backPic = function(sp) calls[#calls + 1] = "back" .. tostring(sp); return { vanilla = "back" .. tostring(sp) } end,
     picBaseSpecies = function(sp)
       if sp == 201 then return 201, 0 end
@@ -699,6 +700,27 @@ do
   GB_TEXT["emerald/" .. G .. "front_anim/2.rgba"] = "DDDDEEEE"
   GB_TEXT["emerald/" .. G .. "front_anims.lua"] = "EMERALD"
 
+  -- Crystal's party icons: 16x32 greyscale, white all round (no
+  -- see-through), a black dot at (8, 15) and grey 170 at (15, 0). -Elvie
+  local function iconSprite()
+    local d = pixelData(16, 32)
+    for y = 0, 31 do for x = 0, 15 do d:setPixel(x, y, 1, 1, 1, 1) end end
+    d:setPixel(8, 15, 0, 0, 0, 1)
+    d:setPixel(15, 0, 170 / 255, 170 / 255, 170 / 255, 1)
+    d:setPixel(7, 4, 85 / 255, 85 / 255, 85 / 255, 1)
+    return d
+  end
+  local I = "assets/generated/icons/gen2/"
+  GB_FILES["crystal/" .. I .. "bigmon.png"] = iconSprite
+  GB_FILES["crystal/" .. I .. "egg.png"] = iconSprite
+  GB_FILES["crystal/" .. I .. "unown.png"] = iconSprite
+  GB_TEXT["crystal/data/generated/icons.lua"] = table.concat({
+    "return {", "  icons = {",
+    "    ICON_BIGMON = {", '      image = "' .. I .. 'bigmon.png",', "    },",
+    "    ICON_EGG = {", '      image = "' .. I .. 'egg.png",', "    },",
+    "    ICON_UNOWN = {", '      image = "' .. I .. 'unown.png",', "    },",
+    "  },", "  species = {", '    CHARIZARD = "ICON_BIGMON",', '    UNOWN = "ICON_UNOWN",', "  },", "}" }, "\n")
+
   local MOD_M = OUT .. "/modM"
   sh(("mkdir -p '%s/assets/mons/gbc' '%s/assets/mons/zzz/front'"):format(MOD_M, MOD_M))
   local f = io.open(MOD_M .. "/assets/mons/gbc/meta.json", "w"); f:write('{"label":"GBC","source":"gb"}'); f:close()
@@ -708,6 +730,8 @@ do
     local function u32(n) return string.char(math.floor(n / 16777216) % 256, math.floor(n / 65536) % 256, math.floor(n / 256) % 256, n % 256) end
     local out = io.open(path, "wb"); out:write("\137PNG\r\n\26\n\0\0\0\13IHDR" .. u32(w) .. u32(h) .. "\8\6\0\0\0"); out:close()
   end
+  sh(("mkdir -p '%s/assets/mons/gbc/icons'"):format(MOD_M))
+  fakePng(MOD_M .. "/assets/mons/gbc/icons/252.png", 32, 64)
   fakePng(MOD_M .. "/assets/mons/zzz/front/001.png", 64, 64)
   fakePng(MOD_M .. "/assets/mons/zzz/front/002.png", 80, 80)
   fakePng(MOD_M .. "/assets/mons/zzz/front/327.png", 64, 64)
@@ -769,6 +793,36 @@ do
   eq(MonAnim.framePic(25, 1, false), pika, "gbc: with no Crystal anim, the second frame is the same picture")
   eq(MonAnim.framePic(277, 1).vanilla, "frame1", "gbc: unreplaced frames are the game's own")
 
+  -- Party icons -Elvie
+  local icon = Pokemon.icon(6)
+  check(icon and icon.image and not icon.vanilla, "gbc icons: Charizard's icon from Crystal's BIGMON")
+  eq(icon.w .. "x" .. icon.h .. ":" .. icon.frames, "32x32:2", "gbc icons: two 32x32 frames, like Gen 3's")
+  check(icon.quads[0] and icon.quads[1], "gbc icons: a quad per frame")
+  eq(px(icon, 31, 1), "255,156,82,1", "gbc icons: grey 170 is the party menu's orange, drawn 2x")
+  eq(px(icon, 14, 9), "255,58,33,1", "gbc icons: grey 85 is the party menu's red")
+  eq(px(icon, 17, 31), "0,0,0,1", "gbc icons: black stays black")
+  local _, _, _, ia = icon.imageData:getPixel(0, 0)
+  eq(ia, 0, "gbc icons: the white round the icon is see-through")
+  eq(Pokemon.icon(6), icon, "gbc icons: cached")
+  local own = Pokemon.icon(277)
+  check(own and not own.vanilla and own ~= icon, "gbc icons: Hoenn from the set's icons/252.png")
+  eq(px(own, 10, 40), "255,0,0,1", "gbc icons: a 32x64 file is used as it is")
+  check(not Pokemon.icon(412).vanilla, "gbc icons: the egg from Crystal's")
+  check(not Pokemon.icon(414).vanilla, "gbc icons: Unown letters from Crystal's Unown")
+  eq(Pokemon.icon(25).vanilla, "icon25", "gbc icons: not in Crystal's table: the game's own")
+  mod.options:set("iconsMons", "1x")
+  local small = Pokemon.icon(6)
+  check(small ~= icon, "gbc icons 1X: built again when the size changes")
+  -- 16x16 at (8, 16) in each 32x32 frame: grey 170 at (15, 0) -> (23, 16) -Elvie
+  eq(px(small, 23, 16), "255,156,82,1", "gbc icons 1X: frame 1 at the bottom-centre, Game Boy size")
+  eq(px(small, 16, 31), "0,0,0,1", "gbc icons 1X: frame 1's bottom row (black dot at 8, 15) on the frame's bottom row")
+  local _, _, _, sa = small.imageData:getPixel(31, 1)
+  eq(sa, 0, "gbc icons 1X: nothing doubled")
+  eq(px(Pokemon.icon(277), 10, 40), "255,0,0,1", "gbc icons 1X: a 32x32-frame icon is used as it is")
+  mod.options:set("iconsMons", "2x")
+  eq(px(Pokemon.icon(6), 31, 1), "255,156,82,1", "gbc icons: back to 2X")
+  eq(rows[4].key .. ":" .. rows[4].default, "iconsMons:2x", "mons: GBC ICONS row, 2X by default")
+
   -- Crystal's animations on Game Boy fronts -Elvie
   local zanims = AnimData.anims(6)
   eq(zanims[0][1], "still", "crystal anim: anim 0 is left alone")
@@ -781,7 +835,7 @@ do
   check(f1 and f1 ~= zard and f1.gb, "crystal anim: frame 1 is Crystal's second picture")
   -- placed like the front (x + 4, y + 7), not stood on the ground line -Elvie
   eq(px(f1, 34, 17), "0,0,0,1", "crystal anim: the frame sits where the front does")
-  eq(MonAnim.framePic(6, 2, false), zard, "crystal anim: a frame past the sheet is the front")
+  eq(MonAnim.framePic(6, 2, false), Pokemon.frontPic(6, nil, false), "crystal anim: a frame past the sheet is the front")
   check(MonAnim.framePic(6, 1, true) ~= f1, "crystal anim: shiny frames are their own")
 
   mod.options:set("setMons", "zzz")
@@ -807,6 +861,7 @@ do
   eq(Pokemon.frontPic(1, nil, true).vanilla, "front1", "folder set: no shiny file: the game's own")
   mod.options:set("setMons", "__off")
   eq(Pokemon.frontPic(1).vanilla, "front1", "mons: back to OFF")
+  eq(Pokemon.icon(6).vanilla, "icon6", "mons: OFF leaves icons alone")
   eq(AnimData.anims(6)[1][1], "emerald6", "crystal anim: OFF keeps Emerald's list")
 
   -- Emerald's animations in FR/LG -Elvie
@@ -839,11 +894,121 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons,animMons", "main: NPC rows then POKEMON rows")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons,animMons,iconsMons", "main: NPC rows then POKEMON rows")
   local monSets = {}
   for _, c in ipairs(mod.rows[6].choices) do monSets[#monSets + 1] = c[1] end
   eq(table.concat(monSets, ","), "DS,GBC,OFF", "shipped: Pokémon sets DS and GBC, then OFF")
   package.loaded["src.core.game3.pokemon"] = nil
+end
+
+
+-- The FACETS screen (menu.lua, screen.lua) -Elvie
+-- --------------------------------------------------
+for _, version in ipairs({ "firered", "emerald" }) do
+  fresh(version)
+  local frlg = version == "firered"
+  local Pokemon = { frontPic = function(sp) return { image = "pic" .. tostring(sp) } end, backPic = function() return nil end }
+  package.loaded["src.core.game3.pokemon"] = Pokemon
+  local layers = {}
+  package.loaded["src.ui.game3.stack"] = {
+    has = function(name) return layers[name] ~= nil end,
+    push = function(name, s) layers[name] = s end,
+    pop = function(name) layers[name] = nil end,
+  }
+  local mod = newMod(ROOT)
+  local wraps = {}
+  mod.hooks = { wrap = function(_, name, fn) wraps[name] = fn end }
+  local f = assert(loadfile(ROOT .. "/main.lua"))
+  f()(mod)
+  local M = require("mods.facets.menu").current
+  local tag = "screen (" .. version .. "): "
+  local keys = {}
+  for _, r in ipairs(M.rows()) do keys[#keys + 1] = r.label end
+  eq(table.concat(keys, ","), frlg and "NPCS,POKéMON,ANIMS,CREDITS" or "NPCS,POKéMON,CREDITS",
+    tag .. "the running game's rows only")
+  local rows = M.rows()
+  eq(rows[1].key, frlg and "setFrlg" or "setRse", tag .. "NPCS is this family's SET")
+  eq(rows[1].valueLabel, "COMMUNITY", tag .. "NPCS shows the set's label")
+  eq(rows[2].valueLabel, "OFF", tag .. "POKEMON starts OFF")
+
+  -- START menu: FACETS above MODS; OPTION menu: FACETS last -Elvie
+  local items = wraps["ui.start_menu.items"](function()
+    return { { id = "pokedex" }, { id = "mods" }, { id = "exit" } }
+  end, {}, nil)
+  eq(items[2].id .. "," .. items[3].id, "facets,mods", tag .. "FACETS goes above MODS")
+  local orows = wraps["ui.options.rows"](function() return { { id = "text_speed" } } end, {}, nil)
+  eq(orows[2].label, "FACETS", tag .. "FACETS on the OPTION menu")
+  eq(orows[2].value(), "COMMUNITY", tag .. "...showing the NPC set")
+
+  -- Opening it and changing a row the way the mod settings screen does -Elvie
+  local emitted = {}
+  local game = { options = {}, mods = { events = { emit = function(_, name, change) emitted[#emitted + 1] = change end } } }
+  items[2].onSelect(game)
+  check(layers.facets ~= nil and layers.facets.isOpen(), tag .. "START > FACETS opens the screen")
+  local function press(key) layers.facets.handleInput({ wasPressed = function(_, k) return k == key end }) end
+  press("down")
+  eq(layers.facets.state().index, 2, tag .. "down picks the next row")
+  press("right")
+  eq(emitted[1] and emitted[1].key, "setMons", tag .. "right changes POKEMON")
+  eq(emitted[1].value, "ds", tag .. "...to the next set")
+  eq(game.options.modOptions.facets.setMons, "ds", tag .. "...saved with the options")
+  mod.options:set("setMons", "gbc")
+  local labels2 = {}
+  for _, r in ipairs(M.rows()) do labels2[#labels2 + 1] = r.label end
+  check(table.concat(labels2, ","):find("POKéMON,ANIMS,ICONS", 1, true) or table.concat(labels2, ","):find("POKéMON,ICONS", 1, true),
+    tag .. "ICONS shows with a Game Boy Pokémon set")
+  eq(M.preview("icons").lines[1].text, "Party icons at double size,", tag .. "ICONS 2X")
+  mod.options:set("setMons", "__off")
+  press("up"); press("up")
+  eq(layers.facets.state().index, #rows, tag .. "up from the top wraps to CREDITS")
+  press("a")
+  check(layers.facets.state().credits ~= nil, tag .. "A on CREDITS opens the credits page")
+  press("b")
+  check(layers.facets.state().credits == nil, tag .. "B leaves the credits page")
+  press("b")
+  check(layers.facets == nil, tag .. "B closes the screen")
+
+  -- Preview lines and credits -Elvie
+  eq(M.preview("npcs").lines[1].text:sub(1, 17), "Overworld sprites", tag .. "NPCS shows the set's credit")
+  eq(M.preview("mons").lines[1].text, "The game's own POKéMON.", tag .. "POKEMON OFF")
+  if frlg then eq(M.preview("anims").lines[1].text, "FR/LG's still pictures.", tag .. "ANIMS OFF") end
+  local heads = {}
+  for _, e in ipairs(M.credits()) do if e.heading then heads[#heads + 1] = e.text end end
+  local all = table.concat(heads, "|")
+  check(all:find("NPCS: COMMUNITY", 1, true) and all:find("POKEMON: GBC", 1, true) and all:find("FACETS", 1, true),
+    tag .. "credits: NPC sets, Pokémon sets, then Facets")
+  check(not all:find("TEST FRAMES", 1, true), tag .. "credits: no test set")
+
+  -- The preview draws an NPC through OwSprites and a Pokémon picture -Elvie
+  local drawn = {}
+  local saved = love.graphics.draw
+  love.graphics.draw = function(img, ...) drawn[#drawn + 1] = img end
+  M.draw(0)
+  love.graphics.draw = saved
+  local seen = table.concat((function() local t = {} for _, d in ipairs(drawn) do t[#t + 1] = tostring(type(d) == "table" and (d.path or d.data or "tbl") or d) end return t end)(), " ")
+  check(seen:find("pic1", 1, true), tag .. "preview draws Bulbasaur's front first")
+  check(#drawn == 2, tag .. "...and one NPC")
+  package.loaded["src.core.game3.pokemon"] = nil
+  package.loaded["src.ui.game3.stack"] = nil
+end
+
+-- Preview timing -Elvie
+do
+  local npcs = require("mods.facets.npcs")
+  local who, frame, flip = npcs.walkAt(0, 3)
+  eq(who .. ":" .. frame .. ":" .. tostring(flip), "1:0:false", "walk preview: the first NPC standing, facing down")
+  who, frame, flip = npcs.walkAt(npcs.TURN_TIME * 3 + 0.01, 3)
+  eq(tostring(flip), "true", "walk preview: the fourth facing is right (left, flipped)")
+  who = npcs.walkAt(npcs.TURN_TIME * 4 + 0.01, 3)
+  eq(who, 2, "walk preview: the next NPC after all four facings")
+  local mons = require("mods.facets.mons")
+  local cmds = { { frame = 0, duration = 2 }, { frame = 1, duration = 3 }, { op = "end" } }
+  eq(mons.frameAt(cmds, 1) .. mons.frameAt(cmds, 2) .. mons.frameAt(cmds, 4) .. mons.frameAt(cmds, 5), "0110",
+    "mon preview: frames by tick, then the base picture")
+  local sp, fr = mons.showcaseAt(mons.SLOT_TIME + 0.5 + 3 / 60, function() return { [1] = cmds } end)
+  eq(sp .. ":" .. fr, "4:1", "mon preview: Charmander second, playing its anim")
+  sp, fr = mons.showcaseAt(0.1, nil)
+  eq(sp .. ":" .. fr, "1:0", "mon preview: no animation data, the still picture")
 end
 
 print(("%d passed, %d failed"):format(passed, failed))

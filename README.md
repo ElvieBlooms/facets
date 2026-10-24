@@ -29,11 +29,21 @@ Below those, **POKEMON** has its own **SET** for Pokémon pictures (battle, summ
 
 **FR/LG ANIMS** gives FireRed and LeafGreen Emerald's front animations: the hop, shake or spin each Pokémon does when it appears or cries, in battle, on hatching, after evolving and in the PC. FR/LG never had them, so Facets reads them from your own imported Emerald (nothing is included), and the option does nothing without one. Most of Kanto was redrawn for FR/LG, so where FR/LG's picture differs from Emerald's, the Pokémon keeps FR/LG's art and does the movement only. It's OFF by default.
 
+### The FACETS screen
+The same choices for the game you're playing are on a screen of their own, laid out like Emerald Lens's LENS screen: **FACETS** on the START menu (above MODS, or EXIT), and **FACETS** on the OPTION menu, which shows the NPC set. Up and down pick a row, left and right (or A) change it, and B closes it. Changes apply straight away and are saved to the same settings as the mod options.
+
+* **NPCS** (this game's SET), **POKéMON** (the Pokémon SET), in FireRed and LeafGreen **ANIMS** (FR/LG ANIMS), with a Game Boy Pokémon set **ICONS** (GBC ICONS), then **CREDITS**.
+* A preview of what you've picked: a starter from each region in turn, drawn the way the game draws it and playing its front animation when the game has one (so GBC Pokémon flip through Crystal's frames), and everyday NPCs (a nurse, a Youngster, a Lass and others) walking through all four facings with your set's sprites and fallbacks. The NPCs show once a game is loaded.
+* Under the rows: the selected set's credit, or what OFF keeps.
+* **CREDITS** (press A) opens a page with every set's credit in full, then Facets' own. Up and down scroll, left and right turn a page, B goes back.
+
+The mod options still have every row for both families.
+
 ## Pokémon pictures
 
 Every Pokémon picture in the Gen 3 games goes through two engine functions, `Pokemon.frontPic` and `Pokemon.backPic`, and Facets wraps both, so a set reaches every screen at once. Emerald's two-frame front animations are covered too, so a replaced Pokémon never flickers back to the game's own.
 
-**GBC** reads Crystal's battle sprites from your own install (then Gold's, then Silver's) and colours them with Crystal's own palette for each species, so shinies are Crystal's shinies. That's all 251 Kanto and Johto Pokémon, Unown A to Z and the egg, none of it included. Hoenn's 135, Castform's weather forms, every Deoxys form and Unown ! and ? come from E-SY's GBC-style sprite compilation, which is included (`assets/mons/gbc/front` and `back`). The sheet has no shinies, so their shiny colours were worked out from the games' own Gen 3 shiny pictures (`tools/make_gbc_shinies.py`), matching what each shiny looks like in game. Spinda's front stays the game's own so it keeps its spots. Kanto and Johto Pokémon also play Crystal's own front animations (the frames each one flips through when it appears), read from your install with the rest, in place of Emerald's second frame; Emerald's movement still plays alongside them wherever the game animates. Each picture stands where the game's own would: centred, with its feet on the row the Gen 3 picture ends on. Without Crystal imported, only the Hoenn side changes.
+**GBC** reads Crystal's battle sprites from your own install (then Gold's, then Silver's) and colours them with Crystal's own palette for each species, so shinies are Crystal's shinies. That's all 251 Kanto and Johto Pokémon, Unown A to Z and the egg, none of it included. Hoenn's 135, Castform's weather forms, every Deoxys form and Unown ! and ? come from E-SY's GBC-style sprite compilation, which is included (`assets/mons/gbc/front` and `back`). The sheet has no shinies, so their shiny colours were worked out from the games' own Gen 3 shiny pictures (`tools/make_gbc_shinies.py`), matching what each shiny looks like in game. Spinda's front stays the game's own so it keeps its spots. Party icons (party, PC, summary and everywhere else Gen 3 shows them) change too: Kanto, Johto, Unown and the egg use Crystal's own icons from your install, in Crystal's party-menu colours, and Hoenn's are eeveeee1999's GBC-style icons, which are included (`assets/mons/gbc/icons`). **GBC ICONS** under POKEMON (ICONS on the FACETS screen) picks their size: **2X** (the default) doubles them to fill Gen 3's icon space, **1X** keeps the Game Boy size, standing at the bottom of the slot. They bob between their two frames wherever the game animates its own icons (the party, the PC). Kanto and Johto Pokémon also play Crystal's own front animations (the frames each one flips through when it appears), read from your install with the rest, in place of Emerald's second frame; Emerald's movement still plays alongside them wherever the game animates. Each picture stands where the game's own would: centred, with its feet on the row the Gen 3 picture ends on. Without Crystal imported, only the Hoenn side changes.
 
 **DS** is the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush and many others: Gen 4-style fronts, backs and shinies for all 386 Pokémon, plus Castform's weather forms and each game's Deoxys (Attack in FireRed, Defense in LeafGreen, Speed in Emerald). It's included, used with credit. The resource has no Unown, so Unown stays the game's own; so does Spinda's front, since the game draws each Spinda's own spots.
 
@@ -53,6 +63,14 @@ The GBC set's Hoenn sprites were cut from E-SY's sheet with:
 ```
 python3 tools/make_gbc_hoenn.py tools/recipes/gbc_hoenn.json "<E-SY's GBC sprite sheet>.png" .
 ```
+
+and its Hoenn party icons from eeveeee1999's sheet with:
+
+```
+python3 tools/make_gbc_icons.py tools/recipes/gbc_icons.json "<eeveeee1999's icon sheet>.png" .
+```
+
+A set can have its own party icons too: `assets/mons/<set>/icons/NNN.png` (and `egg.png`), two frames stacked, each 16x16 (drawn at double size) or 32x32.
 
 and their shiny colours with:
 
