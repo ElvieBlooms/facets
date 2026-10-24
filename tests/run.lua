@@ -669,6 +669,35 @@ do
   package.loaded["src.core.game3.battle.pic_coords"] = { front = { [6] = 1, [25] = 9 }, back = { [6] = 4 } }
   local MonAnim = { framePic = function(sp, frame) return { vanilla = "frame" .. frame } end }
   package.loaded["src.core.game3.mon_anim"] = MonAnim
+  -- Gen 3 animation data: the game's own cache, Emerald's two-frame lists -Elvie
+  local resets = 0
+  local AnimData = {
+    cache = function() return "own" end,
+    anims = function(sp) return { [0] = { "still" }, [1] = { "emerald" .. tostring(sp) } } end,
+    reset = function() resets = resets + 1 end,
+  }
+  package.loaded["src.core.game3.mon_anim_data"] = AnimData
+  -- Crystal's Charizard anim: frame 1 for 3 ticks, on a 2-picture sheet whose
+  -- second picture is one black pixel at (30, 10). -Elvie
+  GB_TEXT["crystal/data/generated/pokemon.lua"] = table.concat({
+    "return {", "  CHARIZARD = {", "    anim = {", "      count = 1,", "      frames = {},",
+    "      play = {", "        { 0, 2, },", "        { 1, 3, },", "        { 255, 0, },", "      },",
+    '      sheet = "assets/generated/battle/anim/charizard.png",', "      tiles = 7,", "    },",
+    '    name = "CHARIZARD",', "  },", "}" }, "\n")
+  GB_FILES["crystal/" .. B .. "anim/charizard.png"] = function()
+    local d = battleSprite(56)
+    local sheet = pixelData(56, 112)
+    for y = 0, 55 do for x = 0, 55 do local r, g, b2, a = d:getPixel(x, y); if a and a > 0 then sheet:setPixel(x, y, r, g, b2, a) end end end
+    sheet:setPixel(30, 66, 0, 0, 0, 1)
+    return sheet
+  end
+  -- FR/LG's own fronts and Emerald's: Bulbasaur the same, Ivysaur redrawn -Elvie
+  local G = "data/generated/gba/pokemon/"
+  GB_TEXT["firered/" .. G .. "front/1.rgba"] = "AAAA"
+  GB_TEXT["emerald/" .. G .. "front_anim/1.rgba"] = "AAAABBBB"
+  GB_TEXT["firered/" .. G .. "front/2.rgba"] = "CCCC"
+  GB_TEXT["emerald/" .. G .. "front_anim/2.rgba"] = "DDDDEEEE"
+  GB_TEXT["emerald/" .. G .. "front_anims.lua"] = "EMERALD"
 
   local MOD_M = OUT .. "/modM"
   sh(("mkdir -p '%s/assets/mons/gbc' '%s/assets/mons/zzz/front'"):format(MOD_M, MOD_M))
@@ -698,6 +727,8 @@ do
   local labels = {}
   for _, c in ipairs(rows[2].choices) do labels[#labels + 1] = c[2] end
   eq(table.concat(labels, ","), "gbc,zzz,__off", "mons: sets in label order, then OFF")
+  eq(rows[3].key, "animMons", "mons: FR/LG ANIMS row")
+  eq(rows[3].default, "__off", "mons: FR/LG ANIMS off by default")
   start()
   eq(Pokemon.frontPic(6).vanilla, "front6", "mons: OFF leaves the game's own")
 
@@ -735,8 +766,23 @@ do
   eq(Pokemon.backPic(412).vanilla, "back412", "gbc: no egg back")
   eq(Pokemon.frontPic(277).vanilla, "front277", "gbc: Hoenn Pokémon stay the game's own")
   eq(Pokemon.frontPic(6, 1).vanilla, "front6", "gbc: forms stay the game's own")
-  eq(MonAnim.framePic(6, 1, false), zard, "gbc: Emerald's second frame is the same picture")
+  eq(MonAnim.framePic(25, 1, false), pika, "gbc: with no Crystal anim, the second frame is the same picture")
   eq(MonAnim.framePic(277, 1).vanilla, "frame1", "gbc: unreplaced frames are the game's own")
+
+  -- Crystal's animations on Game Boy fronts -Elvie
+  local zanims = AnimData.anims(6)
+  eq(zanims[0][1], "still", "crystal anim: anim 0 is left alone")
+  local hasF1 = false
+  for _, c in ipairs(zanims[1]) do if c.frame == 1 and c.duration == 3 then hasF1 = true end end
+  check(hasF1, "crystal anim: anim 1 plays Crystal's frame 1 for 3 ticks")
+  eq(zanims[1][#zanims[1]].op, "end", "crystal anim: ...and ends")
+  eq(AnimData.anims(277)[1][1], "emerald277", "crystal anim: Hoenn keeps Emerald's list")
+  local f1 = MonAnim.framePic(6, 1, false)
+  check(f1 and f1 ~= zard and f1.gb, "crystal anim: frame 1 is Crystal's second picture")
+  -- placed like the front (x + 4, y + 7), not stood on the ground line -Elvie
+  eq(px(f1, 34, 17), "0,0,0,1", "crystal anim: the frame sits where the front does")
+  eq(MonAnim.framePic(6, 2, false), zard, "crystal anim: a frame past the sheet is the front")
+  check(MonAnim.framePic(6, 1, true) ~= f1, "crystal anim: shiny frames are their own")
 
   mod.options:set("setMons", "zzz")
   local own = Pokemon.frontPic(1)
@@ -761,9 +807,26 @@ do
   eq(Pokemon.frontPic(1, nil, true).vanilla, "front1", "folder set: no shiny file: the game's own")
   mod.options:set("setMons", "__off")
   eq(Pokemon.frontPic(1).vanilla, "front1", "mons: back to OFF")
+  eq(AnimData.anims(6)[1][1], "emerald6", "crystal anim: OFF keeps Emerald's list")
+
+  -- Emerald's animations in FR/LG -Elvie
+  eq(AnimData.cache(), "own", "fr/lg anims: off reads the game's own data")
+  local before = resets
+  mod.options:set("animMons", "emerald")
+  check(resets > before, "fr/lg anims: the engine's animation data is reloaded")
+  eq(AnimData.cache():read(G .. "front_anims.lua"), "EMERALD", "fr/lg anims: on reads Emerald's")
+  eq(MonAnim.framePic(1, 1).vanilla, "frame1", "fr/lg anims: same picture as Emerald's, Emerald's frame")
+  eq(MonAnim.framePic(2, 1).vanilla, "front2", "fr/lg anims: redrawn in FR/LG, FR/LG's own picture")
+  currentVersion = "emerald"
+  eq(AnimData.cache(), "own", "fr/lg anims: Emerald reads its own")
+  currentVersion = "firered"
+  mod.options:set("animMons", "__off")
+  eq(AnimData.cache(), "own", "fr/lg anims: off again")
+  eq(MonAnim.framePic(2, 1).vanilla, "frame1", "fr/lg anims: off leaves frames alone")
   package.loaded["src.core.game3.pokemon"] = nil
   package.loaded["src.core.game3.battle.pic_coords"] = nil
   package.loaded["src.core.game3.mon_anim"] = nil
+  package.loaded["src.core.game3.mon_anim_data"] = nil
 end
 
 -- main.lua: NPC rows, then the POKEMON rows -Elvie
@@ -776,7 +839,7 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons", "main: NPC rows then POKEMON rows")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons,animMons", "main: NPC rows then POKEMON rows")
   local monSets = {}
   for _, c in ipairs(mod.rows[6].choices) do monSets[#monSets + 1] = c[1] end
   eq(table.concat(monSets, ","), "DS,GBC,OFF", "shipped: Pokémon sets DS and GBC, then OFF")

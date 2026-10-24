@@ -3,7 +3,9 @@
 -- Pokemon.backPic, so wrapping those two covers every screen, the same way
 -- gen3.lua wraps OwSprites.get for NPCs. Emerald's two-frame front
 -- animations come through MonAnim.framePic, which is wrapped too, so a
--- replaced Pokémon never flickers back to the game's own. -Elvie
+-- replaced Pokémon never flickers back to the game's own. Game Boy fronts
+-- play Crystal's own frames instead, and FR/LG can borrow Emerald's
+-- animations (FR/LG ANIMS). -Elvie
 --
 -- A set is a folder under assets/mons/ with a meta.json ("label",
 -- "credit"). It can hold 64x64 PNGs named by national number:
@@ -69,8 +71,10 @@ end
 -- its lowest drawn row on `bottom`, the row the game's own picture ends on
 -- (64 minus the species' y offset), so it stands where the game's would.
 -- colour(r, g, b, a) gives the colour to draw, or nil for see-through; it's
--- called once per pixel, row by row. -Elvie
-function mons.layOut(src, bottom, colour)
+-- called once per pixel, row by row. place, if given, keeps the spot: an
+-- empty table gets this sprite's, a filled one is reused, so every frame of
+-- an animation sits where its first frame did. -Elvie
+function mons.layOut(src, bottom, colour, place)
   local sw, sh = src:getDimensions()
   if sw > SIZE or sh > SIZE then return nil, ("%dx%d is bigger than 64x64"):format(sw, sh) end
   local px, top, low = {}, nil, nil
@@ -84,17 +88,122 @@ function mons.layOut(src, bottom, colour)
       end
     end
   end
-  if not low then return nil, "the sprite is empty" end
-  local ox = math.floor((SIZE - sw) / 2)
-  local oy = (bottom or SIZE) - 1 - low
-  if oy + top < 0 then oy = -top end
-  if oy + low > SIZE - 1 then oy = SIZE - 1 - low end
+  if not low and not (place and place.ox) then return nil, "the sprite is empty" end
+  local ox, oy
+  if place and place.ox then
+    ox, oy = place.ox, place.oy
+  else
+    ox = math.floor((SIZE - sw) / 2)
+    oy = (bottom or SIZE) - 1 - low
+    if oy + top < 0 then oy = -top end
+    if oy + low > SIZE - 1 then oy = SIZE - 1 - low end
+    if place then place.ox, place.oy = ox, oy end
+  end
   local out = love.image.newImageData(SIZE, SIZE)
   for _, p in ipairs(px) do
     local c = p[3]
-    out:setPixel(ox + p[1], oy + p[2], c[1] / 255, c[2] / 255, c[3] / 255, c[4] or 1)
+    local x, y = ox + p[1], oy + p[2]
+    if x >= 0 and y >= 0 and x < SIZE and y < SIZE then
+      out:setPixel(x, y, c[1] / 255, c[2] / 255, c[3] / 255, c[4] or 1)
+    end
   end
   return out
+end
+
+-- Crystal's front animations
+-- Crystal's pokemon.lua gives each Pokémon an anim = { ... } block: a
+-- sheet of whole pictures (base first) and a play script. Mods can't load()
+-- Lua, so the block is read with this small reader for plain table
+-- literals (numbers, strings, true/false, name = and [n] = keys). -Elvie
+-- --------------------------------------------------
+local function literal(s, i)
+  i = s:find("%S", i)
+  if not i then error("unexpected end") end
+  local c = s:sub(i, i)
+  if c == "{" then
+    local t, n = {}, 0
+    i = i + 1
+    while true do
+      i = s:find("%S", i)
+      if not i then error("unclosed {") end
+      if s:sub(i, i) == "}" then return t, i + 1 end
+      local key
+      local _, e, name = s:find("^([%a_][%w_]*)%s*=", i)
+      if e then
+        key, i = name, e + 1
+      else
+        local _, e2, num = s:find("^%[%s*(%-?%d+)%s*%]%s*=", i)
+        if e2 then key, i = tonumber(num), e2 + 1 end
+      end
+      local v
+      v, i = literal(s, i)
+      if key == nil then n = n + 1; key = n end
+      t[key] = v
+      i = s:find("%S", i)
+      local sep = i and s:sub(i, i)
+      if sep == "," or sep == ";" then i = i + 1 end
+    end
+  elseif c == '"' then
+    local j = s:find('"', i + 1, true)
+    if not j then error("unclosed string") end
+    return s:sub(i + 1, j - 1), j + 1
+  end
+  local a, b = s:find("^%-?[%w_%.]+", i)
+  if not a then error("unexpected " .. c) end
+  local word = s:sub(a, b)
+  if word == "true" then return true, b + 1 elseif word == "false" then return false, b + 1 end
+  local v = tonumber(word)
+  if v == nil then error("unexpected " .. word) end
+  return v, b + 1
+end
+mons.literal = function(s) return (literal(s, 1)) end
+
+-- The anim block for a Crystal sprite name (chikorita), or nil. index is a
+-- table kept between calls. -Elvie
+function mons.crystalAnim(text, stem, index)
+  if type(text) ~= "string" or type(stem) ~= "string" then return nil end
+  if not index.starts then
+    index.starts = {}
+    for at in text:gmatch("()\n    anim = {") do index.starts[#index.starts + 1] = at end
+  end
+  local at = text:find('sheet = "assets/generated/battle/anim/' .. stem .. '.png"', 1, true)
+  if not at then return nil end
+  local from
+  for _, s in ipairs(index.starts) do
+    if s < at then from = s else break end
+  end
+  if not from then return nil end
+  local brace = text:find("{", from, true)
+  local ok, anim = pcall(literal, text, brace)
+  if not ok or type(anim) ~= "table" or type(anim.play) ~= "table" or not tonumber(anim.tiles) then return nil end
+  return anim
+end
+
+-- A Crystal anim as Gen 3 sprite commands, played by the engine's own Gen 2
+-- runner (the battle scene: setup, then play) and written down tick by tick.
+-- nil if it never leaves the base picture. -Elvie
+function mons.animCommands(anim, Runner)
+  if not (anim and Runner and type(Runner.new) == "function") then return nil end
+  local runner = Runner.new(anim, "battle")
+  if not runner then return nil end
+  local cmds, last, run, moved = {}, nil, 0, false
+  for _ = 1, 3600 do
+    runner:update()
+    if runner:finished() then break end
+    local f = runner:currentFrame() or 0
+    if f ~= 0 then moved = true end
+    if f == last then
+      run = run + 1
+    else
+      if last then cmds[#cmds + 1] = { frame = last, duration = run } end
+      last, run = f, 1
+    end
+  end
+  if not moved then return nil end
+  if last then cmds[#cmds + 1] = { frame = last, duration = run } end
+  cmds[#cmds + 1] = { frame = 0, duration = 1 }
+  cmds[#cmds + 1] = { op = "end" }
+  return cmds
 end
 
 -- Game Boy battle sprites are greyscale with see-through outside: white,
@@ -183,6 +292,10 @@ function mons.init(mod, rows)
   rows[#rows + 1] = { key = "sectionMons", type = "choice", label = "POKEMON",
     choices = { { "", "_" } }, default = "_" }
   rows[#rows + 1] = { key = "setMons", type = "choice", label = "  SET", choices = choices, default = OFF }
+  -- FireRed and LeafGreen have no front animations of their own; this
+  -- plays Emerald's, read from the player's imported Emerald. -Elvie
+  rows[#rows + 1] = { key = "animMons", type = "choice", label = "  FR/LG ANIMS",
+    choices = { { "EMERALD", "emerald" }, { "OFF", OFF } }, default = OFF }
 
   return function()
     local okC, PicCoords = pcall(require, "src.core.game3.battle.pic_coords")
@@ -263,6 +376,9 @@ function mons.init(mod, rows)
       return src, shiny and pal.shiny or pal.normal
     end
 
+    local placements = {} -- [species] = where a Game Boy front sits, for its frames
+
+    -- The picture, and true when it's a Game Boy one. -Elvie
     local function build(kind, species, shiny, nat, letter, variant)
       local data = ownFile(current, kind, shiny, nat, letter, variant)
       if data then
@@ -274,9 +390,14 @@ function mons.init(mod, rows)
       if current.gb and variant == "" then
         local src, pal = gbSprite(kind, shiny, nat, letter)
         if src then
-          local out, why = mons.layOut(src, bottomFor(kind, species), gbColour(pal, src))
+          local place
+          if kind == "front" then
+            placements[species] = placements[species] or {}
+            place = placements[species]
+          end
+          local out, why = mons.layOut(src, bottomFor(kind, species), gbColour(pal, src), place)
           if not out then mod.log:warn("GBC %s %s: %s", kind, tostring(nat), tostring(why)) end
-          return out
+          return out, true
         end
       end
       return nil
@@ -310,7 +431,7 @@ function mons.init(mod, rows)
       local key = kind .. ":" .. species .. variant .. (shiny and ":s" or "")
       local hit = cache[key]
       if hit ~= nil then return hit or nil end
-      local ok, data = pcall(build, kind, species, shiny, nat, letter, variant)
+      local ok, data, fromGb = pcall(build, kind, species, shiny, nat, letter, variant)
       if not ok then
         mod.log:warn("%s %d: %s", kind, species, tostring(data))
         data = nil
@@ -319,12 +440,121 @@ function mons.init(mod, rows)
       if data and love and love.graphics then
         local image = love.graphics.newImage(data)
         image:setFilter("nearest", "nearest")
-        entry = { image = image, imageData = data, w = SIZE, h = SIZE }
+        entry = { image = image, imageData = data, w = SIZE, h = SIZE, gb = fromGb or nil }
       end
       cache[key] = entry
       return entry or nil
     end
     mons.lookup = lookup
+
+    -- Crystal's animations, for Game Boy fronts
+    -- --------------------------------------------------
+    local okR, Gen2Anim = pcall(require, "src.render.MonAnim")
+    if not okR or type(Gen2Anim) ~= "table" then Gen2Anim = nil end
+    local crystalText            -- Crystal's pokemon.lua; false if missing
+    local animIndex, anims, commands = {}, {}, {}
+
+    local function crystalAnimFor(nat)
+      local row = type(nat) == "number" and NAMES[nat]
+      if not row or row[1] == "unown" then return nil end -- Unown never animates in Gen 3 -Elvie
+      local hit = anims[row[1]]
+      if hit ~= nil then return hit or nil end
+      if crystalText == nil then crystalText = gb.readAt("data/generated/pokemon.lua", GB_GAMES) or false end
+      local anim = crystalText and mons.crystalAnim(crystalText, row[1], animIndex)
+      anims[row[1]] = anim or false
+      return anim or nil
+    end
+
+    -- Crystal's script as Gen 3 sprite commands, for a Game Boy front. -Elvie
+    local function gbCommands(species)
+      local front = lookup("front", species, nil, false)
+      if not (front and front.gb) then return nil end
+      local hit = commands[species]
+      if hit ~= nil then return hit or nil end
+      local cmds = mons.animCommands(crystalAnimFor((identify(species))), Gen2Anim)
+      commands[species] = cmds or false
+      return cmds
+    end
+
+    -- Frame n of Crystal's sheet, coloured and placed like the front. -Elvie
+    local function gbFrame(species, frame, shiny)
+      local front = lookup("front", species, nil, shiny)
+      if not (front and front.gb) then return nil end
+      local key = "frame:" .. species .. ":" .. frame .. (shiny and ":s" or "")
+      local hit = cache[key]
+      if hit ~= nil then return hit or nil end
+      cache[key] = false
+      local nat = identify(species)
+      local anim = crystalAnimFor(nat)
+      local size = anim and tonumber(anim.tiles) and tonumber(anim.tiles) * 8
+      local sheet = size and type(anim.sheet) == "string" and gb.readImage(anim.sheet, GB_GAMES)
+      local _, pal = gbSprite("front", shiny, nat)
+      if not (sheet and pal and placements[species]) then return nil end
+      local w, h = sheet:getDimensions()
+      if w < size or (frame + 1) * size > h then return nil end
+      local view = {
+        getDimensions = function() return size, size end,
+        getPixel = function(_, x, y) return sheet:getPixel(x, y + frame * size) end,
+      }
+      local data = mons.layOut(view, bottomFor("front", species), gbColour(pal, view), placements[species])
+      if not (data and love and love.graphics) then return nil end
+      local image = love.graphics.newImage(data)
+      image:setFilter("nearest", "nearest")
+      local entry = { image = image, imageData = data, w = SIZE, h = SIZE, gb = true }
+      cache[key] = entry
+      return entry
+    end
+
+    -- Emerald's animations in FireRed and LeafGreen
+    -- The engine reads Gen 3 animation data through MonAnimData.cache(),
+    -- which for FR/LG has none. With the option on, that read goes to the
+    -- player's Emerald instead (the species numbers are the same). Where
+    -- FR/LG's own picture differs from Emerald's (most of Kanto was redrawn),
+    -- the second frame stays FR/LG's picture, so only the movement plays. -Elvie
+    -- --------------------------------------------------
+    local okV, GameVersion = pcall(require, "src.core.GameVersion")
+    local function game() return okV and type(GameVersion) == "table" and GameVersion.get() or nil end
+    local FRLG = { firered = true, leafgreen = true }
+    local borrow = false
+    local function borrowing() return borrow and FRLG[game()] == true end
+    local okD, AnimData = pcall(require, "src.core.game3.mon_anim_data")
+    if not okD or type(AnimData) ~= "table" then AnimData = nil end
+    local emerald = { read = function(_, rel) return (gb.readAt(rel, { "emerald" })) end }
+    if AnimData and type(AnimData.cache) == "function" then
+      local origCache = AnimData.cache
+      AnimData.cache = function(...)
+        if borrowing() then return emerald end
+        return origCache(...)
+      end
+    end
+    if AnimData and type(AnimData.anims) == "function" then
+      local origAnims = AnimData.anims
+      AnimData.anims = function(species, ...)
+        local out = origAnims(species, ...)
+        local sp = tonumber(species)
+        if type(out) == "table" and sp and current and current.gb then
+          local cmds = gbCommands(sp)
+          if cmds then
+            local copy = {}
+            for k, v in pairs(out) do copy[k] = v end
+            copy[1] = cmds -- anim 1 plays with the cry -Elvie
+            return copy
+          end
+        end
+        return out
+      end
+    end
+
+    local same = {} -- [species(:s)] = FR/LG's picture is Emerald's
+    local function sameArt(species, shiny)
+      local key = species .. (shiny and ":s" or "")
+      if same[key] == nil then
+        local own = gb.readAt(("data/generated/gba/pokemon/%s/%d.rgba"):format(shiny and "front_shiny" or "front", species), { game() })
+        local em = gb.readAt(("data/generated/gba/pokemon/%s/%d.rgba"):format(shiny and "front_anim_shiny" or "front_anim", species), { "emerald" })
+        same[key] = type(own) == "string" and type(em) == "string" and #own > 0 and em:sub(1, #own) == own
+      end
+      return same[key]
+    end
 
     local origFront, origBack = Pokemon.frontPic, Pokemon.backPic
     Pokemon.frontPic = function(species, form, shiny, personality, ...)
@@ -338,9 +568,19 @@ function mons.init(mod, rows)
     if okA and type(MonAnim) == "table" and type(MonAnim.framePic) == "function" then
       local origFrame = MonAnim.framePic
       MonAnim.framePic = function(species, frame, shiny, ...)
-        if (tonumber(frame) or 0) ~= 0 then
-          local e = lookup("front", species, nil, shiny)
+        local f = tonumber(frame) or 0
+        local sp = tonumber(species)
+        if f ~= 0 and sp then
+          if current and current.gb then
+            local e = gbFrame(sp, f, shiny)
+            if e then return e end
+          end
+          local e = lookup("front", sp, nil, shiny)
           if e then return e end
+          if borrowing() and not sameArt(sp, shiny) then
+            local own = origFront(sp, nil, shiny)
+            if own then return own end
+          end
         end
         return origFrame(species, frame, shiny, ...)
       end
@@ -352,12 +592,19 @@ function mons.init(mod, rows)
       for _, set in ipairs(sets) do
         if set.key == selected then current = set end
       end
-      cache = {}
+      cache, placements, commands = {}, {}, {}
+    end
+    local function configureAnims()
+      borrow = mod.options:get("animMons") == "emerald"
+      if AnimData and type(AnimData.reset) == "function" then AnimData.reset() end
     end
     configure()
+    configureAnims()
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
-        if type(change) == "table" and change.mod == mod.id and change.key == "setMons" then configure() end
+        if type(change) ~= "table" or change.mod ~= mod.id then return end
+        if change.key == "setMons" then configure() end
+        if change.key == "animMons" then configureAnims() end
       end)
     end
   end
