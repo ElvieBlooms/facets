@@ -7,7 +7,7 @@
 The recipe (recipes/ds_mons.json) says which folders hold which numbering,
 any extra files (forms), and the set's label and credit. Sheets are
 256 wide: front, shiny front, back, shiny back, 64x64 each, on a solid
-background (the top-left pixel's colour), which becomes see-through. Only
+background (each frame's top-left pixel's colour), which becomes see-through. Only
 the first row is used. Facets stands each picture on the game's own
 ground line when it draws it, so where the art sits in its frame doesn't
 matter. Needs Pillow. -Elvie
@@ -24,18 +24,21 @@ def clear(frame, bg):
     return out
 
 
-def frames(path, front_only=False):
+def frames(path, single=None):
+    """single: "front" or "back" for a lone 64x64 picture -Elvie"""
     im = Image.open(path).convert("RGBA")
     bg = im.getpixel((0, 0))[:3]
-    if front_only:
+    if single:
         if im.size != (64, 64):
             sys.exit(f"{path}: a single picture should be 64x64, not {im.size[0]}x{im.size[1]}")
-        return {"front": clear(im, bg)}
+        return {single: clear(im, bg)}
     if im.width != 256 or im.height not in (64, 128):
         sys.exit(f"{path}: expected a 256x64 sheet, not {im.width}x{im.height}")
     out = {}
     for i, kind in enumerate(KINDS):
-        f = clear(im.crop((i * 64, 0, i * 64 + 64, 64)), bg)
+        # each frame's own corner: shiny frames often sit on another colour -Elvie
+        cell = im.crop((i * 64, 0, i * 64 + 64, 64))
+        f = clear(cell, cell.getpixel((0, 0))[:3])
         if f.getbbox():
             out[kind] = f
     return out
@@ -59,12 +62,14 @@ def main():
             nat = internal.get(n) if numbering == "internal" else n
             if nat is None or not 1 <= nat <= 386:
                 continue
-            jobs.append((os.path.join(pack, folder, f), nat, "", False))
+            jobs.append((os.path.join(pack, folder, f), nat, "", None))
     for rel, e in r.get("extras", {}).items():
-        jobs.append((os.path.join(pack, rel), e["national"], "_" + e["variant"], e.get("front_only", False)))
+        if "national" in e:
+            single = e.get("kind") or ("front" if e.get("front_only") else None)
+            jobs.append((os.path.join(pack, rel), e["national"], "_" + e["variant"], single))
     written, have = 0, set()
-    for path, nat, variant, front_only in jobs:
-        for kind, img in frames(path, front_only).items():
+    for path, nat, variant, single in jobs:
+        for kind, img in frames(path, single).items():
             if kind == "front" and nat in skip_front and not variant:
                 continue
             d = os.path.join(set_dir, kind)

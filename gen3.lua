@@ -86,11 +86,13 @@ function gen3.init(mod, ctx)
             else
               warnOnce(mod, rel, "could not load %s; skipping it", rel)
             end
-          elseif type(entry) == "table" and type(entry.sprite) == "string" then
-            local src, game = gb.read(entry.sprite, entry.games)
+          elseif type(entry) == "table" and (type(entry.sprite) == "string" or type(entry.icon) == "string") then
+            -- A sprite, or a party icon (the Pokémon on Crystal's maps). -Elvie
+            local src, game
+            if entry.icon then src, game = gb.readIcon(entry.icon) else src, game = gb.read(entry.sprite, entry.games) end
             if src then
               byName[name:upper()] = { gb = entry, src = src, scale = base.scale,
-                label = ("%s (%s's %s)"):format(name:upper(), game, entry.sprite) }
+                label = ("%s (%s's %s)"):format(name:upper(), game, entry.sprite or entry.icon) }
             end
           end
         end
@@ -139,7 +141,9 @@ function gen3.init(mod, ctx)
       local scale = ref.scale == 2 and 2 or 1
       local fw0, fh0 = w0, h0
       if scale == 2 then fw0, fh0 = WIDE, WIDE end
-      ok, data, why = pcall(gb.sheet, ref.src, ref.gb.palette, fw0, fh0, scale)
+      local mode = ref.gb.icon and "icon" or ref.gb.big and "big" or nil
+      if mode == "big" then fw0, fh0 = w0, h0 end
+      ok, data, why = pcall(gb.sheet, ref.src, ref.gb.palette, fw0, fh0, scale, mode)
       if ok and not data then
         warnOnce(mod, rel, "%s: %s; skipping it", rel, tostring(why))
         return nil

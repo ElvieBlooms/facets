@@ -149,7 +149,8 @@ function npcs.init(mod, rows)
         local map = gbMaps[key]
         if isDirectory(NPCS_DIR .. "/" .. key .. "/gen3/" .. family.id)
             or (map and type(map[family.id]) == "table" and next(map[family.id]) ~= nil) then
-          table.insert(setsFor[family.id], { label = label, key = key, test = meta.test == true })
+          table.insert(setsFor[family.id], { label = label, key = key, test = meta.test == true,
+            gb = meta.source == "gb" })
           any = true
         end
       end
@@ -195,7 +196,10 @@ function npcs.init(mod, rows)
   if not running or #setsFor[running.id] == 0 then return end
 
   -- Fallback: the selected set, then the family's other sets in menu
-  -- order (test sets left out), then the game's own. nil means OFF. -Elvie
+  -- order (test sets left out), then the game's own. nil means OFF. The
+  -- Game Boy sets only fill gaps for each other: picking COMMUNITY
+  -- shouldn't turn the overworld Pokémon (which only GBC has) into Game
+  -- Boy sprites. -Elvie
   local function resolve()
     local sets = setsFor[running.id]
     local selected = mod.options:get("set" .. running.suffix)
@@ -204,8 +208,14 @@ function npcs.init(mod, rows)
     for _, set in ipairs(sets) do known = known or set.key == selected end
     if not known then selected = sets[1].key end
     local setKeys = { selected }
+    local selectedGb = false
     for _, set in ipairs(sets) do
-      if set.key ~= selected and not set.test then table.insert(setKeys, set.key) end
+      if set.key == selected then selectedGb = set.gb end
+    end
+    for _, set in ipairs(sets) do
+      if set.key ~= selected and not set.test and (selectedGb or not set.gb) then
+        table.insert(setKeys, set.key)
+      end
     end
     return { setKeys = setKeys, npcsDir = NPCS_DIR, gbMaps = gbMaps, gbScale = gbScale, gbStrips = gbStrips }
   end

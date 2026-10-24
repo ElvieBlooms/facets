@@ -88,6 +88,8 @@ local GB_FILES = {
   ["crystal/assets/generated/sprites/gbcaptain.png"] = function() return gbStrip(6, 3) end,
   ["red/assets/generated/sprites/gbyoung.png"] = function() return gbStrip(6) end,
   ["crystal/assets/generated/sprites/gbyoung.png"] = function() return gbStrip(6) end,
+  ["crystal/assets/generated/icons/gen2/pikachu.png"] = function() return gbStrip(2) end,
+  ["crystal/assets/generated/sprites/big_snorlax.png"] = function() return gbStrip(3) end,
 }
 -- Strips shipped in a set: the same layout in their own colours, with
 -- alpha for see-through. Frame f has a red pixel at (f, 15). -Elvie
@@ -203,7 +205,13 @@ local function newMod(root)
       for _, h in ipairs(mod.handlers) do h({ mod = "facets", key = key, value = v }) end
     end,
   }
-  mod.events = { on = function(_, name, fn) if name == "mod.options_changed" then table.insert(mod.handlers, fn) end end }
+  mod.on = {}
+  mod.events = { on = function(_, name, fn)
+    if name == "mod.options_changed" then table.insert(mod.handlers, fn) end
+    mod.on[name] = mod.on[name] or {}
+    table.insert(mod.on[name], fn)
+  end }
+  function mod.fire(name, ...) for _, fn in ipairs(mod.on[name] or {}) do fn(...) end end
   return mod
 end
 
@@ -474,6 +482,8 @@ do
     "SWIMMER_M_LAND": {"strip": "SWIMMER"},
     "SITTING_BOY": {"strip": "SITTER"},
     "WORKER_M": {"strip": "NOT_SHIPPED"},
+    "PIKACHU": {"icon": "pikachu", "palette": "PAL_OW_RED"},
+    "SNORLAX": {"sprite": "big_snorlax", "palette": "PAL_OW_BLUE", "big": true},
     "RED_NORMAL": {"sprite": "gbyoung", "palette": "PAL_OW_RED"}}}]]); f:close()
   sh(("mkdir -p '%s'"):format(MOD_G .. "/assets/npcs/gb/strips"))
   copy(TF .. "frlg/NURSE.png", MOD_G .. "/assets/npcs/gb/strips/SWIMMER.png")
@@ -522,6 +532,19 @@ do
   eq(Ow.get(22).image.data.path:match("/(real)/"), "real", "gb: ...REAL's sheet")
   eq(Ow.get(0), vanilla[0], "gb: the player is never replaced, even when mapped")
   eq(Ow.get(80), vanilla[80], "gb: unmapped BROCK is the game's own")
+  -- Overworld Pokémon: a party icon, and a big doll -Elvie
+  local pika = Ow.get(120)
+  check(pika ~= vanilla[120], "gb: PIKACHU from Crystal's party icon")
+  r = px(pika, 0, 0, 15); eq(r, 0, "icon: facing frames show the icon's first frame")
+  r = px(pika, 3, 1, 15); eq(r, 0, "icon: walk steps show its second")
+  r = px(pika, 1, 0, 15); eq(r, 0, "icon: no mirrored or turned frames")
+  local lax = Ow.get(109)
+  eq(lax.width .. "x" .. lax.height, "32x32", "big: SNORLAX 32x32")
+  r = px(lax, 0, 0, 15); eq(r, 0, "big: left half as drawn")
+  r = px(lax, 0, 31, 15); eq(r, 0, "big: right half mirrored")
+  r = px(lax, 0, 30, 31); eq(r, 0, "big: both of its 16-row frames used")
+  r = px(lax, 5, 31, 15); eq(r, 0, "big: the same picture in every frame")
+
   -- Strips: the set's own art, in its own colours -Elvie
   local idOf = {}
   for id, full in pairs(require("src.core.game3.constants").of("firered"):raw("event_objects").byId.OBJ_EVENT_GFX_) do
@@ -558,10 +581,17 @@ do
   eq(("%d,%d,%d"):format(r, g, b), "255,156,82", "gb2: skin pixel scaled to the top-right corner")
   local k2 = Ow.get(16)
   eq(k2.width .. "x" .. k2.height, "32x32", "gb2: LITTLE_BOY 32x32 over the game's 16x16")
+  local lax2 = Ow.get(109)
+  eq(lax2.width .. "x" .. lax2.height, "32x32", "gb2: a big doll stays 1x (2x wouldn't fit)")
+  r = px(lax2, 0, 31, 15); eq(r, 0, "gb2: ...drawn as at 1x")
   local b2 = Ow.get(53)
   eq(b2.width .. "x" .. b2.height, "32x32", "gb2: BIKER 32x32")
   r = px(Ow.get(18), 4, 24, 31); eq(r, 0, "gb2: mirrored walk frame scaled too")
   check(Ow.get(22) ~= vanilla[22], "gb2: LASS still falls through to the next set")
+  mod.options:set("setFrlg", "real")
+  eq(Ow.get(16), vanilla[16], "gb: a Game Boy set doesn't fill gaps when another set is picked")
+  check(Ow.get(22) ~= vanilla[22], "gb: ...the picked set still works")
+  mod.options:set("setFrlg", "gb2")
   local s2 = Ow.get(idOf.SWIMMER_M_LAND)
   eq(s2.width .. "x" .. s2.height, "32x32", "gb2: strips borrowed from the map's set, at 2x")
   r = px(s2, 0, 1, 31); eq(r, 200, "gb2: strip pixel a 2x2 block")
