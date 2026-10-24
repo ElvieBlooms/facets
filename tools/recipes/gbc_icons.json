@@ -1,0 +1,32 @@
+{
+  "about": "GBC-style Hoenn party icons on one sheet: 16x16 cells on a 17-pixel grid (1-pixel lines), ten Pokémon to a row in national order from Treecko, each Pokémon's first frame on one row and its second frame on the row under it. Colours are Crystal's party-menu scheme with the red swapped for a colour per Pokémon. (0,0,1) is drawn as black.",
+  "set": "gbc",
+  "grid": {
+    "x0": 1,
+    "y0": 1,
+    "pitch": 17,
+    "size": 16,
+    "columns": 10
+  },
+  "same_as": [
+    [
+      [
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ]
+  ],
+  "runs": [
+    {
+      "national": 252,
+      "count": 135
+    }
+  ],
+  "credit": "Hoenn party icons by eeveeee1999"
+}
