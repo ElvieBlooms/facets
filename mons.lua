@@ -283,6 +283,29 @@ function mons.parsePartyPalette(text)
   return { { v[4], v[5], v[6] }, { v[7], v[8], v[9] } }
 end
 
+mons.BACKS = { { "BACK", "back" }, { "FRONT", "front" } }
+mons.MIRROR = { { "OFF", OFF }, { "ON", "on" } }
+-- the FACETS screen's one row for both -Elvie
+mons.SIDES = { { "BACK", "back" }, { "MIRRORED", "mirrored" }, { "FRONT", "front" } }
+function mons.sideOf(backs, mirror)
+  if backs ~= "front" then return "back" end
+  return mirror == OFF and "front" or "mirrored"
+end
+
+-- How far a front picture moves to stand where the back one would: its
+-- own ground line (front offset, less any float) against the back's.
+-- coords is the game's pic_coords (front, back, elev by species). -Elvie
+function mons.frontAsBackShift(coords, species)
+  if type(coords) ~= "table" then return 0 end
+  local ok, shift = pcall(function()
+    local front = coords.front and coords.front[species] or 0
+    local back = coords.back and coords.back[species] or 0
+    local elev = coords.elev and coords.elev[species] or 0
+    return front - elev - back
+  end)
+  return ok and tonumber(shift) or 0
+end
+
 -- menu (menu.lua), if given, gets the POKEMON rows for the FACETS screen. -Elvie
 function mons.init(mod, rows, menu)
   local okP, Pokemon = pcall(require, "src.core.game3.pokemon")
@@ -331,6 +354,13 @@ function mons.init(mod, rows, menu)
   -- plays Emerald's, read from the player's imported Emerald. -Elvie
   rows[#rows + 1] = { key = "animMons", type = "choice", label = "  FR/LG ANIMS",
     choices = { { "EMERALD", "emerald" }, { "OFF", OFF } }, default = OFF }
+  -- Your own Pokémon by its front picture instead of its back, mirrored
+  -- to face the foe unless MIRROR FRONTS is off. Any set, or the
+  -- game's own. -Elvie
+  rows[#rows + 1] = { key = "backMons", type = "choice", label = "  YOUR SIDE",
+    choices = mons.BACKS, default = "back" }
+  rows[#rows + 1] = { key = "mirrorMons", type = "choice", label = "  MIRROR FRONTS",
+    choices = mons.MIRROR, default = "on" }
   if menu then mons.screenPart(mod, menu, sets, choices, Pokemon) end
 
   return function()
@@ -817,7 +847,112 @@ function mons.init(mod, rows, menu)
       end
       return origFront(species, form, shiny, personality, ...)
     end
+    -- YOUR SIDE: FRONT. The front picture (from the set, Emerald's or
+    -- the game's), moved to the back's ground line and, with MIRROR
+    -- FRONTS on, flipped to face the foe. Drawn once into a picture of
+    -- its own, then kept. -Elvie
+    local backs, mirrored, asBack = "back", false, {}
+    local function frontAsBack(species, form, shiny, frame)
+      local sp = tonumber(species)
+      frame = tonumber(frame) or 0
+      if not sp or not (love and love.graphics and love.graphics.newCanvas) then return nil end
+      local suffix = ""
+      if type(Pokemon.deoxysFormSuffix) == "function" then
+        local okS, got = pcall(Pokemon.deoxysFormSuffix, sp)
+        suffix = okS and type(got) == "string" and got or ""
+      end
+      local key = sp .. suffix .. ":" .. (tonumber(form) or 0) .. ":" .. frame .. (shiny and ":s" or "")
+      local hit = asBack[key]
+      if hit ~= nil then return hit or nil end
+      local ok, front = false, nil
+      if frame ~= 0 then
+        local MonAnim = package.loaded["src.core.game3.mon_anim"]
+        if type(MonAnim) == "table" and type(MonAnim.framePic) == "function" then
+          ok, front = pcall(MonAnim.framePic, sp, frame, shiny)
+        end
+        -- a frame the set doesn't have: the still picture -Elvie
+        if not (ok and type(front) == "table" and front.image) then return frontAsBack(sp, form, shiny, 0) end
+      else
+        ok, front = pcall(Pokemon.frontPic, sp, form, shiny)
+      end
+      if not (ok and type(front) == "table" and front.image) then
+        asBack[key] = false
+        return nil
+      end
+      local w, h = SIZE, SIZE
+      local shift = mons.frontAsBackShift(PicCoords, sp)
+      local made, entry = pcall(function()
+        local canvas = love.graphics.newCanvas(w, h)
+        love.graphics.push("all")
+        love.graphics.setCanvas(canvas)
+        love.graphics.clear(0, 0, 0, 0)
+        love.graphics.origin()
+        love.graphics.setShader()
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(front.image, mirrored and w or 0, shift, 0, mirrored and -1 or 1, 1)
+        love.graphics.pop()
+        local data = canvas:newImageData()
+        canvas:release()
+        local image = love.graphics.newImage(data)
+        image:setFilter("nearest", "nearest")
+        return { image = image, imageData = data, w = w, h = h }
+      end)
+      if not made then
+        mod.log:warn("front as back for %d: %s", sp, tostring(entry))
+        entry = false
+      end
+      asBack[key] = entry
+      return entry or nil
+    end
+    mons.frontAsBack = frontAsBack
+
+    -- Front animations on your side too. The battle starts a back
+    -- animation for your Pokémon; with YOUR SIDE: FRONT it starts the
+    -- front one instead (no cry: the battle plays that itself), and its
+    -- picture follows the animation's frame. Mirrored, its moves are
+    -- mirrored too, so a lunge goes toward the foe. -Elvie
+    local okB, Battle = pcall(require, "src.core.game3.battle.mon_anim_battle")
+    if okB and type(Battle) == "table" and type(Battle.start) == "function" and type(Battle.apply) == "function" then
+      local origStart, origApply = Battle.start, Battle.apply
+      Battle.start = function(key, kind, opts, ...)
+        if kind == "back" and backs == "front" then
+          local copy = {}
+          for k, v in pairs(type(opts) == "table" and opts or {}) do copy[k] = v end
+          copy.noCry = true
+          local sprite = origStart(key, "front", copy, ...)
+          if type(sprite) == "table" then sprite.facetsSide = true end
+          return sprite
+        end
+        return origStart(key, kind, opts, ...)
+      end
+      Battle.apply = function(p, sprite, ...)
+        local out = origApply(p, sprite, ...)
+        if type(p) == "table" and type(sprite) == "table" and sprite.facetsSide and mirrored then
+          p.ox = -(tonumber(p.ox) or 0)
+          p.rotation = -(tonumber(p.rotation) or 0)
+        end
+        return out
+      end
+    end
+    -- the frame your side's front animation is on, 0 when none plays -Elvie
+    local function sideFrame(species)
+      local B = package.loaded["src.core.game3.battle.mon_anim_battle"]
+      if type(B) ~= "table" or type(B._active) ~= "table" then return 0 end
+      for p, sprite in pairs(B._active) do
+        if type(sprite) == "table" and sprite.facetsSide and tonumber(sprite.species) == species and type(p) == "table" then
+          return tonumber(p.monFrame) or 0
+        end
+      end
+      return 0
+    end
+    mons.sideFrame = sideFrame
+
     Pokemon.backPic = function(species, form, shiny, ...)
+      if backs == "front" then
+        local sp = tonumber(species)
+        local e = frontAsBack(species, form, shiny, sp and sideFrame(sp) or 0)
+        if e then return e end
+      end
       return lookup("back", species, form, shiny) or origBack(species, form, shiny, ...)
     end
     Pokemon.frontSprite = Pokemon.frontPic
@@ -856,19 +991,28 @@ function mons.init(mod, rows, menu)
         if set.key == selected then current = set end
       end
       cache, placements, commands = {}, {}, {}
+      asBack = {}
     end
     local function configureAnims()
       borrow = mod.options:get("animMons") == "emerald"
       emPics, emPlace = {}, {}
+      asBack = {}
       if AnimData and type(AnimData.reset) == "function" then AnimData.reset() end
+    end
+    local function configureBacks()
+      backs = mod.options:get("backMons") == "front" and "front" or "back"
+      mirrored = mod.options:get("mirrorMons") ~= OFF
+      asBack = {}
     end
     configure()
     configureAnims()
+    configureBacks()
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
         if type(change) ~= "table" or change.mod ~= mod.id then return end
         if change.key == "setMons" then configure() end
         if change.key == "animMons" then configureAnims() end
+        if change.key == "backMons" or change.key == "mirrorMons" then configureBacks() end
       end)
     end
   end
@@ -940,6 +1084,14 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
           choices = { { "EMERALD", "emerald" }, { "OFF", OFF } },
           value = mod.options:get("animMons") == "emerald" and "emerald" or OFF }
       end
+      -- YOUR SIDE and MIRROR FRONTS share one row here, to save room -Elvie
+      out[#out + 1] = { key = "backMons", label = "YOUR SIDE", who = "backs", choices = mons.SIDES,
+        value = mons.sideOf(mod.options:get("backMons"), mod.options:get("mirrorMons")),
+        set = function(game, value)
+          menu.set(game, "backMons", value == "back" and "back" or "front")
+          -- BACK leaves MIRROR FRONTS as it was, for next time -Elvie
+          if value ~= "back" then menu.set(game, "mirrorMons", value == "mirrored" and "on" or OFF) end
+        end }
       return out
     end,
     preview = function(who)
@@ -956,16 +1108,31 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
         end
         return { lines = { { text = "Emerald's animations," }, { text = "from your Emerald." },
           { text = "Redrawn Kanto: Emerald's art." } } }
+      elseif who == "backs" then
+        local side = mons.sideOf(mod.options:get("backMons"), mod.options:get("mirrorMons"))
+        -- one short line: FR/LG's list leaves room for little else -Elvie
+        if side == "back" then
+          return { lines = { { text = "Your side from behind." } } }
+        elseif side == "front" then
+          return { lines = { { text = "Fronts, as drawn." } } }
+        end
+        return { lines = { { text = "Fronts, facing the foe." } } }
       end
       return nil
     end,
-    -- spots.mon = { x, y } moves it (PRISM's corner). -Elvie
-    draw = function(clock, family, spots)
+    -- spots.mon = { x, y } moves it (PRISM's corner). On the YOUR SIDE
+    -- row it shows your side's picture instead. -Elvie
+    draw = function(clock, family, spots, who)
       if not (love and love.graphics) then return end
       local at = type(spots) == "table" and spots.mon or nil
       local okD, AnimData = pcall(require, "src.core.game3.mon_anim_data")
       local species, frame = mons.showcaseAt(clock, okD and type(AnimData) == "table" and AnimData.anims or nil)
       local pic
+      if who == "backs" then
+        local ok, got = pcall(Pokemon.backPic, species, 0, false)
+        pic = ok and got or nil
+        frame = 0
+      end
       if frame ~= 0 then
         local okA, MonAnim = pcall(require, "src.core.game3.mon_anim")
         if okA and type(MonAnim) == "table" and type(MonAnim.framePic) == "function" then
