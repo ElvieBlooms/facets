@@ -1,5 +1,5 @@
 {
-  "about": "The DS-style 64x64 Pokémon Sprite Resource (Chaos Rush and others). Point mon_convert.py at the folder holding GenI, GenII and GenIII. Each sheet is 256x64 (or 256x128, the second row being female differences, unused): front, shiny front, back, shiny back, on a solid background taken from the top-left pixel. GenI and GenII files are national numbers; GenIII files are Gen 3's internal species numbers (277-411), mapped below. The three Castform files are the weather forms' backs. Spinda's front is left out: the game draws each Spinda's own spots.",
+  "about": "The DS-style 64x64 Pokémon Sprite Resource (Chaos Rush and others). Point mon_convert.py at the folder holding GenI, GenII and GenIII. Each sheet is 256x64 (or 256x128, the second row being female differences, unused): front, shiny front, back, shiny back, on a solid background taken from the top-left pixel. GenI and GenII files are national numbers; GenIII files are Gen 3's internal species numbers (277-411), mapped below. The three Castform files are the weather forms' backs. Spinda's front is left out: the game draws each Spinda's own spots. So is Anorith's: the resource's is Gen 3's own outline re-shaded, so the game's own is used instead.",
   "set": "ds",
   "label": "DS",
   "credit": [
@@ -177,6 +177,7 @@
     }
   },
   "skip_front": [
-    327
+    327,
+    347
   ]
 }

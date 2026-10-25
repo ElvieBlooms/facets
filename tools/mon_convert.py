@@ -70,7 +70,8 @@ def main():
     written, have = 0, set()
     for path, nat, variant, single in jobs:
         for kind, img in frames(path, single).items():
-            if kind == "front" and nat in skip_front and not variant:
+            # skip_front leaves out the front and the shiny front -Elvie
+            if kind in ("front", "front_shiny") and nat in skip_front and not variant:
                 continue
             d = os.path.join(set_dir, kind)
             os.makedirs(d, exist_ok=True)
