@@ -786,6 +786,15 @@ do
 
   local mod = newMod(MOD_M)
   local rows = {}
+  -- the battle's animation starter, as the engine has it -Elvie
+  local battleCalls = {}
+  local BattleAnim = { _active = {} }
+  function BattleAnim.start(key, kind, opts)
+    battleCalls[#battleCalls + 1] = { key = key, kind = kind, noCry = opts and opts.noCry }
+    return { species = 6 }
+  end
+  function BattleAnim.apply(p, sprite) p.ox, p.rotation = 3, 0.5 end
+  package.loaded["src.core.game3.battle.mon_anim_battle"] = BattleAnim
   local start = require("mods.facets.mons").init(mod, rows)
   check(start ~= nil, "mons: init returns a start function")
   mod.options:define(rows)
@@ -858,7 +867,7 @@ do
   check(not Pokemon.icon(414).vanilla, "gbc icons: Unown letters from Crystal's Unown")
   eq(Pokemon.icon(25).vanilla, "icon25", "gbc icons: not in Crystal's table: the game's own")
   eq(px(Pokemon.icon(1), 10, 40), "255,0,0,1", "gbc icons: the set's own Kanto icon beats Crystal's")
-  eq(#rows, 3, "mons: no icon size row")
+  eq(#rows, 5, "mons: no icon size row (POKEMON, SET, ANIMS, YOUR SIDE, MIRROR)")
 
   -- Crystal's animations on Game Boy fronts -Elvie
   local zanims = AnimData.anims(6)
@@ -940,9 +949,77 @@ do
   eq(AnimData.cache(), "own", "fr/lg anims: off again")
   eq(Pokemon.frontPic(2).vanilla, "front2", "fr/lg anims: off, FR/LG's own art again")
   eq(MonAnim.framePic(2, 1).vanilla, "frame1", "fr/lg anims: off leaves frames alone")
+
+  -- YOUR SIDE: FRONT, and MIRROR FRONTS -Elvie
+  local monsM = require("mods.facets.mons")
+  eq(monsM.frontAsBackShift({ front = { [6] = 10 }, back = { [6] = 4 }, elev = { [6] = 3 } }, 6), 3,
+    "your side: front offset, less its float, less the back offset")
+  eq(monsM.frontAsBackShift(nil, 6), 0, "your side: no offsets, no move")
+  eq(rows[4].key .. "," .. rows[4].default, "backMons,back", "your side: row, BACK by default")
+  eq(rows[5].key .. "," .. rows[5].default, "mirrorMons,on", "mirror fronts: row, ON by default")
+  mod.options:set("setMons", "gbc")
+  mod.options:set("backMons", "front")
+  check(not Pokemon.backPic(6).vanilla and Pokemon.backPic(6).imageData, "your side: no canvas (headless): the set's back, as before")
+  local G = love.graphics
+  local saved = { newCanvas = G.newCanvas, push = G.push, pop = G.pop, setCanvas = G.setCanvas, clear = G.clear,
+    origin = G.origin, setShader = G.setShader, draw = G.draw }
+  local drawn, made = nil, 0
+  G.newCanvas = function(w, h)
+    made = made + 1
+    return { newImageData = function() return { w = w, h = h } end, release = function() end }
+  end
+  for _, k in ipairs({ "push", "pop", "setCanvas", "clear", "origin", "setShader" }) do G[k] = function() end end
+  G.draw = function(img, x, y, r, sx, sy) drawn = { img = img, x = x, y = y, sx = sx } end
+  local zardFront = Pokemon.frontPic(6)
+  local asBack = Pokemon.backPic(6, nil, false)
+  check(asBack and asBack.imageData and asBack.imageData.w == 64, "your side: FRONT draws a 64x64 picture")
+  eq(drawn and drawn.img, zardFront.image, "your side: ...from the front picture (the set's)")
+  eq(drawn and (drawn.x .. "," .. drawn.y .. "," .. drawn.sx), "64,-3,-1", "your side: moved to the back's ground line (1 - 4), mirrored by default")
+  eq(Pokemon.backPic(6, nil, false), asBack, "your side: kept")
+  eq(made, 1, "your side: drawn once")
+  mod.options:set("mirrorMons", "__off")
+  Pokemon.backPic(6, nil, false)
+  eq(drawn and (drawn.x .. "," .. drawn.sx), "0,1", "mirror fronts off: as drawn")
+  eq(made, 2, "mirror fronts: drawn again when changed")
+  -- front animations on your side -Elvie
+  local sprite = BattleAnim.start("player", "back", { st = 1 })
+  eq(battleCalls[#battleCalls].kind .. "," .. tostring(battleCalls[#battleCalls].noCry), "front,true",
+    "your side: FRONT starts the front animation, without a second cry")
+  check(sprite.facetsSide, "your side: ...marked as yours")
+  BattleAnim.start(1, "front", {})
+  eq(battleCalls[#battleCalls].kind .. "," .. tostring(battleCalls[#battleCalls].noCry), "front,nil", "your side: the foe's untouched")
+  local pres = {}
+  BattleAnim.apply(pres, sprite)
+  eq(pres.ox .. "," .. pres.rotation, "3,0.5", "your side: not mirrored, moves as they are")
+  mod.options:set("mirrorMons", "on")
+  BattleAnim.apply(pres, sprite)
+  eq(pres.ox .. "," .. pres.rotation, "-3,-0.5", "your side: mirrored, its moves mirrored too")
+  local foePres = {}
+  BattleAnim.apply(foePres, { species = 6 })
+  eq(foePres.ox, 3, "your side: the foe's moves untouched")
+  local savedFrame = MonAnim.framePic
+  MonAnim.framePic = function(sp, frame) return { image = "frame" .. frame } end
+  pres.monFrame = 1
+  BattleAnim._active[pres] = sprite
+  eq(require("mods.facets.mons").sideFrame(6), 1, "your side: the animation's frame is found")
+  Pokemon.backPic(6, nil, false)
+  eq(drawn and drawn.img, "frame1", "your side: its picture follows the frame")
+  BattleAnim._active[pres] = nil
+  Pokemon.backPic(6, nil, false)
+  eq(drawn and drawn.img, zardFront.image, "your side: back to the still picture when it's done")
+  MonAnim.framePic = savedFrame
+  mod.options:set("backMons", "back")
+  BattleAnim.start("player", "back", {})
+  eq(battleCalls[#battleCalls].kind, "back", "your side: BACK keeps the back animation")
+  local plainBack = Pokemon.backPic(6, nil, false)
+  check(plainBack and plainBack ~= asBack and not plainBack.vanilla, "your side: BACK again: the set's back")
+  mod.options:set("mirrorMons", "__off")
+  mod.options:set("setMons", "__off")
+  for k, fn in pairs(saved) do G[k] = fn end
   package.loaded["src.core.game3.pokemon"] = nil
   package.loaded["src.core.game3.battle.pic_coords"] = nil
   package.loaded["src.core.game3.mon_anim"] = nil
+  package.loaded["src.core.game3.battle.mon_anim_battle"] = nil
   package.loaded["src.core.game3.mon_anim_data"] = nil
 end
 
@@ -956,7 +1033,7 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons,animMons", "main: NPC rows then POKEMON rows")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons,animMons,backMons,mirrorMons", "main: NPC rows then POKEMON rows")
   local monSets = {}
   for _, c in ipairs(mod.rows[6].choices) do monSets[#monSets + 1] = c[1] end
   eq(table.concat(monSets, ","), "DS,GBC,GBC ANIM,OFF", "shipped: Pokémon sets DS, GBC and GBC ANIM, then OFF")
@@ -986,8 +1063,30 @@ for _, version in ipairs({ "firered", "emerald" }) do
   local tag = "screen (" .. version .. "): "
   local keys = {}
   for _, r in ipairs(M.rows()) do keys[#keys + 1] = r.label end
-  eq(table.concat(keys, ","), frlg and "NPCS,POKéMON,ANIMS,CREDITS" or "NPCS,POKéMON,CREDITS",
+  eq(table.concat(keys, ","), frlg and "NPCS,POKéMON,ANIMS,YOUR SIDE,CREDITS" or "NPCS,POKéMON,YOUR SIDE,CREDITS",
     tag .. "the running game's rows only")
+  -- YOUR SIDE: one row here for both options -Elvie
+  local side
+  local function sideRow()
+    for _, r in ipairs(M.rows()) do if r.key == "backMons" then return r end end
+  end
+  side = sideRow()
+  eq(side and side.valueLabel, "BACK", tag .. "YOUR SIDE starts BACK")
+  local sets = {}
+  local sideGame = { options = {}, mods = { events = { emit = function(_, _, c) sets[#sets + 1] = c.key .. "=" .. tostring(c.value) end } } }
+  side.set(sideGame, "mirrored")
+  eq(table.concat(sets, ","), "backMons=front,mirrorMons=on", tag .. "YOUR SIDE MIRRORED sets both options")
+  sets = {}
+  side.set(sideGame, "front")
+  eq(table.concat(sets, ","), "backMons=front,mirrorMons=__off", tag .. "YOUR SIDE FRONT: front, not mirrored")
+  sets = {}
+  side.set(sideGame, "back")
+  eq(table.concat(sets, ","), "backMons=back", tag .. "YOUR SIDE BACK: MIRROR FRONTS left as it was")
+  mod.options:set("backMons", "front"); mod.options:set("mirrorMons", "on")
+  eq(sideRow().valueLabel, "MIRRORED", tag .. "both options on show as MIRRORED")
+  mod.options:set("mirrorMons", "__off")
+  eq(sideRow().valueLabel, "FRONT", tag .. "...front alone as FRONT")
+  mod.options:set("backMons", "back")
   local rows = M.rows()
   eq(rows[1].key, frlg and "setFrlg" or "setRse", tag .. "NPCS is this family's SET")
   eq(rows[1].valueLabel, "COMMUNITY", tag .. "NPCS shows the set's label")

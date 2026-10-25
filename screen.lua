@@ -41,7 +41,10 @@ function screen.new(mod, model)
     for i, choice in ipairs(row.choices) do
       if choice[2] == row.value then at = i end
     end
-    model.set(state.game, row.key, row.choices[(at - 1 + dir) % n + 1][2])
+    local value = row.choices[(at - 1 + dir) % n + 1][2]
+    -- a row standing for more than one option sets them itself -Elvie
+    if type(row.set) == "function" then return row.set(state.game, value) end
+    model.set(state.game, row.key, value)
   end
 
   -- The engine can clear the whole stack (a warp, the title screen), so
@@ -200,11 +203,11 @@ function screen.new(mod, model)
     end
     Window.cursorPx(LABEL_X - 8, ROW_Y0 + (state.index - 1) * ROW_STEP)
 
+    local selected = list[state.index]
     love.graphics.setColor(1, 1, 1, 1)
-    model.draw(state.clock)
+    model.draw(state.clock, selected and selected.who or nil)
     love.graphics.setColor(1, 1, 1, 1)
 
-    local selected = list[state.index]
     local preview = model.preview(selected and selected.who or "npcs")
     local y = ROW_Y0 + #list * ROW_STEP + 2
     for _, line in ipairs(preview.lines or {}) do

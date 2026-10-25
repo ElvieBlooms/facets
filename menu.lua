@@ -119,11 +119,12 @@ function menu.new(mod)
     return { lines = lines }
   end
 
-  function M.draw(clock)
+  -- who: the row the cursor is on, for a part that previews it -Elvie
+  function M.draw(clock, who)
     local family = menu.family()
     if not family then return end
     for _, part in ipairs(M.parts) do
-      if type(part.draw) == "function" then pcall(part.draw, clock, family) end
+      if type(part.draw) == "function" then pcall(part.draw, clock, family, nil, who) end
     end
   end
 
