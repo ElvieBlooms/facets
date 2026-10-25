@@ -5,10 +5,11 @@
 -- rival. -Elvie
 --
 -- Each part adds its option rows and its rows on the FACETS screen
--- (menu.lua, screen.lua), then starts once the rows are defined.
+-- (menu.lua, screen.lua), then starts once the rows are defined. filter.lua
+-- is the GB FILTER, a screen shader over the whole game.
 -- An NPC-only build drops "mons" from this list (and mons.lua,
 -- mon_names.lua and assets/mons/). -Elvie
-local PARTS = { "npcs", "mons" }
+local PARTS = { "npcs", "mons", "filter" }
 
 return function(mod)
   local rows, starts = {}, {}

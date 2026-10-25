@@ -1,0 +1,3 @@
+# Not part of the mod: the headless tests, which point at the
+# engine's folders on purpose. -Elvie
+tests/run.lua

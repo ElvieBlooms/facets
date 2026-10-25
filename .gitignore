@@ -20,4 +20,5 @@ assets/npcs/*
 # ship. -Elvie
 assets/mons/*
 !assets/mons/gbc/
+!assets/mons/gbc_anim/
 !assets/mons/ds/

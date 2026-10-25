@@ -321,8 +321,9 @@ function npcs.screenPart(mod, menu, setsFor, credits)
       if set.test then lines[1] = { text = "Test frames: numbered, for checking." } end
       return { lines = require("mods.facets.menu").creditLines(credits[set.key], lines) }
     end,
-    -- spots.npc = { x (centre), bottom } moves it (PRISM's corner); there
-    -- a 16-wide sprite is doubled and a 32-wide one isn't. -Elvie
+    -- spots.npc = { x (centre), bottom, height or scale } moves it (PRISM's
+    -- corner); with neither, a 16-wide sprite is doubled and a 32-wide one
+    -- isn't. -Elvie
     draw = function(clock, family, spots)
       if not (love and love.graphics) then return end
       local at = type(spots) == "table" and spots.npc or nil
@@ -336,7 +337,11 @@ function npcs.screenPart(mod, menu, setsFor, credits)
       local quad = record.quads and (record.quads[frame] or record.quads[0])
       local w = tonumber(record.width or record.w) or 16
       local h = tonumber(record.height or record.h) or 32
-      local scale = at and (w <= 16 and 2 or 1) or WALK_SCALE
+      local scale = WALK_SCALE
+      if at then
+        -- at.height: the biggest whole size that fits that tall -Elvie
+        scale = at.height and math.max(1, math.floor(at.height / h)) or at.scale or (w <= 16 and 2 or 1)
+      end
       local cx, bottom = at and at.x or WALK_X, at and at.bottom or WALK_BOTTOM
       local x, y = cx - w * scale / 2, bottom - h * scale
       local sx = scale

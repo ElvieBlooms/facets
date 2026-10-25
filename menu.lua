@@ -127,16 +127,19 @@ function menu.new(mod)
     end
   end
 
-  -- The same preview in PRISM's corner: the Pokémon on the left, the NPC
-  -- on the right, both standing on its bottom edge. -Elvie
+  -- The same preview in PRISM's corner: the NPC large on the left, the
+  -- focus, and the Pokémon at its own size on the right, behind it (so
+  -- the parts draw in reverse: Pokémon first). Both stand on the
+  -- corner's bottom edge. -Elvie
   function M.drawPreview(area, clock)
     local family = menu.family()
     if not (family and type(area) == "table") then return end
     local spots = {
-      mon = { x = area.x0 + 16, y = area.y1 - 64 },
-      npc = { x = area.x1 - 18, bottom = area.y1 },
+      npc = { x = area.x0 + 50, bottom = area.y1, height = 64 },
+      mon = { x = area.x1 - 60, y = area.y1 - 64 },
     }
-    for _, part in ipairs(M.parts) do
+    for i = #M.parts, 1, -1 do
+      local part = M.parts[i]
       if type(part.draw) == "function" then pcall(part.draw, clock, family, spots) end
     end
   end
