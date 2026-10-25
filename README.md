@@ -4,11 +4,11 @@
 
 NPC overworld sprites for the Gen 3 games in gen1recomp: FireRed, LeafGreen, Ruby, Sapphire and Emerald. Townsfolk, trainers, nurses, gym leaders and villains can each get new art, one sheet at a time. Anything without a sheet stays the game's own.
 
-Facets can also swap Pokémon pictures: Game Boy Color sprites for all 386, or the DS-style 64x64 resource (below).
+Facets can also swap Pokémon pictures, party icons and animations (Game Boy Color sprites for all 386, Crystal-style animated Hoenn sprites, or the DS-style 64x64 resource), show your own Pokémon by their front, and give the whole screen a Game Boy filter (below).
 
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
-**Status: 0.2.0.** Works in all five games. It ships with four sprite sets, all free to use with credit:
+**Status: 0.5.0.** Works in all five games. It ships with four sprite sets, all free to use with credit:
 
 - **DIEGO:** DiegoWT's Black/White-style trainers and townsfolk.
 - **TAIGA:** Taiga's ORAS-style trainers.
@@ -305,4 +305,6 @@ DIEGO, TAIGA, ZAFFRE and COMMUNITY are included, used with credit. HGSS is Ninte
 - **GBC and GBC 2X:** Gen 1/2 overworld sprites by Nintendo / Game Freak, read from your own imported games; none of it is included. The strips for everyone else (included) are by Catwithnojob (Gen 2 Additional NPCs Pack), free to use with credit.
 - **DS (included):** the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush, with sprites by Wizznats, jhajjar, Vapper3, atif, redriders180, cmbeke, Tailes, SneakerTheOtter, karatekid522, dreamengine, Rizon, Spark, MrDollSteak, PJBottomz, Archeops, dragonflye and Anvils Alive; free to use with credit.
 - **GBC Pokémon:** Gen 2 battle sprites and palettes by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included. Hoenn, form and Unown ! and ? sprites (included) from E-SY's GBC-style sprite compilation, by Unknown, Neslug, Pokekoks, Matdemo159, RED, bloodless, Blue Emerald, LostImpact, Rangi, Piacarrot and Techmath; free to use with credit.
+- **GBC ANIM (included):** Hoenn sprites and animations by Nuuk (Crystal-style sprites), free to use with credit, not for profit; the rest as GBC.
+- **GBC party icons (included):** Kanto and Johto from the Minidex 001-251, by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25; Hoenn by eeveeee1999.
 - **Sprite data:** which sprite each trainer class uses, and the HGSS overworld model names, come from pret's pokeemerald, pokefirered and pokeheartgold decompilations.
