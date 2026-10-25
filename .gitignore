@@ -15,10 +15,14 @@ assets/npcs/*
 # GBC is a name map only: its sprites come from the player's own install. -Elvie
 !assets/npcs/gbc/
 !assets/npcs/gbc_2x/
-# Pokémon sets: GBC reads the player's own install plus E-SY's Hoenn
-# sprites; DS is the DS-style 64x64 resource. Both free with credit, both
-# ship. -Elvie
+# Pokémon sets: GBC ANIM (Nuuk's Hoenn; the rest from the player's own
+# install) and DS (the DS-style 64x64 resource), both free with credit,
+# both ship. -Elvie
 assets/mons/*
-!assets/mons/gbc/
 !assets/mons/gbc_anim/
 !assets/mons/ds/
+# GBC-ISH ships its meta.json and the Game Boy party icons; its
+# pictures are read from the player's Crystal or made from their Emerald. -Elvie
+!assets/mons/gbcish/
+# GB EMERALD ships only its meta.json: it's made from the player's Emerald. -Elvie
+!assets/mons/gb_emerald/

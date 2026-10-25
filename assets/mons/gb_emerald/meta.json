@@ -1,0 +1,11 @@
+{
+  "label": "GB EMERALD",
+  "source": "gb",
+  "crystal": false,
+  "builtFrom": "emerald",
+  "builtShades": 8,
+  "credit": [
+    "Every Pokémon made in Game Boy shades from your own imported Emerald's pictures while you play, both frames of each front animation and the shinies; nothing is included with Facets",
+    "Party icons are the game's own"
+  ]
+}

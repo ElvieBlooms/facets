@@ -4,7 +4,7 @@
 
 NPC overworld sprites for the Gen 3 games in gen1recomp: FireRed, LeafGreen, Ruby, Sapphire and Emerald. Townsfolk, trainers, nurses, gym leaders and villains can each get new art, one sheet at a time. Anything without a sheet stays the game's own.
 
-Facets can also swap Pokémon pictures, party icons and animations (Game Boy Color sprites for all 386, Crystal-style animated Hoenn sprites, or the DS-style 64x64 resource), show your own Pokémon by their front, and give the whole screen a Game Boy filter (below).
+Facets can also swap Pokémon pictures, party icons and animations (Crystal's sprites with a Game Boy Hoenn made from your own Emerald, animations and all, every Pokémon made Game Boy from your Emerald, Crystal's sprites with Nuuk's animated Hoenn, or the DS-style 64x64 resource), show your own Pokémon by their front, and give the whole screen a Game Boy filter (below).
 
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
@@ -50,7 +50,7 @@ Under **SCREEN**, four options give the game a Game Boy look. They're also on th
 * **FILTER ON**: **SCREEN** (the default) filters everything: the map, sprites, menus and battles. **MAP** filters only the map and everyone on it, so menus, text boxes and battles keep their colours.
 * **DOTS**: a dot-matrix grid between the game's pixels, like an old handheld's screen. It works with any filter or none, over the whole screen.
 
-They go well with the GBC sets, for a Gen 3 game that looks like it came out in 1998. All three change straight away.
+They go well with the GBC NPCs and the GBC-ISH Pokémon, for a Gen 3 game that looks like it came out in 1998. All three change straight away.
 
 How it works: the whole-screen filter and DOTS are a render pipeline, the engine's own way for a mod to post-process the finished frame, and the engine saves it with the game's options. MAP uses the render.compose hook instead, which sees the map before the menus are drawn over it. Neither needs anything from the games. For GRAY and GREEN, each pixel's brightness picks one of the four shades. Gen 3 is much brighter than a Game Boy game (half a typical scene is brighter than 85%), so the cut-offs between shades sit high. The cut-offs, GBC's levels and saturation, and how dark the dot grid is are all at the top of `filter.lua` if you'd like to tune them.
 
@@ -58,9 +58,11 @@ How it works: the whole-screen filter and DOTS are a render pipeline, the engine
 
 Every Pokémon picture in the Gen 3 games goes through two engine functions, `Pokemon.frontPic` and `Pokemon.backPic`, and Facets wraps both, so a set reaches every screen at once. Emerald's two-frame front animations are covered too, so a replaced Pokémon never flickers back to the game's own.
 
-**GBC** reads Crystal's battle sprites from your own install (then Gold's, then Silver's) and colours them with Crystal's own palette for each species, so shinies are Crystal's shinies. That's all 251 Kanto and Johto Pokémon, Unown A to Z and the egg, none of it included. Hoenn's 135, Castform's weather forms, every Deoxys form and Unown ! and ? come from E-SY's GBC-style sprite compilation, which is included (`assets/mons/gbc/front` and `back`). The sheet has no shinies, so their shiny colours were worked out from the games' own Gen 3 shiny pictures (`tools/make_gbc_shinies.py`), matching what each shiny looks like in game. Spinda's front stays the game's own so it keeps its spots. Party icons (party, PC, summary and everywhere else Gen 3 shows them) change too, at the Game Boy's 16x16, standing at the bottom of Gen 3's icon space: Kanto and Johto from the Minidex 001-251 (by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25), a different icon for every Pokémon, and Hoenn from eeveeee1999's GBC-style icons, both included (`assets/mons/gbc/icons`). They bob between their two frames wherever the game animates its own icons (the party, the PC). The egg uses Crystal's own icon from your install, in Crystal's party-menu colours, as does any Pokémon a set has no icon for. Kanto and Johto Pokémon also play Crystal's own front animations (the frames each one flips through when it appears), read from your install with the rest, in place of Emerald's second frame; Emerald's movement still plays alongside them wherever the game animates. Each picture stands where the game's own would: centred, with its feet on the row the Gen 3 picture ends on. Without Crystal imported, only the Hoenn side changes.
+**GBC-ISH** is the Game Boy Color look for all 386. Kanto, Johto, Unown and the egg are Crystal's battle sprites, read from your own install (Crystal, then Gold, then Silver), coloured with Crystal's own palette for each species, so shinies are Crystal's shinies, and they play Crystal's own front animations. Hoenn, which Crystal never had, is made while you play from your own imported Emerald's pictures, so nothing is included: each picture's pixels are sorted into 8 shades by brightness (black, white and six between), and each shade takes the colour it covers most, snapped to the Game Boy Color's colours. Hoenn's fronts are made from both frames of Emerald's front animation, so they keep their animations, and its shinies come from Emerald's shiny pictures on the same shading. Backs are Crystal's for Kanto and Johto and made from Emerald's for Hoenn; Castform's weather forms, which Emerald doesn't animate, come from their still pictures. In FireRed and LeafGreen it turns on Emerald's animations by itself, as FR/LG ANIMS does, and stands each Hoenn picture on FR/LG's ground line. Without Crystal imported, Kanto and Johto are made from Emerald's pictures too; without Emerald, from the running game's own. Spinda's front stays the game's own so it keeps its spots. Party icons (party, PC, summary and everywhere else Gen 3 shows them) change too, at the Game Boy's 16x16, standing at the bottom of Gen 3's icon space: Kanto and Johto from the Minidex 001-251 (by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25), a different icon for every Pokémon, and Hoenn from eeveeee1999's GBC-style icons, both included (`assets/mons/gbcish/icons`). They bob between their two frames wherever the game animates its own icons (the party, the PC). The egg uses Crystal's own icon from your install, in Crystal's party-menu colours.
 
-**GBC ANIM** is GBC with Hoenn that moves. Kanto, Johto, Unown and the egg are the same as GBC (Crystal's own, from your install, with Crystal's animations). 92 of Hoenn's Pokémon (Treecko to Crawdaunt, plus Snorunt and Glalie) are Nuuk's Crystal-style sprites instead, which are included (`assets/mons/gbc_anim`): fronts, backs, shiny colours and each one's own Crystal animation, played the same way as Crystal's. Nuuk's sprites are free to use with credit, not for profit. Anything Nuuk hasn't drawn (Baltoy to Deoxys, apart from Snorunt and Glalie, plus the forms and Unown ! and ?) and the party icons come from GBC, through `"fallback": "gbc"` in its meta.json. Spinda stays the game's own so it keeps its spots.
+**GB EMERALD** is GBC-ISH's Hoenn treatment for everyone: all 386 are made from your own Emerald's pictures, Kanto and Johto too, in the same 8 Game Boy Color shades, with Emerald's two animation frames and shinies. It reads nothing from Crystal (`"crystal": false` in its meta.json), and its party icons are the game's own.
+
+**GBC ANIM** is GBC-ISH with Nuuk's hand-drawn Hoenn. Kanto, Johto, Unown and the egg are the same as GBC-ISH (Crystal's own, from your install, with Crystal's animations). 92 of Hoenn's Pokémon (Treecko to Crawdaunt, plus Snorunt and Glalie) are Nuuk's Crystal-style sprites, which are included (`assets/mons/gbc_anim`): fronts, backs, shiny colours and each one's own Crystal animation, played the same way as Crystal's. Nuuk's sprites are free to use with credit, not for profit. Everything else (Baltoy to Deoxys, apart from Snorunt and Glalie, plus Castform's and Deoxys's forms and Unown ! and ?) and the party icons come from GBC-ISH, through `"fallback": "gbcish"` in its meta.json, so those are made from your Emerald with Emerald's animation frames. Emerald's movement plays alongside Crystal's frames wherever the game animates. Each picture stands where the game's own would: centred, with its feet on the row the Gen 3 picture ends on. Spinda stays the game's own so it keeps its spots.
 
 **DS** is the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush and many others: Gen 4-style fronts, backs and shinies for all 386 Pokémon, plus Castform's weather forms and each game's Deoxys (Attack in FireRed, Defense in LeafGreen, Speed in Emerald). It's included, used with credit. The resource has no Unown, so Unown stays the game's own; so does Spinda's front, since the game draws each Spinda's own spots.
 
@@ -73,38 +75,22 @@ assets/mons/<set>/front_shiny/006.png     (optional; without one, shinies stay t
 assets/mons/<set>/back_shiny/006.png
 ```
 
-Unown's letters are `201.png` (A), `201_b.png` to `201_z.png`, `201_emark.png` and `201_qmark.png`; the egg is `egg.png`. Forms are `351_sunny`, `351_rainy`, `351_snowy` (Castform) and `386_attack`, `386_defense`, `386_speed` (Deoxys). Facets stands every picture on the game's own ground line for that Pokémon, so where the art sits in its frame doesn't matter. A set with `"source": "gb"` uses Crystal's sprites for anything it has no file for.
+Unown's letters are `201.png` (A), `201_b.png` to `201_z.png`, `201_emark.png` and `201_qmark.png`; the egg is `egg.png`. Forms are `351_sunny`, `351_rainy`, `351_snowy` (Castform) and `386_attack`, `386_defense`, `386_speed` (Deoxys). Facets stands every picture on the game's own ground line for that Pokémon, so where the art sits in its frame doesn't matter.
 
-The GBC set's Hoenn sprites were cut from E-SY's sheet with:
+A set with `"source": "gb"` is a Game Boy set. It reads Crystal's sprites from your install for anything it has no file for, then makes the rest from the game's own pictures in Game Boy shades; with `"builtFrom": "emerald"` (GBC-ISH) it makes them from Emerald's pictures, with Emerald's animation frames. `"builtShades"` sets how many shades those made pictures use: 4 (as flat as a Game Boy sprite), 8 or 16. A set with `"fallback": "<set>"` in its meta.json takes anything it doesn't have from that set.
 
-```
-python3 tools/make_gbc_hoenn.py tools/recipes/gbc_hoenn.json "<E-SY's GBC sprite sheet>.png" .
-```
-
-and its party icons from the Minidex GIF and eeveeee1999's Hoenn sheet with:
-
-```
-python3 tools/make_gbc_icons.py tools/recipes/gbc_icons_minidex.json "<Minidex 001-251>.gif" .
-python3 tools/make_gbc_icons.py tools/recipes/gbc_icons.json "<eeveeee1999's icon sheet>.png" .
-```
-
-GBC ANIM's Hoenn Pokémon were built from Nuuk's pack with:
+A set can animate its own fronts the same way Crystal does: `anim/NNN.png` (every picture of the animation stacked, base first, at the sprite's own size), `anim_shiny/NNN.png`, and `anim/NNN.json` with Crystal's script as numbers: `{"tiles": 5, "play": [[frame, ticks], ...], "idle": [...]}`, where `[254, n]` is setrepeat and `[253, i]` dorepeat. GBC ANIM's Hoenn Pokémon were built from Nuuk's pack with:
 
 ```
 python3 tools/make_gbc_anim.py tools/recipes/gbc_anim.json "<Crystal_GFX_files>.zip" .
 ```
 
-A set can animate its own fronts the same way: `anim/NNN.png` (every picture of the animation stacked, base first, at the sprite's own size), `anim_shiny/NNN.png`, and `anim/NNN.json` with Crystal's script as numbers: `{"tiles": 5, "play": [[frame, ticks], ...], "idle": [...]}`, where `[254, n]` is setrepeat and `[253, i]` dorepeat. A set with `"fallback": "<set>"` in its meta.json takes anything it doesn't have from that set.
-
-A set can have its own party icons too: `assets/mons/<set>/icons/NNN.png` (and `egg.png`), two frames stacked, each 16x16 (drawn at that size, at the bottom of the icon space) or 32x32.
-
-and their shiny colours with:
+A set can have its own party icons too: `assets/mons/<set>/icons/NNN.png` (and `egg.png`), two frames stacked, each 16x16 (drawn at that size, at the bottom of the icon space) or 32x32. GBC-ISH's were made from the Minidex GIF and eeveeee1999's Hoenn sheet with:
 
 ```
-python3 tools/make_gbc_shinies.py gen3 "<your gen1recomp install folder>" .
+python3 tools/make_gbc_icons.py tools/recipes/gbc_icons_minidex.json "<Minidex 001-251>.gif" .
+python3 tools/make_gbc_icons.py tools/recipes/gbc_icons.json "<eeveeee1999's icon sheet>.png" .
 ```
-
-(`ds "<resource folder>"` instead of `gen3` takes the colours from a DS-style resource's normal and shiny frames instead.)
 
 `tools/mon_convert.py` builds a set from a sprite resource of 256-wide sheets (front, shiny front, back, shiny back, on a solid background). The DS set was made with:
 
@@ -304,7 +290,7 @@ DIEGO, TAIGA, ZAFFRE and COMMUNITY are included, used with credit. HGSS is Ninte
 - **COMMUNITY (included):** overworld sprites by KyleDove, Jext and Hyo, with some by DiegoWT and Aqua, all free to use with credit.
 - **GBC and GBC 2X:** Gen 1/2 overworld sprites by Nintendo / Game Freak, read from your own imported games; none of it is included. The strips for everyone else (included) are by Catwithnojob (Gen 2 Additional NPCs Pack), free to use with credit.
 - **DS (included):** the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush, with sprites by Wizznats, jhajjar, Vapper3, atif, redriders180, cmbeke, Tailes, SneakerTheOtter, karatekid522, dreamengine, Rizon, Spark, MrDollSteak, PJBottomz, Archeops, dragonflye and Anvils Alive; free to use with credit.
-- **GBC Pokémon:** Gen 2 battle sprites and palettes by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included. Hoenn, form and Unown ! and ? sprites (included) from E-SY's GBC-style sprite compilation, by Unknown, Neslug, Pokekoks, Matdemo159, RED, bloodless, Blue Emerald, LostImpact, Rangi, Piacarrot and Techmath; free to use with credit.
-- **GBC ANIM (included):** Hoenn sprites and animations by Nuuk (Crystal-style sprites), free to use with credit, not for profit; the rest as GBC.
-- **GBC party icons (included):** Kanto and Johto from the Minidex 001-251, by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25; Hoenn by eeveeee1999.
+- **GBC-ISH:** Gen 2 battle sprites, palettes and animations by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; Hoenn made from your own imported Emerald's pictures; none of it is included. Party icons (included): Kanto and Johto from the Minidex 001-251, by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25; Hoenn by eeveeee1999.
+- **GB EMERALD:** made from your own imported Emerald's pictures (Nintendo / Game Freak); none of it is included.
+- **GBC ANIM:** Gen 2 battle sprites and palettes by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included. Hoenn sprites and animations (included) by Nuuk (Crystal-style sprites), free to use with credit, not for profit; the rest from GBC-ISH.
 - **Sprite data:** which sprite each trainer class uses, and the HGSS overworld model names, come from pret's pokeemerald, pokefirered and pokeheartgold decompilations.

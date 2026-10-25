@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Cuts GBC-style party icons from a sheet into the GBC Pokémon set
-(assets/mons/gbc/icons/NNN.png). Pokémon without one (the egg, and any
+(assets/mons/gbcish/icons/NNN.png, shared by GBC-ISH and GBC ANIM). Pokémon without one (the egg, and any
 the sheets miss) still get Crystal's own from the player's install.
 
   python3 make_gbc_icons.py <recipe.json> <sheet.png or .gif> <mod folder>
