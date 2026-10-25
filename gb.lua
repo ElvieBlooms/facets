@@ -183,8 +183,14 @@ function gb.sheet(src, paletteName, w, h, scale, mode)
         if f > count then f = 1 end
       else
         f, mirror = FROM[i], MIRROR[i]
-        if f > count then f = (f - 1) % 3 + 1 end
-        if f > count then f = 1 end
+        -- still sprites (Gen 1's little boy) have no walk frames: they
+        -- hop a pixel on each step instead, so walkers still walk -Elvie
+        if f > count then
+          f = (f - 1) % 3 + 1
+          if f > count then f = 1 end
+          if y == 15 then return nil end
+          y = y + 1
+        end
       end
       return colourAt(src, pal, mirror and (15 - x) or x, (f - 1) * 16 + y)
     end
