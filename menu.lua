@@ -176,7 +176,7 @@ function menu.new(mod)
     local picker = prism.picker()
     M.picker = picker
     local entry = { id = "facets", label = "FACETS", short = "FACETS",
-      about = "The NPCs and POKéMON.",
+      about = "The look of everything else.",
       colour = { 130, 60, 170 }, -- amethyst -Elvie
       draw = function(area, clock) M.drawPreview(area, clock) end,
       value = function()
