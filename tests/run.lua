@@ -950,6 +950,80 @@ do
   eq(Pokemon.frontPic(2).vanilla, "front2", "fr/lg anims: off, FR/LG's own art again")
   eq(MonAnim.framePic(2, 1).vanilla, "frame1", "fr/lg anims: off leaves frames alone")
 
+  -- Game Boy pictures made from the game's own, for what a Game Boy set
+  -- has no art for -Elvie
+  local monsG = require("mods.facets.mons")
+  local px = {}
+  for i = 1, 100 do
+    -- 12 darkest, then dark to the middle, light, and the 7 brightest -Elvie
+    local v = i <= 12 and 10 or i <= 55 and 100 or i <= 93 and 180 or 250
+    -- the middle shades: mostly one colour each, a few strays -Elvie
+    local c = { v, v, v, 255 }
+    if v == 100 then c = (i % 10 == 0) and { 90, 40, 40, 255 } or { 40, 60, 120, 255 } end
+    if v == 180 then c = (i % 10 == 0) and { 200, 160, 160, 255 } or { 120, 200, 90, 255 } end
+    px[i] = c
+  end
+  px[101] = { 0, 0, 0, 0 }
+  local out = monsG.toGbc(px)
+  eq(table.concat(out[1], ","), "0,0,0,255", "to gbc: the darkest pixels go black")
+  eq(table.concat(out[99], ","), "248,248,248,255", "to gbc: the brightest go white")
+  eq(table.concat(out[20], ","), "40,56,120,255", "to gbc: dark: its most-used colour, in 5 bits")
+  eq(table.concat(out[61], ","), "120,200,88,255", "to gbc: light: its most-used colour, in 5 bits")
+  eq(table.concat(out[70], ","), "120,200,88,255", "to gbc: a light stray too")
+  eq(table.concat(out[30], ","), "40,56,120,255", "to gbc: a stray takes its shade's colour")
+  eq(out[101][4], 0, "to gbc: see-through stays see-through")
+  local shinyPx = {}
+  for i, c in ipairs(px) do shinyPx[i] = (c[1] == 40) and { 200, 40, 200, 255 } or c end
+  local sOut = monsG.toGbc(px, shinyPx)
+  eq(table.concat(sOut[20], ","), "200,40,200,255", "to gbc: a shiny takes the shiny's colours...")
+  eq(table.concat(sOut[1], ",") .. "|" .. table.concat(sOut[99], ","), "0,0,0,255|248,248,248,255",
+    "to gbc: ...on the normal picture's shading")
+  -- 8 and 16 shades: more middles, still black and white at the ends -Elvie
+  local ramp = {}
+  for i = 1, 200 do local v = math.floor(i * 255 / 200); ramp[i] = { v, math.floor(v / 2), 255 - v, 255 } end
+  for _, n in ipairs({ 4, 8, 16 }) do
+    local got, distinct = monsG.toGbc(ramp, ramp, n), {}
+    for _, c in ipairs(got) do distinct[table.concat(c, ",")] = true end
+    local count = 0
+    for _ in pairs(distinct) do count = count + 1 end
+    eq(count, n, ("to gbc: %d shades on a smooth ramp"):format(n))
+    eq(table.concat(got[1], ",") .. "|" .. table.concat(got[200], ","), "0,0,0,255|248,248,248,255", ("to gbc: %d shades: black to white"):format(n))
+  end
+  eq(#monsG.toGbc(ramp, ramp, 5), 200, "to gbc: another count falls back to 4")
+  -- an animation's other frames reuse the first frame's plan -Elvie
+  local f0, plan0 = monsG.toGbc(px, px, 4)
+  check(plan0 and #plan0.cuts == 3 and plan0.pal[2], "to gbc: returns its plan (cut points, colours)")
+  local moved = {}
+  for i, c in ipairs(px) do moved[i] = px[((i + 4) % #px) + 1] end
+  local f1 = monsG.toGbc(moved, nil, 8, plan0)
+  local same = true
+  for i = 1, #moved do
+    local want = f0[((i + 4) % #px) + 1]
+    if table.concat(f1[i], ",") ~= table.concat(want, ",") then same = false end
+  end
+  check(same, "to gbc: a frame with the same pixels moved gets the same shades and colours (the plan wins over shades)")
+
+  -- Unown ! (no art in GBC, none in Crystal): made from the game's own -Elvie
+  local gbM = require("mods.facets.gb")
+  local function rgbaOf(pixels)
+    local t = {}
+    for i = 1, 64 * 64 do
+      local c = pixels[i] or { 0, 0, 0, 0 }
+      t[i] = string.char(c[1], c[2], c[3], c[4])
+    end
+    return table.concat(t)
+  end
+  GB_TEXT["firered/" .. gbM.path("monData", "back/438.rgba")] = rgbaOf(px)
+  mod.options:set("setMons", "gbc")
+  local excl = Pokemon.backPic(438, nil, false)
+  check(excl and not excl.vanilla and excl.imageData, "gbc: Unown ! back made from the game's own picture")
+  local r1, g1, b1 = excl.imageData:getPixel(19, 0)
+  eq(("%d,%d,%d"):format(math.floor(r1 * 255 + 0.5), math.floor(g1 * 255 + 0.5), math.floor(b1 * 255 + 0.5)), "40,56,120",
+    "gbc: ...in Game Boy shades, where the game's stands")
+  eq(Pokemon.backPic(439).vanilla, "back439", "gbc: no picture in the install: the game's own")
+  mod.options:set("setMons", "__off")
+  GB_TEXT["firered/" .. gbM.path("monData", "back/438.rgba")] = nil
+
   -- YOUR SIDE: FRONT, and MIRROR FRONTS -Elvie
   local monsM = require("mods.facets.mons")
   eq(monsM.frontAsBackShift({ front = { [6] = 10 }, back = { [6] = 4 }, elev = { [6] = 3 } }, 6), 3,
@@ -1036,7 +1110,7 @@ do
   eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons,animMons,backMons,mirrorMons", "main: NPC rows then POKEMON rows")
   local monSets = {}
   for _, c in ipairs(mod.rows[6].choices) do monSets[#monSets + 1] = c[1] end
-  eq(table.concat(monSets, ","), "DS,GBC,GBC ANIM,OFF", "shipped: Pokémon sets DS, GBC and GBC ANIM, then OFF")
+  eq(table.concat(monSets, ","), "DS,GB EMERALD,GBC ANIM,GBC-ISH,OFF", "shipped: Pokémon sets DS, GB EMERALD, GBC ANIM and GBC-ISH, then OFF")
   package.loaded["src.core.game3.pokemon"] = nil
 end
 

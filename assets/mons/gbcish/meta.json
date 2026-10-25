@@ -1,0 +1,12 @@
+{
+  "label": "GBC-ISH",
+  "source": "gb",
+  "builtFrom": "emerald",
+  "builtShades": 8,
+  "credit": [
+    "Kanto and Johto: Gen 2 battle sprites, palettes and animations by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; nothing is included with Facets",
+    "Hoenn (and anything Crystal doesn't have) made in Game Boy shades from your own imported Emerald's pictures while you play, both frames of each front animation and the shinies; nothing is included",
+    "Kanto and Johto party icons from the Minidex 001-251, by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25",
+    "Hoenn party icons by eeveeee1999"
+  ]
+}

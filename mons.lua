@@ -292,6 +292,92 @@ function mons.sideOf(backs, mirror)
   return mirror == OFF and "front" or "mirrored"
 end
 
+-- Gen 3's own picture as a Game Boy one, for what a Game Boy set has no
+-- art for: the pixels sorted into shades by brightness (the darkest 12%
+-- black, the brightest 7% white, the rest split evenly between them; with
+-- 4 shades, at the middle), and each middle shade the colour it covers
+-- most. shades is 4 (RGB, like a Game Boy sprite), 8 or 16 (GBC, closer
+-- to Crystal's shading). colour (the shiny picture, or the normal one
+-- again) gives those colours; the shading always follows the normal one,
+-- so a shiny matches it pixel for pixel. Pixels are { r, g, b, a } lists,
+-- 0-255. Returns the pixels and the plan (cut points and colours); pass
+-- that plan back in for an animation's other frames, so every frame is
+-- shaded and coloured like the first. -Elvie
+local function lum(p) return p[1] * 299 + p[2] * 587 + p[3] * 114 end
+function mons.toGbc(normal, colour, shades, plan)
+  colour = colour or normal
+  local cuts, middle, pal
+  if plan then
+    cuts, middle, pal = plan.cuts, #plan.cuts - 1, plan.pal
+  else
+    shades = tonumber(shades) or 4
+    if shades ~= 8 and shades ~= 16 then shades = 4 end
+    local ls = {}
+    for _, p in ipairs(normal) do if p[4] > 0 then ls[#ls + 1] = lum(p) end end
+    if #ls == 0 then return nil end
+    table.sort(ls)
+    local function q(f) return ls[math.floor(f * (#ls - 1)) + 1] end
+    -- cuts[k]: the brightest a pixel of shade k (1 = black, then darker to
+    -- lighter middles; brighter than the last is white) -Elvie
+    middle = shades - 2
+    cuts = { q(0.12) }
+    if shades == 4 then
+      cuts[2], cuts[3] = q(0.55), q(0.93)
+    else
+      for k = 1, middle do cuts[#cuts + 1] = q(0.12 + 0.81 * k / middle) end
+    end
+  end
+  local bands, counts = {}, {}
+  for k = 1, middle do counts[k] = {} end
+  for i, p in ipairs(normal) do
+    local b = -1
+    if p[4] > 0 then
+      local l = lum(p)
+      b = 0
+      for k = 1, #cuts do
+        if l <= cuts[k] then b = k; break end
+      end
+      -- b: 0 white, 1 black, 2.. the middles from dark to light -Elvie
+      if b >= 2 then
+        local c = colour[i]
+        local key = c[1] .. "," .. c[2] .. "," .. c[3]
+        counts[b - 1][key] = (counts[b - 1][key] or 0) + 1
+      end
+    end
+    bands[i] = b
+  end
+  -- most-used colour, snapped to the Game Boy Color's 5 bits -Elvie
+  local function most(t, fallback)
+    local best, n = nil, 0
+    for k, c in pairs(t) do
+      if c > n or (c == n and best and k < best) then best, n = k, c end
+    end
+    if not best then return fallback end
+    local out = {}
+    for v in best:gmatch("%d+") do out[#out + 1] = math.min(248, math.floor(tonumber(v) / 8) * 8) end
+    return out
+  end
+  if not pal then
+    -- an empty middle borrows its neighbour's colour -Elvie
+    pal = { [0] = { 248, 248, 248 }, [1] = { 0, 0, 0 } }
+    for k = 1, middle do pal[k + 1] = most(counts[k], nil) end
+    for k = 3, middle + 1 do pal[k] = pal[k] or pal[k - 1] end
+    for k = middle, 2, -1 do pal[k] = pal[k] or pal[k + 1] end
+    for k = 2, middle + 1 do pal[k] = pal[k] or { 128, 128, 128 } end
+    if shades == 4 then
+      -- the old fallbacks, so 4 shades stay exactly as they were -Elvie
+      pal[2] = most(counts[1], { 96, 96, 96 })
+      pal[3] = most(counts[2], { 192, 192, 192 })
+    end
+  end
+  local out = {}
+  for i, b in ipairs(bands) do
+    local c = pal[b]
+    out[i] = c and { c[1], c[2], c[3], 255 } or { 0, 0, 0, 0 }
+  end
+  return out, { cuts = cuts, pal = pal }
+end
+
 -- How far a front picture moves to stand where the back one would: its
 -- own ground line (front offset, less any float) against the back's.
 -- coords is the game's pic_coords (front, back, elev by species). -Elvie
@@ -336,7 +422,9 @@ function mons.init(mod, rows, menu)
       local label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper()
       local fallback = type(meta.fallback) == "string" and meta.fallback:match("^[%w_%-]+$") or nil
       sets[#sets + 1] = { key = key, label = label, gb = meta.source == "gb", credit = meta.credit,
-        fallback = fallback }
+        fallback = fallback, gbSource = meta.crystal ~= false and "crystal" or nil,
+        builtFrom = meta.builtFrom == "emerald" and "emerald" or nil,
+        builtShades = tonumber(meta.builtShades) }
     end
   end
   table.sort(sets, function(a, b) return a.label < b.label end)
@@ -440,7 +528,14 @@ function mons.init(mod, rows, menu)
     end
 
     -- Crystal's sprite and palette for a Pokémon, or nil. -Elvie
-    local function gbSprite(kind, shiny, nat, letter)
+    local function crystalPalettes()
+      if palettes == nil then
+        palettes = mons.parsePalettes(gb.readAt(gb.path("data", "palettes.lua"), { "crystal" })) or false
+        if not palettes then mod.log:warn("Crystal's palettes weren't found; GBC Pokémon need Crystal imported") end
+      end
+      return palettes or nil
+    end
+    local function crystalSprite(kind, shiny, nat, letter)
       local file, palName
       if nat == "egg" then
         if kind ~= "front" then return nil end
@@ -457,22 +552,124 @@ function mons.init(mod, rows, menu)
           file = kind == "front" and row[1] or (row[1] .. "_back")
         end
       end
-      if palettes == nil then
-        palettes = mons.parsePalettes(gb.readAt(gb.path("data", "palettes.lua"), { "crystal" })) or false
-        if not palettes then mod.log:warn("Crystal's palettes weren't found; GBC Pokémon need Crystal imported") end
-      end
-      local pal = palettes and palettes[palName]
+      local all = crystalPalettes()
+      local pal = all and all[palName]
       if not pal then return nil end
       local src = gb.readImage(gb.path("assets", "battle/" .. kind .. "/" .. file .. ".png"), GB_GAMES)
       if not src then return nil end
       return src, shiny and pal.shiny or pal.normal
     end
 
+    -- A Game Boy set's sprite from the player's install: Crystal's. -Elvie
+    local function gbSprite(source, kind, shiny, nat, letter)
+      if source ~= "crystal" then return nil end
+      return crystalSprite(kind, shiny, nat, letter)
+    end
+
+    -- Whether the set, or a set it falls back to, has "builtFrom":
+    -- "emerald" (GBC-ISH): then the pictures it makes for what Crystal
+    -- doesn't have (Hoenn) come from Emerald, with Emerald's animations. -Elvie
+    local function fromEmeraldChain(set)
+      for _, s in ipairs(chainOf(set)) do
+        if s.gb and s.builtFrom == "emerald" then return true end
+      end
+      return false
+    end
+
+    -- The game's own picture (gameKey: "277", "385_1", "410_handled"),
+    -- read from the running game's install and made Game Boy by
+    -- mons.toGbc, as ImageData. -Elvie
+    -- the game's own name for a picture, as Pokemon.lua names it -Elvie
+    local function gameKeyOf(species, form)
+      local suffix = ""
+      if type(Pokemon.deoxysFormSuffix) == "function" then
+        local okS, got = pcall(Pokemon.deoxysFormSuffix, species)
+        suffix = okS and type(got) == "string" and got or ""
+      end
+      form = tonumber(form) or 0
+      return form > 0 and (species .. "_" .. form) or (species .. suffix)
+    end
+
     local placements = {} -- [species] = where a Game Boy front sits, for its frames
+    local plans = {} -- [kind:gameKey(:s)] = frame 0's plan, for the other frames -Elvie
+    local function gameAsGb(kind, shiny, gameKey, species, frame)
+      if not (love and love.image and type(gameKey) == "string") then return nil end
+      local okV, GameVersion = pcall(require, "src.core.GameVersion")
+      local game = okV and type(GameVersion) == "table" and GameVersion.get() or nil
+      if not game then return nil end
+      -- frame f of a sheet of pictures stacked (Emerald's front_anim), or
+      -- the one picture -Elvie
+      local function pixels(from, sub, f)
+        local bytes = gb.readAt(gb.path("monData", sub .. "/" .. gameKey .. ".rgba"), { from })
+        local size = SIZE * SIZE * 4
+        if type(bytes) ~= "string" or #bytes < size * ((f or 0) + 1) then return nil end
+        local base, out = size * (f or 0), {}
+        for i = 1, SIZE * SIZE do
+          local o = base + (i - 1) * 4
+          out[i] = { bytes:byte(o + 1, o + 4) }
+        end
+        return out
+      end
+      -- GBC-ISH: Emerald's pictures, fronts from its animation sheet
+      -- (both frames); anything Emerald has no sheet for (Castform's
+      -- weather), and the rest, from the running game -Elvie
+      local fromEmerald = fromEmeraldChain(current)
+      local normal, colour, emerald
+      if fromEmerald then
+        local sub = kind == "front" and "front_anim" or kind
+        normal = pixels("emerald", sub, kind == "front" and (frame or 0) or nil)
+        if normal then
+          emerald = true
+          colour = shiny and pixels("emerald", sub .. "_shiny", kind == "front" and (frame or 0) or nil) or normal
+        end
+      end
+      if not normal then
+        if (frame or 0) > 0 then return nil end
+        normal = pixels(game, kind)
+        if not normal then return nil end
+        colour = shiny and pixels(game, kind .. "_shiny") or normal
+      end
+      -- the set's "builtShades" (or its fallback's): 4, 8 or 16 -Elvie
+      local shades
+      for _, s in ipairs(chainOf(current)) do
+        if s.builtShades then shades = s.builtShades; break end
+      end
+      local planKey = kind .. ":" .. gameKey .. (shiny and ":s" or "")
+      local plan
+      if (frame or 0) > 0 then
+        plan = plans[planKey]
+        if not plan then
+          gameAsGb(kind, shiny, gameKey, species, 0)
+          plan = plans[planKey]
+          if not plan then return nil end
+        end
+      end
+      local px, made = mons.toGbc(normal, colour, shades, plan)
+      if not px then return nil end
+      if (frame or 0) == 0 then plans[planKey] = made end
+      local data = love.image.newImageData(SIZE, SIZE)
+      for i, p in ipairs(px) do
+        local x, y = (i - 1) % SIZE, math.floor((i - 1) / SIZE)
+        data:setPixel(x, y, p[1] / 255, p[2] / 255, p[3] / 255, p[4] / 255)
+      end
+      -- Emerald's art in FireRed and LeafGreen stands on their ground line,
+      -- every frame where the first does (as FR/LG ANIMS does) -Elvie
+      if emerald and (game == "firered" or game == "leafgreen") and species then
+        local place
+        if kind == "front" then
+          placements[species] = placements[species] or {}
+          place = placements[species]
+        end
+        data = mons.layOut(data, bottomFor(kind, species), ownColour, place)
+      end
+      return data, false
+    end
+    mons.gameAsGb = gameAsGb
+
 
     -- The picture, true when it's a Game Boy one, and the set a file of
     -- its own came from. -Elvie
-    local function build(kind, species, shiny, nat, letter, variant)
+    local function build(kind, species, shiny, nat, letter, variant, gameKey)
       local data, from = ownFile(current, kind, shiny, nat, letter, variant)
       if data then
         -- Stood on the game's own ground line, like everything else; a
@@ -486,19 +683,31 @@ function mons.init(mod, rows, menu)
         if not out then mod.log:warn("%s %s: %s", kind, tostring(nat), tostring(why)) end
         return out, false, from
       end
-      if current.gb and variant == "" then
-        local src, pal = gbSprite(kind, shiny, nat, letter)
-        if src then
-          local place
-          if kind == "front" then
-            placements[species] = placements[species] or {}
-            place = placements[species]
+      -- From the install: Crystal's, for a set (or its fallback) that
+      -- reads Crystal; those get Crystal's animations too. A set with
+      -- "crystal": false (GB EMERALD) makes everything instead, even with
+      -- a fallback that reads Crystal (it only borrows its icons). -Elvie
+      if current.gb and variant == "" and current.gbSource then
+        for _, s in ipairs(chainOf(current)) do
+          if s.gb then
+            local src, pal = gbSprite(s.gbSource, kind, shiny, nat, letter)
+            if src then
+              local place
+              if kind == "front" then
+                placements[species] = placements[species] or {}
+                place = placements[species]
+              end
+              local out, why = mons.layOut(src, bottomFor(kind, species), gbColour(pal, src), place)
+              if not out then mod.log:warn("GBC %s %s: %s", kind, tostring(nat), tostring(why)) end
+              return out, true
+            end
           end
-          local out, why = mons.layOut(src, bottomFor(kind, species), gbColour(pal, src), place)
-          if not out then mod.log:warn("GBC %s %s: %s", kind, tostring(nat), tostring(why)) end
-          return out, true
         end
       end
+      -- No art at all (most Hoenn backs, Unown ! and ?): the game's own
+      -- picture made Game Boy, from the player's install, where it
+      -- already stands. -Elvie
+      if current.gb then return gameAsGb(kind, shiny, gameKey, species, 0) end
       return nil
     end
 
@@ -530,7 +739,8 @@ function mons.init(mod, rows, menu)
       local key = kind .. ":" .. species .. variant .. (shiny and ":s" or "")
       local hit = cache[key]
       if hit ~= nil then return hit or nil end
-      local ok, data, fromGb, fromSet = pcall(build, kind, species, shiny, nat, letter, variant)
+      local gameKey = gameKeyOf(species, form)
+      local ok, data, fromGb, fromSet = pcall(build, kind, species, shiny, nat, letter, variant, gameKey)
       if not ok then
         mod.log:warn("%s %d: %s", kind, species, tostring(data))
         data = nil
@@ -578,7 +788,9 @@ function mons.init(mod, rows, menu)
         local ok, data = pcall(love.image.newImageData, mod.assets:path(rel))
         if ok and data then src, colour = data, ownColour end
       end
-      if not src and current.gb then
+      -- Crystal's own icon, for a set that reads Crystal (GB EMERALD keeps
+      -- the game's icons) -Elvie
+      if not src and current.gb and current.gbSource then
         local file = crystalIconFile(nat)
         src = file and gb.readImage(file, GB_GAMES)
         if src then colour = gbColour(partyPal, src) end
@@ -730,12 +942,23 @@ function mons.init(mod, rows, menu)
         cache[key] = entry
         return entry
       end
-      if not front.gb then return nil end
+      if not front.gb then
+        -- made from Emerald's pictures: Emerald's own frame, made the same
+        -- way as the front -Elvie
+        if not fromEmeraldChain(current) then return nil end
+        local data = gameAsGb("front", shiny, gameKeyOf(species, 0), species, frame)
+        if not (data and love and love.graphics) then return nil end
+        local image = love.graphics.newImage(data)
+        image:setFilter("nearest", "nearest")
+        local entry = { image = image, imageData = data, w = SIZE, h = SIZE }
+        cache[key] = entry
+        return entry
+      end
       local nat = identify(species)
       local anim = crystalAnimFor(nat)
       local size = anim and tonumber(anim.tiles) and tonumber(anim.tiles) * 8
       local sheet = size and type(anim.sheet) == "string" and gb.readImage(anim.sheet, GB_GAMES)
-      local _, pal = gbSprite("front", shiny, nat)
+      local _, pal = crystalSprite("front", shiny, nat)
       if not (sheet and pal and placements[species]) then return nil end
       local w, h = sheet:getDimensions()
       if w < size or (frame + 1) * size > h then return nil end
@@ -763,7 +986,11 @@ function mons.init(mod, rows, menu)
     local function game() return okV and type(GameVersion) == "table" and GameVersion.get() or nil end
     local FRLG = { firered = true, leafgreen = true }
     local borrow = false
-    local function borrowing() return borrow and FRLG[game()] == true end
+    -- GBC-ISH (and GBC ANIM through it) plays Emerald's animations
+    -- too, so it borrows them -Elvie
+    local function borrowing()
+      return (borrow or (current ~= nil and fromEmeraldChain(current))) and FRLG[game()] == true
+    end
     local okD, AnimData = pcall(require, "src.core.game3.mon_anim_data")
     if not okD or type(AnimData) ~= "table" then AnimData = nil end
     local emerald = { read = function(_, rel) return (gb.readAt(rel, { "emerald" })) end }
@@ -991,7 +1218,9 @@ function mons.init(mod, rows, menu)
         if set.key == selected then current = set end
       end
       cache, placements, commands = {}, {}, {}
-      asBack = {}
+      asBack, plans = {}, {}
+      -- GBC-ISH changes whether FR/LG borrows Emerald's animations -Elvie
+      if AnimData and type(AnimData.reset) == "function" then AnimData.reset() end
     end
     local function configureAnims()
       borrow = mod.options:get("animMons") == "emerald"
