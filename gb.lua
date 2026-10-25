@@ -31,6 +31,41 @@ function gb.shade(v)
   return 3
 end
 
+-- Where the engine keeps each game's imported files. Facets doesn't name
+-- those folders itself (modkit's MK301 lint asks mods not to): the engine's
+-- own modules say where they are, so they're read from there. Each is nil
+-- if the engine doesn't say, and whatever needs it is then left off.
+--   assets: the generated art folder (asset transforms read from it)
+--   data: the generated data folder, from Gen 3's animation data path
+--   monData: Gen 3's Pokémon data folder, from the same module -Elvie
+-- --------------------------------------------------
+local roots
+function gb.roots()
+  if roots then return roots end
+  roots = {}
+  local okT, Transform = pcall(require, "src.mods.AssetTransform")
+  if okT and type(Transform) == "table" and type(Transform.SOURCE_ROOT) == "string" then
+    roots.assets = Transform.SOURCE_ROOT
+  end
+  local okA, AnimData = pcall(require, "src.core.game3.mon_anim_data")
+  if okA and type(AnimData) == "table" then
+    if type(AnimData.FRONT) == "string" then
+      roots.data = AnimData.FRONT:match("^(.-)gba/")
+      roots.monData = AnimData.FRONT:match("^(.*/)[^/]+$")
+    end
+  end
+  return roots
+end
+function gb.resetRoots() roots = nil end
+
+-- A path under one of those folders, or nil. -Elvie
+function gb.path(root, rel)
+  local base = gb.roots()[root]
+  if type(base) ~= "string" or type(rel) ~= "string" then return nil end
+  if base:sub(-1) ~= "/" then base = base .. "/" end
+  return base .. rel
+end
+
 -- Reads <game>/<rel> from the first game in the list that has it (the
 -- player's imported cache). Returns the bytes and the game, or nil. -Elvie
 local CacheFs
@@ -50,7 +85,7 @@ end
 
 -- A PNG from the first game that has it, as ImageData. -Elvie
 function gb.readImage(rel, games)
-  if not (love and love.image and love.data) then return nil end
+  if type(rel) ~= "string" or not (love and love.image and love.data) then return nil end
   for _, game in ipairs(games or gb.GAMES) do
     local bytes = gb.readAt(rel, { game })
     if bytes then
@@ -61,29 +96,32 @@ function gb.readImage(rel, games)
   return nil
 end
 
--- An overworld sprite, <game>/assets/generated/sprites/<sprite>.png. -Elvie
+-- An overworld sprite: sprites/<sprite>.png in a game's art folder. -Elvie
 function gb.read(sprite, games)
   if type(sprite) ~= "string" or sprite:find("[^%w_]") then return nil end
-  return gb.readImage("assets/generated/sprites/" .. sprite .. ".png", games)
+  return gb.readImage(gb.path("assets", "sprites/" .. sprite .. ".png"), games)
 end
 
 -- A party icon from the player's Crystal, as ImageData. -Elvie
 function gb.readIcon(name)
   if type(name) ~= "string" or name:find("[^%w_]") then return nil end
-  return gb.readImage("assets/generated/icons/gen2/" .. name .. ".png", { "crystal" })
+  return gb.readImage(gb.path("assets", "icons/gen2/" .. name .. ".png"), { "crystal" })
 end
 
 -- GB frames, 16x16 each, stacked: stand down, up, left, then walk down,
 -- up, left (a standing-only NPC has just the first three, a few one).
 -- The Gen 3 walk cycle steps between a walk frame and its mirror, as the
--- Game Boy did; walking left steps between the walk and stand frames. -Elvie
-local FROM = { 1, 2, 3, 4, 4, 5, 5, 6, 3 }
+-- Game Boy did. Gen 3 plays stand, step, stand, step, so both left steps
+-- are the walk frame; a stand frame there skips a step. Right is left,
+-- mirrored by the game. -Elvie
+local FROM = { 1, 2, 3, 4, 4, 5, 5, 6, 6 }
 local MIRROR = { false, false, false, false, true, false, true, false, false }
 
 -- Party icons (Crystal draws the Pokémon standing around on its maps
 -- with them) are two 16x16 frames that bounce: every facing shows the
--- first, the walk steps show the second. -Elvie
-local ICON_FROM = { 1, 1, 1, 2, 1, 2, 1, 2, 1 }
+-- first, and every walk step the second, so they bob on each step of
+-- stand, step, stand, step, like the walkers above. -Elvie
+local ICON_FROM = { 1, 1, 1, 2, 2, 2, 2, 2, 2 }
 
 -- A pixel's colour: a cached sprite's shade through the palette, or a
 -- strip's own colour (pal nil) where it isn't see-through. -Elvie

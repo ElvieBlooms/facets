@@ -526,7 +526,12 @@ do
   eq(young.imageData:getDimensions(), 16, "gb: YOUNGSTER built")
   r = px(young, 3, 3, 30); eq(r, 0, "gb: frame 3 is the walk-down frame")
   r = px(young, 4, 12, 30); eq(r, 0, "gb: frame 4 is the walk-down frame mirrored")
-  r = px(young, 8, 2, 30); eq(r, 0, "gb: frame 8 (walk left, second step) is the stand-left frame")
+  -- both left steps are the walk-left frame (marker at x 5), not the stand
+  -- frame (x 2), or every other step stands still -Elvie
+  local _, _, _, a7 = px(young, 7, 5, 30)
+  local _, _, _, a8 = px(young, 8, 5, 30)
+  local _, _, _, s8 = px(young, 8, 2, 30)
+  check(a7 == 1 and a8 == 1 and s8 == 0, "gb: frames 7 and 8 (walk left, both steps) are the walk-left frame")
   r, g, b = px(young, 0, 15, 15)
   eq(("%d,%d,%d"):format(r, g, b), "255,156,82", "gb: Crystal's copy used before Red's")
 
@@ -547,6 +552,9 @@ do
   check(pika ~= vanilla[120], "gb: PIKACHU from Crystal's party icon")
   r = px(pika, 0, 0, 15); eq(r, 0, "icon: facing frames show the icon's first frame")
   r = px(pika, 3, 1, 15); eq(r, 0, "icon: walk steps show its second")
+  local stepsOk = true
+  for f = 3, 8 do if px(pika, f, 1, 15) ~= 0 then stepsOk = false end end
+  check(stepsOk, "icon: every walk step (frames 3-8) shows its second frame, so each step bobs")
   r = px(pika, 1, 0, 15); eq(r, 0, "icon: no mirrored or turned frames")
   local lax = Ow.get(109)
   eq(lax.width .. "x" .. lax.height, "32x32", "big: SNORLAX 32x32")
@@ -682,7 +690,11 @@ do
   package.loaded["src.core.game3.mon_anim"] = MonAnim
   -- Gen 3 animation data: the game's own cache, Emerald's two-frame lists -Elvie
   local resets = 0
+  -- its folder paths are the real module's: Facets reads them from it -Elvie
+  package.loaded["src.core.game3.mon_anim_data"] = nil
+  local realAnim = require("src.core.game3.mon_anim_data")
   local AnimData = {
+    FRONT = realAnim.FRONT, SHEET = realAnim.SHEET, SHEET_SHINY = realAnim.SHEET_SHINY,
     cache = function() return "own" end,
     anims = function(sp) return { [0] = { "still" }, [1] = { "emerald" .. tostring(sp) } } end,
     reset = function() resets = resets + 1 end,
@@ -754,6 +766,13 @@ do
   sh(("mkdir -p '%s/assets/mons/gbc/icons'"):format(MOD_M))
   fakePng(MOD_M .. "/assets/mons/gbc/icons/252.png", 32, 64)
   fakePng(MOD_M .. "/assets/mons/gbc/icons/001.png", 32, 64)
+  -- GBC ANIM-style set: its own Hoenn front and animation, the rest from
+  -- gbc (its fallback) -Elvie
+  sh(("mkdir -p '%s/assets/mons/gbca/front' '%s/assets/mons/gbca/anim'"):format(MOD_M, MOD_M))
+  f = io.open(MOD_M .. "/assets/mons/gbca/meta.json", "w"); f:write('{"label":"GBCA","source":"gb","fallback":"gbc"}'); f:close()
+  fakePng(MOD_M .. "/assets/mons/gbca/front/252.png", 64, 64)
+  fakePng(MOD_M .. "/assets/mons/gbca/anim/252.png", 40, 80)
+  f = io.open(MOD_M .. "/assets/mons/gbca/anim/252.json", "w"); f:write('{"tiles":5,"play":[[1,3],[255,0]]}'); f:close()
   fakePng(MOD_M .. "/assets/mons/zzz/front/001.png", 64, 64)
   fakePng(MOD_M .. "/assets/mons/zzz/front/002.png", 80, 80)
   fakePng(MOD_M .. "/assets/mons/zzz/front/327.png", 64, 64)
@@ -772,7 +791,7 @@ do
   eq(rows[2].default, "__off", "mons: OFF by default")
   local labels = {}
   for _, c in ipairs(rows[2].choices) do labels[#labels + 1] = c[2] end
-  eq(table.concat(labels, ","), "gbc,zzz,__off", "mons: sets in label order, then OFF")
+  eq(table.concat(labels, ","), "gbc,gbca,zzz,__off", "mons: sets in label order, then OFF")
   eq(rows[3].key, "animMons", "mons: FR/LG ANIMS row")
   eq(rows[3].default, "__off", "mons: FR/LG ANIMS off by default")
   start()
@@ -853,6 +872,24 @@ do
   eq(MonAnim.framePic(6, 2, false), Pokemon.frontPic(6, nil, false), "crystal anim: a frame past the sheet is the front")
   check(MonAnim.framePic(6, 1, true) ~= f1, "crystal anim: shiny frames are their own")
 
+  -- A set's own animation, and its fallback -Elvie
+  mod.options:set("setMons", "gbca")
+  local hf = Pokemon.frontPic(277)
+  check(hf and hf.set and hf.set.key == "gbca", "anim set: Hoenn front from the set's own file")
+  local hc = AnimData.anims(277)[1]
+  check(hc and hc[1] and hc[1].frame ~= nil, "anim set: anim 1 is the set's own script")
+  local has1 = false
+  for _, c in ipairs(hc or {}) do if c.frame == 1 and c.duration == 3 then has1 = true end end
+  check(has1, "anim set: ...frame 1 for 3 ticks, from anim/252.json")
+  local hf1 = MonAnim.framePic(277, 1, false)
+  check(hf1 and hf1 ~= hf, "anim set: frame 1 is the sheet's second picture")
+  -- the sheet's red pixel (10, 40) is frame 1's (10, 0): at (22, 24) in the
+  -- 64x64 frame, moved by the front's spot (0, 23) to (22, 47) -Elvie
+  eq(px(hf1, 22, 47), "255,0,0,1", "anim set: the frame sits where its front does")
+  check(not Pokemon.frontPic(6).vanilla, "anim set: Kanto from Crystal (source gb), like GBC")
+  local hi = Pokemon.icon(277)
+  check(hi and not hi.vanilla, "anim set: an icon it doesn't have comes from its fallback (gbc)")
+
   mod.options:set("setMons", "zzz")
   local own = Pokemon.frontPic(1)
   check(own and not own.vanilla and own.w == 64, "folder set: front/001.png used")
@@ -919,7 +956,7 @@ do
   eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons,animMons", "main: NPC rows then POKEMON rows")
   local monSets = {}
   for _, c in ipairs(mod.rows[6].choices) do monSets[#monSets + 1] = c[1] end
-  eq(table.concat(monSets, ","), "DS,GBC,OFF", "shipped: Pokémon sets DS and GBC, then OFF")
+  eq(table.concat(monSets, ","), "DS,GBC,GBC ANIM,OFF", "shipped: Pokémon sets DS, GBC and GBC ANIM, then OFF")
   package.loaded["src.core.game3.pokemon"] = nil
 end
 
@@ -1060,6 +1097,86 @@ do
   eq(sp .. ":" .. fr, "4:1", "mon preview: Charmander second, playing its anim")
   sp, fr = mons.showcaseAt(0.1, nil)
   eq(sp .. ":" .. fr, "1:0", "mon preview: no animation data, the still picture")
+end
+
+
+-- The engine's folders, read from its own modules (MK301) -Elvie
+do
+  fresh("firered")
+  package.loaded["src.core.game3.mon_anim_data"] = nil
+  local gb = require("mods.facets.gb")
+  gb.resetRoots()
+  local roots = gb.roots()
+  eq(roots.assets, "assets/generated/", "roots: the art folder, from AssetTransform")
+  eq(roots.data, "data/generated/", "roots: the data folder, from MonAnimData")
+  eq(roots.monData, "data/generated/gba/pokemon/", "roots: Gen 3's Pokémon data folder, from MonAnimData")
+  eq(gb.path("assets", "sprites/x.png"), "assets/generated/sprites/x.png", "roots: a path under a folder")
+  -- an engine that doesn't say: nothing is read -Elvie
+  package.loaded["src.core.game3.mon_anim_data"] = {}
+  gb.resetRoots()
+  eq(gb.path("data", "palettes.lua"), nil, "roots: no data folder from the engine, no path")
+  eq(gb.readAt(gb.path("data", "palettes.lua")), nil, "roots: ...and nothing read")
+  package.loaded["src.core.game3.mon_anim_data"] = nil
+  gb.resetRoots()
+end
+
+
+-- The GB filter (filter.lua) -Elvie
+do
+  fresh("firered")
+  local Pipelines = require("src.render.Pipelines")
+  local registered, wraps = {}, {}
+  local mod = newMod(ROOT)
+  mod.content = { render_pipelines = { register = function(_, id, def) registered[id] = def end } }
+  mod.hooks = { wrap = function(_, name, fn) wraps[name] = fn end }
+  local rows = {}
+  local filter = require("mods.facets.filter")
+  local start = filter.init(mod, rows)
+  check(start ~= nil, "filter: init returns a start function")
+  local def = registered[filter.ID]
+  check(def and type(def.present) == "function", "filter: registered as a render pipeline with a present pass")
+  check(type(wraps["render.compose"]) == "function", "filter: wraps render.compose for MAP")
+  local keys = {}
+  for _, r in ipairs(rows) do keys[#keys + 1] = r.key .. "=" .. tostring(r.default) end
+  eq(table.concat(keys, ","), "sectionScreen=_,filter=off,filterOn=screen,dots=off,shades=4", "filter: SCREEN rows and defaults")
+  local looks = {}
+  for _, c in ipairs(rows[2].choices) do looks[#looks + 1] = c[1] end
+  eq(table.concat(looks, ","), "OFF,GRAY,GREEN,GBC", "filter: the looks")
+  mod.options:define(rows)
+  Pipelines.install({ render_pipelines = { [filter.ID] = def } })
+  start()
+  eq(Pipelines.level(filter.ID), 0, "filter: all off, the pipeline is off")
+  local game = { options = {} }
+  mod.game = game
+  mod.options:set("filter", "green")
+  eq(Pipelines.level(filter.ID), 1, "filter: GREEN on the screen turns the pipeline on")
+  eq(game.options.pipelines and game.options.pipelines[filter.ID], 1, "filter: ...kept with the game's options")
+  mod.options:set("filterOn", "map")
+  eq(Pipelines.level(filter.ID), 0, "filter: MAP only, no whole-screen pass")
+  mod.options:set("dots", "on")
+  eq(Pipelines.level(filter.ID), 1, "filter: DOTS needs the whole-screen pass")
+  -- a load restores levels from the options; game.ready sets it again -Elvie
+  Pipelines.applyOptions({})
+  mod.fire("game.ready")
+  eq(Pipelines.level(filter.ID), 1, "filter: game.ready sets the level again")
+  -- no shader support (headless): the frame goes through untouched -Elvie
+  local frame = { getDimensions = function() return 240, 160 end }
+  eq(def.present(frame, {}), frame, "filter: no shader, the frame itself")
+  -- render.compose always carries on to the engine's own composite -Elvie
+  local carried = wraps["render.compose"](function() return "next" end, {}, { worldActive = true, scale = 3, ox = 10, oy = 4 })
+  eq(carried, "next", "filter: render.compose hands on to the composite")
+  check(filter.screenOn("off", "screen", "off") == false and filter.screenOn("gbc", "screen", "off") == true
+    and filter.screenOn("gbc", "map", "off") == false, "filter: whole-screen pass only when it has work")
+  local look, where, dots = filter.settings(function(k) return ({ filter = "bogus", filterOn = "map", dots = "on" })[k] end)
+  eq(look .. where .. dots, "offmapon", "filter: an unknown value is OFF")
+  local _, _, _, steps = filter.settings(function(k) return ({ shades = "16" })[k] end)
+  eq(steps, "16", "filter: 16 shades")
+  _, _, _, steps = filter.settings(function(k) return ({ shades = "12" })[k] end)
+  eq(steps, "4", "filter: an unknown shade count is 4")
+  -- no render pipelines in the engine: nothing added -Elvie
+  local bare = newMod(ROOT)
+  local none = {}
+  check(filter.init(bare, none) == nil and #none == 0, "filter: no pipelines, no rows")
 end
 
 print(("%d passed, %d failed"):format(passed, failed))

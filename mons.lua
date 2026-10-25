@@ -166,7 +166,9 @@ function mons.crystalAnim(text, stem, index)
     index.starts = {}
     for at in text:gmatch("()\n    anim = {") do index.starts[#index.starts + 1] = at end
   end
-  local at = text:find('sheet = "assets/generated/battle/anim/' .. stem .. '.png"', 1, true)
+  local sheet = gb.path("assets", "battle/anim/" .. stem .. ".png")
+  if not sheet then return nil end
+  local at = text:find('sheet = "' .. sheet .. '"', 1, true)
   if not at then return nil end
   local from
   for _, s in ipairs(index.starts) do
@@ -309,7 +311,9 @@ function mons.init(mod, rows, menu)
     if isDirectory(MONS_DIR .. "/" .. key) then
       local meta = readMeta(key)
       local label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper()
-      sets[#sets + 1] = { key = key, label = label, gb = meta.source == "gb", credit = meta.credit }
+      local fallback = type(meta.fallback) == "string" and meta.fallback:match("^[%w_%-]+$") or nil
+      sets[#sets + 1] = { key = key, label = label, gb = meta.source == "gb", credit = meta.credit,
+        fallback = fallback }
     end
   end
   table.sort(sets, function(a, b) return a.label < b.label end)
@@ -353,8 +357,34 @@ function mons.init(mod, rows, menu)
       return nat, letter
     end
 
-    -- A PNG of the set's own, as ImageData, or nil. variant is "" or a
-    -- form's suffix (_sunny, _attack...). -Elvie
+    -- A set, then the set its meta.json "fallback" names (GBC ANIM falls
+    -- back to GBC for what it doesn't have), as a list. -Elvie
+    local function chainOf(set)
+      local out, seen = {}, {}
+      while set and not seen[set.key] do
+        seen[set.key] = true
+        out[#out + 1] = set
+        local next
+        for _, s in ipairs(sets) do
+          if s.key == set.fallback then next = s end
+        end
+        set = next
+      end
+      return out
+    end
+
+    -- A file of a set's own (a set, then its fallback): its path and the
+    -- set it came from, or nil. -Elvie
+    local function ownRel(set, sub)
+      for _, s in ipairs(chainOf(set)) do
+        local rel = MONS_DIR .. "/" .. s.key .. "/" .. sub
+        if mod.assets:info(rel) then return rel, s end
+      end
+      return nil
+    end
+
+    -- A PNG of the set's own, as ImageData, and the set it came from, or
+    -- nil. variant is "" or a form's suffix (_sunny, _attack...). -Elvie
     local function ownFile(set, kind, shiny, nat, letter, variant)
       local name
       if nat == "egg" then name = "egg"
@@ -364,8 +394,8 @@ function mons.init(mod, rows, menu)
       end
       if name:find("[!?]") then name = name:gsub("!", "emark"):gsub("%?", "qmark") end
       name = name .. (variant or "")
-      local rel = MONS_DIR .. "/" .. set.key .. "/" .. kind .. (shiny and "_shiny" or "") .. "/" .. name .. ".png"
-      if not mod.assets:info(rel) then return nil end
+      local rel, from = ownRel(set, kind .. (shiny and "_shiny" or "") .. "/" .. name .. ".png")
+      if not rel then return nil end
       local ok, data = pcall(love.image.newImageData, mod.assets:path(rel))
       if not ok or not data then
         mod.log:warn("could not load %s", rel)
@@ -376,7 +406,7 @@ function mons.init(mod, rows, menu)
         mod.log:warn("%s is %dx%d; Pokémon pictures need to be 64x64", rel, w, h)
         return nil
       end
-      return data
+      return data, from
     end
 
     -- Crystal's sprite and palette for a Pokémon, or nil. -Elvie
@@ -398,26 +428,33 @@ function mons.init(mod, rows, menu)
         end
       end
       if palettes == nil then
-        palettes = mons.parsePalettes(gb.readAt("data/generated/palettes.lua", { "crystal" })) or false
+        palettes = mons.parsePalettes(gb.readAt(gb.path("data", "palettes.lua"), { "crystal" })) or false
         if not palettes then mod.log:warn("Crystal's palettes weren't found; GBC Pokémon need Crystal imported") end
       end
       local pal = palettes and palettes[palName]
       if not pal then return nil end
-      local src = gb.readImage("assets/generated/battle/" .. kind .. "/" .. file .. ".png", GB_GAMES)
+      local src = gb.readImage(gb.path("assets", "battle/" .. kind .. "/" .. file .. ".png"), GB_GAMES)
       if not src then return nil end
       return src, shiny and pal.shiny or pal.normal
     end
 
     local placements = {} -- [species] = where a Game Boy front sits, for its frames
 
-    -- The picture, and true when it's a Game Boy one. -Elvie
+    -- The picture, true when it's a Game Boy one, and the set a file of
+    -- its own came from. -Elvie
     local function build(kind, species, shiny, nat, letter, variant)
-      local data = ownFile(current, kind, shiny, nat, letter, variant)
+      local data, from = ownFile(current, kind, shiny, nat, letter, variant)
       if data then
-        -- Stood on the game's own ground line, like everything else. -Elvie
-        local out, why = mons.layOut(data, bottomFor(kind, species), ownColour)
+        -- Stood on the game's own ground line, like everything else; a
+        -- front keeps its spot for its animation frames. -Elvie
+        local place
+        if kind == "front" and variant == "" then
+          placements[species] = placements[species] or {}
+          place = placements[species]
+        end
+        local out, why = mons.layOut(data, bottomFor(kind, species), ownColour, place)
         if not out then mod.log:warn("%s %s: %s", kind, tostring(nat), tostring(why)) end
-        return out
+        return out, false, from
       end
       if current.gb and variant == "" then
         local src, pal = gbSprite(kind, shiny, nat, letter)
@@ -463,7 +500,7 @@ function mons.init(mod, rows, menu)
       local key = kind .. ":" .. species .. variant .. (shiny and ":s" or "")
       local hit = cache[key]
       if hit ~= nil then return hit or nil end
-      local ok, data, fromGb = pcall(build, kind, species, shiny, nat, letter, variant)
+      local ok, data, fromGb, fromSet = pcall(build, kind, species, shiny, nat, letter, variant)
       if not ok then
         mod.log:warn("%s %d: %s", kind, species, tostring(data))
         data = nil
@@ -472,7 +509,8 @@ function mons.init(mod, rows, menu)
       if data and love and love.graphics then
         local image = love.graphics.newImage(data)
         image:setFilter("nearest", "nearest")
-        entry = { image = image, imageData = data, w = SIZE, h = SIZE, gb = fromGb or nil }
+        entry = { image = image, imageData = data, w = SIZE, h = SIZE, gb = fromGb or nil,
+          set = fromSet or nil }
       end
       cache[key] = entry
       return entry or nil
@@ -489,8 +527,8 @@ function mons.init(mod, rows, menu)
     local partyPal     -- Crystal's party-menu colours 1 and 2
     local function crystalIconFile(nat)
       if crystalIcons == nil then
-        crystalIcons = mons.parseIcons(gb.readAt("data/generated/icons.lua", GB_GAMES)) or false
-        partyPal = mons.parsePartyPalette(gb.readAt("data/generated/palettes.lua", { "crystal" }))
+        crystalIcons = mons.parseIcons(gb.readAt(gb.path("data", "icons.lua"), GB_GAMES)) or false
+        partyPal = mons.parsePartyPalette(gb.readAt(gb.path("data", "palettes.lua"), { "crystal" }))
       end
       if not crystalIcons then return nil end
       local id
@@ -505,8 +543,8 @@ function mons.init(mod, rows, menu)
     local function buildIcon(nat)
       local src, colour
       local name = nat == "egg" and "egg" or ("%03d"):format(nat)
-      local rel = MONS_DIR .. "/" .. current.key .. "/icons/" .. name .. ".png"
-      if mod.assets:info(rel) then
+      local rel = ownRel(current, "icons/" .. name .. ".png")
+      if rel then
         local ok, data = pcall(love.image.newImageData, mod.assets:path(rel))
         if ok and data then src, colour = data, ownColour end
       end
@@ -575,31 +613,94 @@ function mons.init(mod, rows, menu)
       if not row or row[1] == "unown" then return nil end -- Unown never animates in Gen 3 -Elvie
       local hit = anims[row[1]]
       if hit ~= nil then return hit or nil end
-      if crystalText == nil then crystalText = gb.readAt("data/generated/pokemon.lua", GB_GAMES) or false end
+      if crystalText == nil then crystalText = gb.readAt(gb.path("data", "pokemon.lua"), GB_GAMES) or false end
       local anim = crystalText and mons.crystalAnim(crystalText, row[1], animIndex)
       anims[row[1]] = anim or false
       return anim or nil
     end
 
-    -- Crystal's script as Gen 3 sprite commands, for a Game Boy front. -Elvie
+    -- A set's own animation (GBC ANIM's Hoenn): anim/NNN.json, Crystal's
+    -- script format ({ tiles, play, idle }), with anim/NNN.png and
+    -- anim_shiny/NNN.png, every picture stacked, base first. Only from the
+    -- set the front came from, so frames always match their front. -Elvie
+    local ownAnims = {}
+    local function ownAnimFor(set, nat)
+      if not set or type(nat) ~= "number" then return nil end
+      local key = set.key .. ":" .. nat
+      local hit = ownAnims[key]
+      if hit ~= nil then return hit or nil end
+      ownAnims[key] = false
+      local rel = MONS_DIR .. "/" .. set.key .. ("/anim/%03d.json"):format(nat)
+      if not mod.assets:info(rel) then return nil end
+      local ok, anim = pcall(require("mods.facets.npcs").decodeJson, mod:read(rel))
+      if not ok or type(anim) ~= "table" or type(anim.play) ~= "table" or not tonumber(anim.tiles) then
+        mod.log:warn("%s couldn't be read", rel)
+        return nil
+      end
+      anim.sheetRel = MONS_DIR .. "/" .. set.key .. ("/anim/%03d.png"):format(nat)
+      anim.shinyRel = MONS_DIR .. "/" .. set.key .. ("/anim_shiny/%03d.png"):format(nat)
+      ownAnims[key] = anim
+      return anim
+    end
+
+    -- The front's script as Gen 3 sprite commands: the set's own, or
+    -- Crystal's for a Game Boy front. -Elvie
     local function gbCommands(species)
       local front = lookup("front", species, nil, false)
-      if not (front and front.gb) then return nil end
+      if not front then return nil end
       local hit = commands[species]
       if hit ~= nil then return hit or nil end
-      local cmds = mons.animCommands(crystalAnimFor((identify(species))), Gen2Anim)
+      local anim = ownAnimFor(front.set, (identify(species)))
+      if not anim and front.gb then anim = crystalAnimFor((identify(species))) end
+      local cmds = anim and mons.animCommands(anim, Gen2Anim) or nil
       commands[species] = cmds or false
       return cmds
     end
 
-    -- Frame n of Crystal's sheet, coloured and placed like the front. -Elvie
+    -- Frame n of a set's own sheet, placed like the front: the sheet's
+    -- pictures sit at the bottom centre of a 64x64 frame, as its front
+    -- does. -Elvie
+    local function ownFrame(front, species, frame, shiny)
+      local anim = ownAnimFor(front.set, (identify(species)))
+      if not (anim and placements[species]) then return nil end
+      local rel = shiny and anim.shinyRel or anim.sheetRel
+      if not mod.assets:info(rel) then return nil end
+      local ok, sheet = pcall(love.image.newImageData, mod.assets:path(rel))
+      if not ok or not sheet then return nil end
+      local size = tonumber(anim.tiles) * 8
+      local w, h = sheet:getDimensions()
+      if w ~= size or (frame + 1) * size > h then return nil end
+      local ox, oy = math.floor((SIZE - size) / 2), SIZE - size
+      local view = {
+        getDimensions = function() return SIZE, SIZE end,
+        getPixel = function(_, x, y)
+          local sx, sy = x - ox, y - oy
+          if sx < 0 or sy < 0 or sx >= size or sy >= size then return 0, 0, 0, 0 end
+          return sheet:getPixel(sx, sy + frame * size)
+        end,
+      }
+      return mons.layOut(view, bottomFor("front", species), ownColour, placements[species])
+    end
+
+    -- Frame n: the set's own sheet, or Crystal's for a Game Boy front,
+    -- coloured and placed like the front. -Elvie
     local function gbFrame(species, frame, shiny)
       local front = lookup("front", species, nil, shiny)
-      if not (front and front.gb) then return nil end
+      if not front then return nil end
       local key = "frame:" .. species .. ":" .. frame .. (shiny and ":s" or "")
       local hit = cache[key]
       if hit ~= nil then return hit or nil end
       cache[key] = false
+      if front.set then
+        local data = ownFrame(front, species, frame, shiny)
+        if not (data and love and love.graphics) then return nil end
+        local image = love.graphics.newImage(data)
+        image:setFilter("nearest", "nearest")
+        local entry = { image = image, imageData = data, w = SIZE, h = SIZE, set = front.set }
+        cache[key] = entry
+        return entry
+      end
+      if not front.gb then return nil end
       local nat = identify(species)
       local anim = crystalAnimFor(nat)
       local size = anim and tonumber(anim.tiles) and tonumber(anim.tiles) * 8
@@ -648,7 +749,7 @@ function mons.init(mod, rows, menu)
       AnimData.anims = function(species, ...)
         local out = origAnims(species, ...)
         local sp = tonumber(species)
-        if type(out) == "table" and sp and current and current.gb then
+        if type(out) == "table" and sp and current then
           local cmds = gbCommands(sp)
           if cmds then
             local copy = {}
@@ -665,8 +766,8 @@ function mons.init(mod, rows, menu)
     local function sameArt(species, shiny)
       local key = species .. (shiny and ":s" or "")
       if same[key] == nil then
-        local own = gb.readAt(("data/generated/gba/pokemon/%s/%d.rgba"):format(shiny and "front_shiny" or "front", species), { game() })
-        local em = gb.readAt(("data/generated/gba/pokemon/%s/%d.rgba"):format(shiny and "front_anim_shiny" or "front_anim", species), { "emerald" })
+        local own = gb.readAt(gb.path("monData", ("%s/%d.rgba"):format(shiny and "front_shiny" or "front", species)), { game() })
+        local em = gb.readAt(gb.path("monData", ("%s/%d.rgba"):format(shiny and "front_anim_shiny" or "front_anim", species)), { "emerald" })
         same[key] = type(own) == "string" and type(em) == "string" and #own > 0 and em:sub(1, #own) == own
       end
       return same[key]
@@ -689,7 +790,7 @@ function mons.init(mod, rows, menu)
       local hit = emPics[key]
       if hit ~= nil then return hit or nil end
       emPics[key] = false
-      local sheet = gb.readAt(("data/generated/gba/pokemon/%s/%d.rgba"):format(shiny and "front_anim_shiny" or "front_anim", species), { "emerald" })
+      local sheet = gb.readAt(gb.path("monData", ("%s/%d.rgba"):format(shiny and "front_anim_shiny" or "front_anim", species)), { "emerald" })
       local size = SIZE * SIZE * 4
       if type(sheet) ~= "string" or #sheet < size * (frame + 1) or not (love and love.graphics) then return nil end
       local ok, data = pcall(love.image.newImageData, SIZE, SIZE, "rgba8", sheet:sub(size * frame + 1, size * (frame + 1)))
@@ -733,7 +834,7 @@ function mons.init(mod, rows, menu)
         local f = tonumber(frame) or 0
         local sp = tonumber(species)
         if f ~= 0 and sp then
-          if current and current.gb then
+          if current then
             local e = gbFrame(sp, f, shiny)
             if e then return e end
           end
@@ -819,7 +920,7 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
   local emeraldThere
   local function hasEmerald()
     if emeraldThere == nil then
-      emeraldThere = gb.readAt("data/generated/gba/pokemon/front_anims.lua", { "emerald" }) ~= nil
+      emeraldThere = gb.readAt(gb.path("monData", "front_anims.lua"), { "emerald" }) ~= nil
     end
     return emeraldThere
   end
