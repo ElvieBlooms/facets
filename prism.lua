@@ -14,9 +14,10 @@ local ID = "prism"
 local LAYER = "prism"
 local BLUE = { 0, 123, 197 } -- the OPTION menu's, for an entry with no colour -Elvie
 local HELP = "{A_BUTTON}OPEN {B_BUTTON}EXIT"
-local LABEL_X, VALUE_X, ROW_Y0, ROW_STEP = 24, 112, 26, 13
+local LABEL_X, VALUE_X, ROW_Y0, ROW_STEP = 32, 112, 26, 13
 local VALUE_W = 104
-local GEM_X = 11
+-- the game's cursor arrow, then each entry's gem, then its name -Elvie
+local ARROW_X, GEM_X = 10, 19
 -- The preview corner: inside the window (8..232 x 24..152), bottom right,
 -- its top-left corner cut on a slant. -Elvie
 local PANEL_X0, PANEL_X1, PANEL_Y1, PANEL_CUT = 112, 230, 150, 26
@@ -194,7 +195,8 @@ function prism.picker()
       love.graphics.setColor(1, 1, 1, 1)
       love.graphics.rectangle("fill", 8, 24, 224, 128)
     end
-    -- each entry's gem in place of the arrow; the picked one sparkles -Elvie
+    -- each entry's gem; the game's dark arrow points at the picked one
+    -- (the sparkle alone is hard to see through a 4-shade FILTER) -Elvie
     for i, entry in ipairs(state.entries) do
       local y = ROW_Y0 + (i - 1) * ROW_STEP
       drawGem(GEM_X, y + 2, colourOf(entry))
@@ -205,6 +207,7 @@ function prism.picker()
         love.graphics.rectangle("fill", GEM_X + 8, y + 2, 3, 1)
       end
       love.graphics.setColor(1, 1, 1, 1)
+      if i == state.index then Window.cursorPx(ARROW_X, y) end
       Window.printPx(entry.label, LABEL_X, y, { colors = FrlgFont.COLOR.NORMAL })
       local value = valueOf(entry)
       if FrlgFont.measure(value) > VALUE_W then value = "" end
@@ -213,7 +216,7 @@ function prism.picker()
     local aboutY = ROW_Y0 + (#state.entries + 1) * ROW_STEP
     if picked and type(picked.about) == "string" then
       love.graphics.setColor(1, 1, 1, 1)
-      Window.printPx(picked.about, LABEL_X - 8, aboutY, { colors = FrlgFont.COLOR.NORMAL })
+      Window.printPx(picked.about, 16, aboutY, { colors = FrlgFont.COLOR.NORMAL })
     end
     if picked and type(picked.draw) == "function" then
       local y0 = math.max(76, aboutY + ROW_STEP + 1)

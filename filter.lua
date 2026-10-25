@@ -1,7 +1,7 @@
 -- The GB filter
--- Game Boy looks for the whole game. FILTER picks one: GRAY or GREEN
--- (Game Boy shades: 4, or 8 or 16 with SHADES), or GBC (colour, cut down
--- to a few levels a channel).
+-- Game Boy looks for the whole game. FILTER picks one: GRAY, GREEN, RUBY,
+-- SAPPHIRE or EMERALD (shades of one colour: 4 like a Game Boy, or 8 or 16 with
+-- SHADES), or GBC (colour, cut down to a few levels a channel).
 -- FILTER ON chooses where: the whole SCREEN, or just the MAP (menus and
 -- battles keep their colours). DOTS draws a dot-matrix grid between the
 -- game's pixels, with or without a filter. -Elvie
@@ -17,7 +17,8 @@
 local filter = {}
 
 filter.ID = "facets_filter"
-filter.LOOKS = { { "OFF", "off" }, { "GRAY", "gray" }, { "GREEN", "green" }, { "GBC", "gbc" } }
+filter.LOOKS = { { "OFF", "off" }, { "GRAY", "gray" }, { "GREEN", "green" }, { "RUBY", "ruby" },
+  { "SAPPHIRE", "sapphire" }, { "EMERALD", "emerald" }, { "GBC", "gbc" } }
 filter.WHERE = { { "SCREEN", "screen" }, { "MAP", "map" } }
 filter.DOTS = { { "OFF", "off" }, { "ON", "on" } }
 filter.STEPS = { { "4", "4" }, { "8", "8" }, { "16", "16" } }
@@ -28,6 +29,12 @@ filter.STEPS = { { "4", "4" }, { "8", "8" }, { "16", "16" } }
 filter.SHADES = {
   gray = { { 238, 238, 238 }, { 168, 168, 168 }, { 96, 96, 96 }, { 32, 32, 32 } },
   green = { { 224, 248, 208 }, { 136, 192, 112 }, { 52, 104, 86 }, { 8, 24, 32 } },
+  -- RUBY, SAPPHIRE and EMERALD, for the games themselves: a pale tint at the light
+  -- end down to the gem's deep colour, built like GREEN -Elvie
+  ruby = { { 252, 228, 228 }, { 228, 120, 132 }, { 152, 28, 56 }, { 40, 6, 18 } },
+  sapphire = { { 226, 236, 252 }, { 112, 152, 228 }, { 32, 60, 156 }, { 8, 14, 44 } },
+  -- bluer and deeper than GREEN's Game Boy greens -Elvie
+  emerald = { { 222, 248, 236 }, { 92, 200, 150 }, { 14, 118, 80 }, { 4, 32, 24 } },
 }
 
 -- Brightness cut-offs between the four shades. Gen 3 is bright: half of a
@@ -150,7 +157,7 @@ function filter.init(mod, rows, menu)
       local c = pal[i]
       sh:send("s" .. (i - 1), { c[1] / 255, c[2] / 255, c[3] / 255 })
     end
-    sh:send("mode", (look == "gray" or look == "green") and 1 or look == "gbc" and 2 or 0)
+    sh:send("mode", filter.SHADES[look] and 1 or look == "gbc" and 2 or 0)
     sh:send("cut", filter.CUTS)
     sh:send("steps", tonumber(steps) or 4)
     sh:send("levels", filter.GBC_LEVELS)
@@ -236,8 +243,8 @@ function filter.init(mod, rows, menu)
         local out = {
           { key = "filter", label = "FILTER", who = "filter", choices = filter.LOOKS, value = look },
         }
-        -- SHADES only means something for GRAY and GREEN -Elvie
-        if look == "gray" or look == "green" then
+        -- SHADES only means something for the shade palettes -Elvie
+        if filter.SHADES[look] then
           out[#out + 1] = { key = "shades", label = "SHADES", who = "shades", choices = filter.STEPS, value = steps }
         end
         out[#out + 1] = { key = "filterOn", label = "WHERE", who = "where", choices = filter.WHERE, value = where }
@@ -249,6 +256,9 @@ function filter.init(mod, rows, menu)
         if who == "filter" then
           if look == "gray" then return { lines = { { text = "Four Game Boy greys." } } } end
           if look == "green" then return { lines = { { text = "Four Game Boy greens." } } } end
+          if look == "ruby" then return { lines = { { text = "Shades of ruby." } } } end
+          if look == "sapphire" then return { lines = { { text = "Shades of sapphire." } } } end
+          if look == "emerald" then return { lines = { { text = "Shades of emerald." } } } end
           if look == "gbc" then return { lines = { { text = "Game Boy Color colours." } } } end
           return { lines = { { text = "The game's own colours." } } }
         elseif who == "where" then
