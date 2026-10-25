@@ -519,8 +519,11 @@ do
   eq(("%d,%d,%d"):format(r, g, b), "255,156,82", "gb: grey 170 becomes Crystal's skin colour")
   local _, _, _, a0 = px(nurse, 0, 5, 20)
   eq(a0, 0, "gb: white is see-through")
-  r = px(nurse, 3, 0, 30)
-  eq(r, 0, "gb: standing-only sprite: walk frames reuse the stand frames")
+  local r3, g3, b3, a3 = px(nurse, 3, 0, 29)
+  local _, _, _, feet3 = px(nurse, 3, 0, 30)
+  check(a3 == 1 and r3 + g3 + b3 == 0 and feet3 == 0, "gb: standing-only sprite: walk frames are the stand frames, a pixel up (a hop)")
+  local _, _, _, still0 = px(nurse, 0, 0, 30)
+  eq(still0, 1, "gb: ...and its standing frames stay on the feet row")
 
   local young = Ow.get(18)
   eq(young.imageData:getDimensions(), 16, "gb: YOUNGSTER built")
@@ -541,7 +544,7 @@ do
   eq(biker.width, 32, "gb: BIKER 32 wide"); r = px(biker, 0, 8, 30); eq(r, 0, "gb: centred in a 32-wide frame")
 
   local cap = Ow.get(63)
-  r = px(cap, 3, 0, 30); eq(r, 0, "gb: 6-frame strip with blank walk frames walks on its stand frames")
+  local _, _, _, ca = px(cap, 3, 0, 29); eq(ca, 1, "gb: 6-frame strip with blank walk frames hops on its stand frames")
 
   check(Ow.get(22) ~= vanilla[22], "gb: LASS (not in any install) falls through to the next set")
   eq(Ow.get(22).image.data.path:match("/(real)/"), "real", "gb: ...REAL's sheet")
@@ -575,7 +578,7 @@ do
   eq(("%d,%d,%d"):format(r, g, b), "200,10,10", "strip: own colour kept, feet on row 30")
   r = px(swim, 4, 12, 30); eq(r, 200, "strip: walk frames mirrored like Game Boy sprites")
   local _, _, _, sa = px(swim, 0, 5, 20); eq(sa, 0, "strip: alpha 0 is see-through")
-  r = px(Ow.get(idOf.SITTING_BOY), 3, 0, 30); eq(r, 200, "strip: a 3-frame strip walks on its stand frames")
+  r = px(Ow.get(idOf.SITTING_BOY), 3, 0, 29); eq(r, 200, "strip: a 3-frame strip hops on its stand frames")
   eq(Ow.get(idOf.WORKER_M), vanilla[idOf.WORKER_M], "strip: a missing strip leaves the game's own")
   local warns = 0
   for _, l in ipairs(mod.logs) do
