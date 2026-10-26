@@ -100,6 +100,22 @@ python3 tools/mon_convert.py tools/recipes/ds_mons.json "<The DS-style 64x64 Pok
 
 The Pokémon side is `mons.lua`, `mon_names.lua` and `assets/mons/`, listed once in `main.lua`; an NPC-only build drops those.
 
+### With SPRITE SWAPPER (and other sprite pack mods)
+
+[SPRITE SWAPPER](https://github.com/artyrambles/ST_SPRITESWAPPER) by artyrambles swaps Pokémon pictures for sprite packs through the engine's `pokemon.sprite` and `pokemon.icon` hooks. Facets steps aside for it: when the pack you've picked there (or any mod using those hooks) has a picture for a Pokémon, that picture shows, front, back and icon, whatever Facets' SET or FR/LG ANIMS say. Facets fills in only what the pack doesn't have, so with a pack picked and a SET on, a Pokémon the pack leaves out still gets the set's picture. A pack's Pokémon keep the pack's picture through their whole animation instead of flashing Facets' or Emerald's art mid-move. YOUR SIDE: FRONT still works, using the pack's front. When the FACETS screen's preview has a pack's Pokémon in it, the POKéMON row says so. With no pack picked, nothing changes.
+
+Facets' own art can go the other way too: `tools/make_sprite_swapper_pack.py` turns a set into a SPRITE SWAPPER sprite pack (Gen 3 only, and it needs SPRITE SWAPPER). Each picture is stood where the game's own would stand, using FireRed and LeafGreen's height offsets from gen1recomp's source, so in FR/LG a pack picture lands exactly where Facets puts it; in Ruby, Sapphire and Emerald a few redrawn Kanto Pokémon stand a pixel or two off. Two recipes are included:
+
+```
+python3 tools/make_sprite_swapper_pack.py tools/recipes/sprite_swapper_ds.json . "<gen1recomp folder>" "<out folder>"
+python3 tools/make_sprite_swapper_pack.py tools/recipes/sprite_swapper_nuuk.json . "<gen1recomp folder>" "<out folder>"
+```
+
+- **FACETS DS**: the DS set (fronts, backs, shinies and Castform's weather backs). Deoxys is left out, since SPRITE SWAPPER has one picture for every game and each game shows its own form.
+- **NUUK HOENN**: Nuuk's 92 Hoenn Pokémon from GBC ANIM, with eeveeee1999's icons for those 92. Still pictures only; the animations stay in Facets.
+
+Only a set's own files can go in a pack. GBC-ISH, GB EMERALD and the Crystal parts are made from your own games while you play, so they stay Facets-only.
+
 ## Sprite sets
 
 A set is a folder in `assets/npcs/`:
@@ -293,4 +309,5 @@ DIEGO, TAIGA, ZAFFRE and COMMUNITY are included, used with credit. HGSS is Ninte
 - **GBC-ISH:** Gen 2 battle sprites, palettes and animations by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; Hoenn made from your own imported Emerald's pictures; none of it is included. Party icons (included): Kanto and Johto from the Minidex 001-251, by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25; Hoenn by eeveeee1999.
 - **GB EMERALD:** made from your own imported Emerald's pictures (Nintendo / Game Freak); none of it is included.
 - **GBC ANIM:** Gen 2 battle sprites and palettes by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included. Hoenn sprites and animations (included) by Nuuk (Crystal-style sprites), free to use with credit, not for profit; the rest from GBC-ISH.
+- **SPRITE SWAPPER** is artyrambles' mod; Facets works alongside it and can make packs for it, but includes none of its code.
 - **Sprite data:** which sprite each trainer class uses, and the HGSS overworld model names, come from pret's pokeemerald, pokefirered and pokeheartgold decompilations.

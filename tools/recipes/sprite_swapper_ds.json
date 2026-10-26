@@ -1,0 +1,20 @@
+{
+  "about": "Facets' DS set as a SPRITE SWAPPER pack. Deoxys is left out: SPRITE SWAPPER has one picture for every game, and each game shows its own Deoxys form, so the game's own stays. Spinda's and Anorith's fronts aren't in the set, so they stay the game's own too.",
+  "id": "facets_ds_pack",
+  "name": "Facets DS Sprites",
+  "label": "FACETS DS",
+  "description": "Gen 4-style fronts, backs and shinies for all of Gen 3 (the DS-style 64x64 Pokémon Sprite Resource), from Facets.",
+  "version": "1.0.0",
+  "sets": [
+    "ds"
+  ],
+  "skip": [
+    386
+  ],
+  "notes": [
+    "Deoxys, Spinda's front and Anorith's front stay the game's own."
+  ],
+  "credit": [
+    "DS-style 64x64 Pokémon Sprite Resource: Chaos Rush, with Wizznats, jhajjar, Vapper3, atif, redriders180, cmbeke, Tailes, SneakerTheOtter, karatekid522, dreamengine, Rizon, Spark, MrDollSteak, PJBottomz, Archeops, dragonflye and Anvils Alive; free to use with credit"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "about": "Nuuk's Crystal-style Hoenn sprites (Facets' GBC ANIM set) as a SPRITE SWAPPER pack, with matching Game Boy party icons by eeveeee1999. Only the 92 Pokémon Nuuk drew; the rest stay the game's own. SPRITE SWAPPER shows still pictures, so Nuuk's animations stay in Facets.",
+  "id": "facets_nuuk_pack",
+  "name": "Nuuk's GBC Hoenn",
+  "label": "NUUK HOENN",
+  "description": "Nuuk's Crystal-style sprites for 92 of Hoenn's Pokémon (Treecko to Crawdaunt, plus Snorunt and Glalie), with Game Boy party icons, from Facets.",
+  "version": "1.0.0",
+  "sets": [
+    "gbc_anim"
+  ],
+  "icons": "gbcish",
+  "notes": [
+    "Still pictures only: for Nuuk's animations, use Facets' GBC ANIM set instead."
+  ],
+  "credit": [
+    "Hoenn sprites by Nuuk (Crystal-style sprites), free to use with credit, not for profit",
+    "Hoenn party icons by eeveeee1999"
+  ]
+}

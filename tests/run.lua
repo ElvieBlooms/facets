@@ -674,11 +674,13 @@ do
   -- Engine stubs: the Pokemon module's two pic functions, Unown and the
   -- egg, pic offsets and Emerald's frame pics. -Elvie
   local calls = {}
+  -- packs["front6"] = a picture another mod's hook supplied -Elvie
+  local packs = {}
   local Pokemon = {
     SPECIES_EGG = 412,
-    frontPic = function(sp) calls[#calls + 1] = "front" .. tostring(sp); return { vanilla = "front" .. tostring(sp) } end,
-    icon = function(sp) return { vanilla = "icon" .. tostring(sp) } end,
-    backPic = function(sp) calls[#calls + 1] = "back" .. tostring(sp); return { vanilla = "back" .. tostring(sp) } end,
+    frontPic = function(sp) calls[#calls + 1] = "front" .. tostring(sp); return packs["front" .. tostring(sp)] or { vanilla = "front" .. tostring(sp) } end,
+    icon = function(sp) return packs["icon" .. tostring(sp)] or { vanilla = "icon" .. tostring(sp) } end,
+    backPic = function(sp) calls[#calls + 1] = "back" .. tostring(sp); return packs["back" .. tostring(sp)] or { vanilla = "back" .. tostring(sp) } end,
     picBaseSpecies = function(sp)
       if sp == 201 then return 201, 0 end
       if sp >= 413 and sp < 440 then return 201, sp - 412 end
@@ -1029,6 +1031,18 @@ do
   eq(monsM.frontAsBackShift({ front = { [6] = 10 }, back = { [6] = 4 }, elev = { [6] = 3 } }, 6), 3,
     "your side: front offset, less its float, less the back offset")
   eq(monsM.frontAsBackShift(nil, 6), 0, "your side: no offsets, no move")
+  eq(monsM.keptShift(-4, 0, 63), 0, "your side: a front that fills the frame (Skarmory) isn't lifted out of it")
+  eq(monsM.keptShift(-4, 2, 50), -2, "your side: ...only as far as its top allows")
+  eq(monsM.keptShift(-4, 10, 50), -4, "your side: room above: the full lift")
+  eq(monsM.keptShift(3, 5, 62), 1, "your side: moved down only as far as its feet allow")
+  eq(monsM.keptShift(3, 5, 40), 3, "your side: room below: the full move")
+  eq(monsM.keptShift(-4, nil, nil), -4, "your side: an unreadable picture keeps the full move")
+  local probe = pixelData(4, 4)
+  probe:setPixel(1, 1, 1, 1, 1, 1)
+  probe:setPixel(2, 2, 1, 1, 1, 1)
+  local t, l = monsM.drawnRows(probe)
+  eq(t .. "," .. l, "1,2", "your side: the first and last drawn rows")
+  eq(monsM.drawnRows(pixelData(4, 4)), nil, "your side: an empty picture has none")
   eq(rows[4].key .. "," .. rows[4].default, "backMons,back", "your side: row, BACK by default")
   eq(rows[5].key .. "," .. rows[5].default, "mirrorMons,on", "mirror fronts: row, ON by default")
   mod.options:set("setMons", "gbc")
@@ -1038,8 +1052,10 @@ do
   local saved = { newCanvas = G.newCanvas, push = G.push, pop = G.pop, setCanvas = G.setCanvas, clear = G.clear,
     origin = G.origin, setShader = G.setShader, draw = G.draw }
   local drawn, made = nil, 0
-  G.newCanvas = function(w, h)
+  local canvasOpts
+  G.newCanvas = function(w, h, opts)
     made = made + 1
+    canvasOpts = opts
     return { newImageData = function() return { w = w, h = h } end, release = function() end }
   end
   for _, k in ipairs({ "push", "pop", "setCanvas", "clear", "origin", "setShader" }) do G[k] = function() end end
@@ -1049,6 +1065,7 @@ do
   check(asBack and asBack.imageData and asBack.imageData.w == 64, "your side: FRONT draws a 64x64 picture")
   eq(drawn and drawn.img, zardFront.image, "your side: ...from the front picture (the set's)")
   eq(drawn and (drawn.x .. "," .. drawn.y .. "," .. drawn.sx), "64,-3,-1", "your side: moved to the back's ground line (1 - 4), mirrored by default")
+  eq(canvasOpts and canvasOpts.dpiscale, 1, "your side: drawn at 1 pixel per pixel, whatever the screen's DPI")
   eq(Pokemon.backPic(6, nil, false), asBack, "your side: kept")
   eq(made, 1, "your side: drawn once")
   mod.options:set("mirrorMons", "__off")
@@ -1088,7 +1105,30 @@ do
   local plainBack = Pokemon.backPic(6, nil, false)
   check(plainBack and plainBack ~= asBack and not plainBack.vanilla, "your side: BACK again: the set's back")
   mod.options:set("mirrorMons", "__off")
+
+  -- Sprite packs: another mod's picture (through the engine's hook) comes
+  -- first, Pokémon by Pokémon; Facets fills in the rest -Elvie
+  eq(monsM.fromHook({ image = 1, path = "mods/st_pack/assets/pokemon/front/normal/CHARIZARD.png" }), true, "packs: a hook's file is a pack's")
+  eq(monsM.fromHook({ image = 1, path = "data/generated/gba/pokemon/front/6.rgba" }), false, "packs: the game's own file isn't")
+  eq(monsM.fromHook({ image = 1 }), false, "packs: no file, not a pack's")
+  eq(monsM.fromHook({ blank = true }), true, "packs: a hidden icon is the hook's")
+  eq(monsM.fromHook(nil), false, "packs: nothing, not a pack's")
+  local packZard = { image = "packzard", path = "mods/st_pack/assets/pokemon/front/normal/CHARIZARD.png" }
+  local packBack = { image = "packback", path = "mods/st_pack/assets/pokemon/back/normal/CHARIZARD.png" }
+  local packIcon = { image = "packicon", path = "mods/st_pack/assets/pokemon/icons/normal/CHARIZARD.png" }
+  packs.front6, packs.back6, packs.icon6 = packZard, packBack, packIcon
+  check(not Pokemon.frontPic(25).vanilla, "packs: a set is on")
+  eq(Pokemon.frontPic(6), packZard, "packs: the pack's front beats the set's")
+  eq(Pokemon.backPic(6, nil, false), packBack, "packs: the pack's back beats the set's")
+  eq(Pokemon.icon(6), packIcon, "packs: the pack's icon beats the set's")
+  check(not Pokemon.frontPic(25).vanilla and Pokemon.frontPic(25) ~= packZard, "packs: what the pack leaves out is still the set's")
+  eq(MonAnim.framePic(6, 1, false), packZard, "packs: every frame is the pack's picture, not the set's")
+  eq(AnimData.anims(6)[1][1], "emerald6", "packs: no Crystal script for a pack's Pokémon")
+  eq(monsM.packFront(6, false), packZard, "packs: the screen can tell a pack is showing")
   mod.options:set("setMons", "__off")
+  eq(monsM.packFront(6, false), nil, "packs: Facets off, nothing to step aside from")
+  eq(Pokemon.frontPic(6), packZard, "packs: Facets off, the pack shows as before")
+  packs.front6, packs.back6, packs.icon6 = nil, nil, nil
   for k, fn in pairs(saved) do G[k] = fn end
   package.loaded["src.core.game3.pokemon"] = nil
   package.loaded["src.core.game3.battle.pic_coords"] = nil

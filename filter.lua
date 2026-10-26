@@ -148,8 +148,10 @@ function filter.init(mod, rows, menu)
     if not sh then return nil end
     local w, h = src:getDimensions()
     local cv = canvases[slot]
-    if not cv or cv:getWidth() ~= w or cv:getHeight() ~= h then
-      cv = love.graphics.newCanvas(w, h)
+    local dpi = src.getDPIScale and src:getDPIScale() or 1
+    if not cv or cv:getWidth() ~= w or cv:getHeight() ~= h or (cv.getDPIScale and cv:getDPIScale() ~= dpi) then
+      -- the source's own DPI, so a high-DPI screen gets the same pixels -Elvie
+      cv = love.graphics.newCanvas(w, h, { dpiscale = dpi })
       canvases[slot] = cv
     end
     local pal = filter.SHADES[look] or filter.SHADES.gray
