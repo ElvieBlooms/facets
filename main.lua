@@ -6,10 +6,11 @@
 --
 -- Each part adds its option rows and its rows on the FACETS screen
 -- (menu.lua, screen.lua), then starts once the rows are defined. filter.lua
--- is the GB FILTER, a screen shader over the whole game.
+-- is the GB FILTER, a screen shader over the whole game; prebuild.lua
+-- (PREBUILD) builds the other parts' pictures ahead of time.
 -- An NPC-only build drops "mons" from this list (and mons.lua,
 -- mon_names.lua and assets/mons/). -Elvie
-local PARTS = { "npcs", "mons", "filter" }
+local PARTS = { "npcs", "mons", "filter", "prebuild" }
 
 return function(mod)
   local rows, starts = {}, {}

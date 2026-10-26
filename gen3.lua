@@ -21,6 +21,8 @@ local WIDE = 32 -- the frame size for art drawn bigger than the game's own (Gen 
 
 -- Logs a bad file once instead of every frame it's requested. -Elvie
 local warned = {}
+local disk = require("mods.facets.diskcache")
+
 local function warnOnce(mod, key, fmt, ...)
   if warned[key] then return end
   warned[key] = true
@@ -143,10 +145,19 @@ function gen3.init(mod, ctx)
       if scale == 2 then fw0, fh0 = WIDE, WIDE end
       local mode = ref.gb.icon and "icon" or ref.gb.big and "big" or nil
       if mode == "big" then fw0, fh0 = w0, h0 end
-      ok, data, why = pcall(gb.sheet, ref.src, ref.gb.palette, fw0, fh0, scale, mode)
-      if ok and not data then
-        warnOnce(mod, rel, "%s: %s; skipping it", rel, tostring(why))
-        return nil
+      -- kept on the install from an earlier start (PREBUILD) -Elvie
+      local group = "npcs-" .. family
+      local key = ("%s|%s|%dx%d|%d|%s"):format(rel, tostring(ref.gb.palette), fw0, fh0, scale, tostring(mode))
+      data = disk.get(group, key)
+      if data then
+        ok = true
+      else
+        ok, data, why = pcall(gb.sheet, ref.src, ref.gb.palette, fw0, fh0, scale, mode)
+        if ok and not data then
+          warnOnce(mod, rel, "%s: %s; skipping it", rel, tostring(why))
+          return nil
+        end
+        if ok and data then disk.put(group, key, data) end
       end
     else
       ok, data = pcall(love.image.newImageData, mod.assets:path(rel))

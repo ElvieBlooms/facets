@@ -68,6 +68,16 @@ local function pixelData(w, h)
       assert(x >= 0 and x < w and y >= 0 and y < h, ("setPixel %d,%d outside %dx%d"):format(x, y, w, h))
       px[y * w + x] = { r, g, b, a }
     end,
+    -- raw RGBA bytes, as ImageData:getString gives them -Elvie
+    getString = function()
+      local out = {}
+      for i = 0, w * h - 1 do
+        local p = px[i] or { 0, 0, 0, 0 }
+        local function b(v) return string.char(math.max(0, math.min(255, math.floor((v or 0) * 255 + 0.5)))) end
+        out[#out + 1] = b(p[1]) .. b(p[2]) .. b(p[3]) .. b(p[4])
+      end
+      return table.concat(out)
+    end,
   }
 end
 -- A 16x96 strip of 6 frames: frame f (0-5) has a black pixel at (f, 15)
@@ -1129,6 +1139,55 @@ do
   eq(monsM.packFront(6, false), nil, "packs: Facets off, nothing to step aside from")
   eq(Pokemon.frontPic(6), packZard, "packs: Facets off, the pack shows as before")
   packs.front6, packs.back6, packs.icon6 = nil, nil, nil
+
+  -- PREBUILD: the work list builds what the game will ask for, and the
+  -- install cache gives it back on the next start -Elvie
+  local disk = require("mods.facets.diskcache")
+  local files = {}
+  local store = {
+    read = function(_, rel) return files[rel] end,
+    write = function(_, rel, bytes) files[rel] = bytes; return true end,
+    delete = function(_, rel) files[rel] = nil; return true end,
+  }
+  disk.setup(store, "facets test", nil)
+  disk.enable(true)
+  mod.options:set("setMons", "gbc")
+  local units = monsM.prebuildUnits()
+  check(#units > 1000, "prebuild: a picture list for every Pokémon (" .. #units .. ")")
+  for _, u in ipairs(units) do pcall(u) end
+  check(disk.dirty(), "prebuild: built pictures wait to be kept")
+  local zardBuilt = Pokemon.frontPic(6)
+  check(zardBuilt and not zardBuilt.vanilla, "prebuild: Charizard built by the list")
+  eq(disk.flush() > 0, true, "prebuild: kept pictures written")
+  check(files["index.txt"] and files["index.txt"]:find("file pics%-"), "prebuild: the index lists them")
+  -- next start: the install's copy, with nothing read from Crystal -Elvie
+  local gbMod = require("mods.facets.gb")
+  local savedRead, savedImage = gbMod.readAt, gbMod.readImage
+  gbMod.readAt = function() return nil end
+  gbMod.readImage = function() return nil end
+  mod.options:set("setMons", "__off")
+  mod.options:set("setMons", "gbc")
+  disk.setup(store, "facets test", nil)
+  disk.enable(true)
+  local zardKept = Pokemon.frontPic(6)
+  check(zardKept and not zardKept.vanilla and zardKept ~= zardBuilt, "prebuild: Charizard from the install, not rebuilt")
+  local function pix(e, x, y) return table.concat({ e.imageData:getPixel(x, y) }, ",") end
+  eq(pix(zardKept, 4, 62), pix(zardBuilt, 4, 62), "prebuild: ...the same picture")
+  eq(pix(zardKept, 59, 7), pix(zardBuilt, 59, 7), "prebuild: ...the same colours")
+  check(MonAnim.framePic(6, 1, false) and not MonAnim.framePic(6, 1, false).vanilla, "prebuild: its animation frame too")
+  check(not Pokemon.icon(6).vanilla, "prebuild: and its icon")
+  -- a new Facets or engine: a new stamp, the old files go -Elvie
+  disk.setup(store, "facets test 2", nil)
+  local left = 0
+  for rel in pairs(files) do if rel:find("^pics%-") then left = left + 1 end end
+  eq(left, 0, "prebuild: a new stamp deletes the old pictures")
+  mod.options:set("setMons", "__off")
+  mod.options:set("setMons", "gbc")
+  disk.enable(true)
+  eq(Pokemon.frontPic(6).vanilla, "front6", "prebuild: nothing kept and nothing to build from: the game's own")
+  gbMod.readAt, gbMod.readImage = savedRead, savedImage
+  disk.reset()
+  mod.options:set("setMons", "__off")
   for k, fn in pairs(saved) do G[k] = fn end
   package.loaded["src.core.game3.pokemon"] = nil
   package.loaded["src.core.game3.battle.pic_coords"] = nil
@@ -1147,7 +1206,7 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons,animMons,backMons,mirrorMons", "main: NPC rows then POKEMON rows")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons,animMons,backMons,mirrorMons,sectionSpeed,prebuild", "main: NPC rows, POKEMON rows, then SPEED")
   local monSets = {}
   for _, c in ipairs(mod.rows[6].choices) do monSets[#monSets + 1] = c[1] end
   eq(table.concat(monSets, ","), "DS,GB EMERALD,GBC ANIM,GBC-ISH,OFF", "shipped: Pokémon sets DS, GB EMERALD, GBC ANIM and GBC-ISH, then OFF")
@@ -1396,6 +1455,57 @@ do
   local bare = newMod(ROOT)
   local none = {}
   check(filter.init(bare, none) == nil and #none == 0, "filter: no pipelines, no rows")
+end
+
+-- prebuild.lua and diskcache.lua on their own -Elvie
+-- --------------------------------------------------
+do
+  local prebuild = require("mods.facets.prebuild")
+  prebuild.reset()
+  local ran = {}
+  prebuild.provide("a", function() return { function() ran[#ran + 1] = "a1" end, function() ran[#ran + 1] = "a2" end } end, "start")
+  prebuild.provide("b", function() return { function() ran[#ran + 1] = "b1" end } end, "map")
+  local now = 0
+  local function clock() return now end
+  local R = prebuild.runner(nil)
+  eq(R.step(clock), false, "prebuild: nothing before the title screen")
+  R.reach("start")
+  eq(R.total, 2, "prebuild: the title screen queues the start work")
+  -- each piece takes 2 ms; a 3 ms budget does two -Elvie
+  local slow = function() now = now + 0.002 end
+  prebuild.provide("a", function() return { slow, slow, slow, slow, slow } end, "start")
+  R.fill()
+  R.step(clock, 0.003)
+  eq(R.done, 2, "prebuild: a frame's budget, then it stops")
+  R.step(clock, 0.0001)
+  eq(R.done, 3, "prebuild: at least one piece a frame")
+  R.reach("map")
+  eq(R.total, 6, "prebuild: the map adds the NPC work")
+  prebuild.provide("a", function() error("boom") end, "start")
+  R.fill()
+  eq(R.total, 1, "prebuild: a failing provider is skipped")
+  R.step(clock)
+  eq(table.concat(ran, ","), "b1", "prebuild: the work runs")
+  check(R.finished(), "prebuild: done")
+  prebuild.reset()
+
+  local disk = require("mods.facets.diskcache")
+  local entries = { a = { meta = { gb = 1, set = "gbc" }, w = 2, h = 1, blob = "rABCDEFGH" },
+    ["frame:6:1"] = { meta = {}, w = 1, h = 1, blob = "r\0\1\2\n" } }
+  local back = disk.decode(disk.encode(entries))
+  eq(back and back.a.meta.gb, 1, "diskcache: meta kept")
+  eq(back and back.a.meta.set, "gbc", "diskcache: meta text kept")
+  eq(back and back["frame:6:1"].blob, "r\0\1\2\n", "diskcache: bytes kept exactly")
+  eq(disk.decode("nonsense"), nil, "diskcache: a foreign file is ignored")
+  eq(disk.decode(disk.encode(entries):sub(1, -3)), nil, "diskcache: a cut-short file is ignored")
+  check(disk.hash("a") ~= disk.hash("b") and #disk.hash("x") == 8, "diskcache: short distinct stamps")
+  eq(disk.stampText("0.5.2", "0.3.93", { emerald = "m1", crystal = "m2" }),
+    "facets 0.5.2\nengine 0.3.93\ncrystal m2\nemerald m1", "diskcache: stamp text in a fixed order")
+  check(not disk.setup(nil, "x"), "diskcache: no mod.cache, no cache")
+  disk.enable(true)
+  check(not disk.enabled(), "diskcache: can't be on without a store")
+  eq(disk.get("g", "k"), nil, "diskcache: off, nothing")
+  disk.reset()
 end
 
 print(("%d passed, %d failed"):format(passed, failed))

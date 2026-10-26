@@ -496,6 +496,13 @@ function mons.init(mod, rows, menu)
     if not okC or type(PicCoords) ~= "table" then PicCoords = nil end
 
     local current      -- the selected set, or nil for OFF
+    -- Built pictures kept on the install (diskcache.lua; PREBUILD on) -Elvie
+    local disk = require("mods.facets.diskcache")
+    local function gameName()
+      local okG, GV = pcall(require, "src.core.GameVersion")
+      return okG and type(GV) == "table" and tostring(GV.get()) or "game"
+    end
+    local function setGroup() return "mons-" .. gameName() .. "-" .. (current and current.key or "own") end
     local cache = {}   -- [kind:species(:s)] = picture entry, or false
     local palettes     -- Crystal's, read when first needed; false if missing
 
@@ -646,7 +653,10 @@ function mons.init(mod, rows, menu)
         local base, out = size * (f or 0), {}
         for i = 1, SIZE * SIZE do
           local o = base + (i - 1) * 4
-          out[i] = { bytes:byte(o + 1, o + 4) }
+          -- four locals, not { bytes:byte(...) }: LuaJIT can't compile
+          -- that form, and it made each picture take ~60 ms -Elvie
+          local r, g, b, a = bytes:byte(o + 1, o + 4)
+          out[i] = { r, g, b, a }
         end
         return out
       end
@@ -779,11 +789,28 @@ function mons.init(mod, rows, menu)
       local key = kind .. ":" .. species .. variant .. (shiny and ":s" or "")
       local hit = cache[key]
       if hit ~= nil then return hit or nil end
-      local gameKey = gameKeyOf(species, form)
-      local ok, data, fromGb, fromSet = pcall(build, kind, species, shiny, nat, letter, variant, gameKey)
-      if not ok then
-        mod.log:warn("%s %d: %s", kind, species, tostring(data))
-        data = nil
+      local ok, data, fromGb, fromSet
+      local kept, meta = disk.get(setGroup(), key)
+      if kept then
+        ok, data, fromGb = true, kept, meta.gb == 1
+        for _, s in ipairs(sets) do if s.key == meta.set then fromSet = s end end
+        -- the front's spot, for animation frames built later -Elvie
+        if meta.ox and kind == "front" and variant == "" and not placements[species] then
+          placements[species] = { ox = meta.ox, oy = meta.oy }
+        end
+      else
+        local gameKey = gameKeyOf(species, form)
+        ok, data, fromGb, fromSet = pcall(build, kind, species, shiny, nat, letter, variant, gameKey)
+        if not ok then
+          mod.log:warn("%s %d: %s", kind, species, tostring(data))
+          data = nil
+        end
+        if data then
+          meta = { gb = fromGb and 1 or 0, set = fromSet and fromSet.key or nil }
+          local place = kind == "front" and variant == "" and placements[species]
+          if place and place.ox then meta.ox, meta.oy = place.ox, place.oy end
+          disk.put(setGroup(), key, data, meta)
+        end
       end
       local entry = false
       if data and love and love.graphics then
@@ -866,10 +893,14 @@ function mons.init(mod, rows, menu)
       local key = "icon:" .. species
       local hit = cache[key]
       if hit ~= nil then return hit or nil end
-      local ok, data = pcall(buildIcon, nat)
-      if not ok then
-        mod.log:warn("icon %d: %s", species, tostring(data))
-        data = nil
+      local ok, data = true, disk.get(setGroup(), key)
+      if not data then
+        ok, data = pcall(buildIcon, nat)
+        if not ok then
+          mod.log:warn("icon %d: %s", species, tostring(data))
+          data = nil
+        end
+        if data then disk.put(setGroup(), key, data) end
       end
       local entry = false
       if data and love and love.graphics then
@@ -968,33 +999,15 @@ function mons.init(mod, rows, menu)
 
     -- Frame n: the set's own sheet, or Crystal's for a Game Boy front,
     -- coloured and placed like the front. -Elvie
-    local function gbFrame(species, frame, shiny)
-      local front = lookup("front", species, nil, shiny)
-      if not front then return nil end
-      local key = "frame:" .. species .. ":" .. frame .. (shiny and ":s" or "")
-      local hit = cache[key]
-      if hit ~= nil then return hit or nil end
-      cache[key] = false
-      if front.set then
-        local data = ownFrame(front, species, frame, shiny)
-        if not (data and love and love.graphics) then return nil end
-        local image = love.graphics.newImage(data)
-        image:setFilter("nearest", "nearest")
-        local entry = { image = image, imageData = data, w = SIZE, h = SIZE, set = front.set }
-        cache[key] = entry
-        return entry
-      end
+    -- Frame n's pixels: the set's own sheet, Emerald's frame made the
+    -- same way as the front, or Crystal's sheet. -Elvie
+    local function frameData(front, species, frame, shiny)
+      if front.set then return ownFrame(front, species, frame, shiny) end
       if not front.gb then
         -- made from Emerald's pictures: Emerald's own frame, made the same
         -- way as the front -Elvie
         if not fromEmeraldChain(current) then return nil end
-        local data = gameAsGb("front", shiny, gameKeyOf(species, 0), species, frame)
-        if not (data and love and love.graphics) then return nil end
-        local image = love.graphics.newImage(data)
-        image:setFilter("nearest", "nearest")
-        local entry = { image = image, imageData = data, w = SIZE, h = SIZE }
-        cache[key] = entry
-        return entry
+        return (gameAsGb("front", shiny, gameKeyOf(species, 0), species, frame))
       end
       local nat = identify(species)
       local anim = crystalAnimFor(nat)
@@ -1008,11 +1021,26 @@ function mons.init(mod, rows, menu)
         getDimensions = function() return size, size end,
         getPixel = function(_, x, y) return sheet:getPixel(x, y + frame * size) end,
       }
-      local data = mons.layOut(view, bottomFor("front", species), gbColour(pal, view), placements[species])
+      return mons.layOut(view, bottomFor("front", species), gbColour(pal, view), placements[species])
+    end
+
+    local function gbFrame(species, frame, shiny)
+      local front = lookup("front", species, nil, shiny)
+      if not front then return nil end
+      local key = "frame:" .. species .. ":" .. frame .. (shiny and ":s" or "")
+      local hit = cache[key]
+      if hit ~= nil then return hit or nil end
+      cache[key] = false
+      local data = disk.get(setGroup(), key)
+      if not data then
+        data = frameData(front, species, frame, shiny)
+        if data then disk.put(setGroup(), key, data) end
+      end
       if not (data and love and love.graphics) then return nil end
       local image = love.graphics.newImage(data)
       image:setFilter("nearest", "nearest")
-      local entry = { image = image, imageData = data, w = SIZE, h = SIZE, gb = true }
+      local entry = { image = image, imageData = data, w = SIZE, h = SIZE,
+        set = front.set or nil, gb = front.gb and true or nil }
       cache[key] = entry
       return entry
     end
@@ -1082,12 +1110,23 @@ function mons.init(mod, rows, menu)
     function emeraldPic(species, frame, shiny)
       if species == tonumber(Pokemon.SPECIES_EGG) or species == (tonumber(Pokemon.SPECIES_SPINDA) or 308)
           or species == (tonumber(Pokemon.SPECIES_DEOXYS) or 410) then return nil end
-      if sameArt(species, shiny) then return nil end
-      -- frame 0 sets the spot the other frames use -Elvie
-      if frame > 0 and not emeraldPic(species, 0, shiny) then return nil end
       local key = species .. ":" .. frame .. (shiny and ":s" or "")
       local hit = emPics[key]
       if hit ~= nil then return hit or nil end
+      -- kept from an earlier start: no need to compare the art again -Elvie
+      local group = "frlganims-" .. gameName()
+      local kept, meta = disk.get(group, key)
+      if kept and love and love.graphics then
+        if frame == 0 and meta.ox then emPlace[species] = emPlace[species] or { ox = meta.ox, oy = meta.oy } end
+        local image = love.graphics.newImage(kept)
+        image:setFilter("nearest", "nearest")
+        local entry = { image = image, imageData = kept, w = SIZE, h = SIZE, emerald = true }
+        emPics[key] = entry
+        return entry
+      end
+      if sameArt(species, shiny) then return nil end
+      -- frame 0 sets the spot the other frames use -Elvie
+      if frame > 0 and not emeraldPic(species, 0, shiny) then return nil end
       emPics[key] = false
       local sheet = gb.readAt(gb.path("monData", ("%s/%d.rgba"):format(shiny and "front_anim_shiny" or "front_anim", species)), { "emerald" })
       local size = SIZE * SIZE * 4
@@ -1097,6 +1136,8 @@ function mons.init(mod, rows, menu)
       emPlace[species] = emPlace[species] or {}
       local out = mons.layOut(data, bottomFor("front", species), ownColour, emPlace[species])
       if not out then return nil end
+      local place = emPlace[species]
+      disk.put(group, key, out, frame == 0 and place and place.ox and { ox = place.ox, oy = place.oy } or nil)
       local image = love.graphics.newImage(out)
       image:setFilter("nearest", "nearest")
       local entry = { image = image, imageData = out, w = SIZE, h = SIZE, emerald = true }
@@ -1132,7 +1173,7 @@ function mons.init(mod, rows, menu)
     -- the game's), moved to the back's ground line and, with MIRROR
     -- FRONTS on, flipped to face the foe. Drawn once into a picture of
     -- its own, then kept. -Elvie
-    local backs, mirrored, asBack = "back", false, {}
+    local backs, mirrored, asBack, stillRows = "back", false, {}, {}
     -- A picture's pixels, for one with no ImageData of its own (the
     -- game's): drawn once into a canvas and read back. -Elvie
     local function measure(image)
@@ -1166,6 +1207,20 @@ function mons.init(mod, rows, menu)
       local key = sp .. suffix .. ":" .. (tonumber(form) or 0) .. ":" .. frame .. (shiny and ":s" or "")
       local hit = asBack[key]
       if hit ~= nil then return hit or nil end
+      -- kept from an earlier start, unless a sprite pack's picture is
+      -- showing (that can change without Facets knowing) -Elvie
+      local okP, under = pcall(origFront, sp, form, shiny)
+      local fromPack = okP and mons.fromHook(under)
+      local group = "side-" .. gameName() .. "-" .. (current and current.key or "own")
+        .. (borrowing() and "-em" or "") .. (mirrored and "-m" or "")
+      local kept = not fromPack and disk.get(group, key)
+      if kept then
+        local image = love.graphics.newImage(kept)
+        image:setFilter("nearest", "nearest")
+        local entry = { image = image, imageData = kept, w = SIZE, h = SIZE }
+        asBack[key] = entry
+        return entry
+      end
       local ok, front = false, nil
       if frame ~= 0 then
         local MonAnim = package.loaded["src.core.game3.mon_anim"]
@@ -1185,13 +1240,21 @@ function mons.init(mod, rows, menu)
       local shift = mons.frontAsBackShift(PicCoords, sp)
       -- the still picture's top sets how far every frame may go up, so
       -- the frames don't jump against each other -Elvie
-      local still = front
-      if frame ~= 0 then
-        local okS, got = pcall(Pokemon.frontPic, sp, form, shiny)
-        still = okS and type(got) == "table" and got or front
+      -- Measured once per Pokémon: reading a picture back from the GPU
+      -- waits for everything queued, so it's kept to one. -Elvie
+      local rowsKey = sp .. suffix .. ":" .. (tonumber(form) or 0) .. (shiny and ":s" or "")
+      local rows = stillRows[rowsKey]
+      if not rows then
+        local still = front
+        if frame ~= 0 then
+          local okS, got = pcall(Pokemon.frontPic, sp, form, shiny)
+          still = okS and type(got) == "table" and got or front
+        end
+        local top, low = mons.drawnRows(still.imageData or measure(still.image))
+        rows = { top = top, low = low }
+        stillRows[rowsKey] = rows
       end
-      local top, low = mons.drawnRows(still.imageData or measure(still.image))
-      shift = mons.keptShift(shift, top, low, h)
+      shift = mons.keptShift(shift, rows.top, rows.low, h)
       local made, entry = pcall(function()
         -- dpiscale 1: on a high-DPI screen (Android) a canvas is otherwise
         -- 2-3x as many pixels, and the picture came out that much bigger -Elvie
@@ -1213,6 +1276,8 @@ function mons.init(mod, rows, menu)
       if not made then
         mod.log:warn("front as back for %d: %s", sp, tostring(entry))
         entry = false
+      elseif not fromPack then
+        disk.put(group, key, entry.imageData)
       end
       asBack[key] = entry
       return entry or nil
@@ -1312,14 +1377,14 @@ function mons.init(mod, rows, menu)
         if set.key == selected then current = set end
       end
       cache, placements, commands = {}, {}, {}
-      asBack, plans = {}, {}
+      asBack, plans, stillRows = {}, {}, {}
       -- GBC-ISH changes whether FR/LG borrows Emerald's animations -Elvie
       if AnimData and type(AnimData.reset) == "function" then AnimData.reset() end
     end
     local function configureAnims()
       borrow = mod.options:get("animMons") == "emerald"
       emPics, emPlace = {}, {}
-      asBack = {}
+      asBack, stillRows = {}, {}
       if AnimData and type(AnimData.reset) == "function" then AnimData.reset() end
     end
     local function configureBacks()
@@ -1327,6 +1392,53 @@ function mons.init(mod, rows, menu)
       mirrored = mod.options:get("mirrorMons") ~= OFF
       asBack = {}
     end
+    -- PREBUILD: every picture the settings will ask for, one function
+    -- each: the set's fronts, backs, icons and animation frames,
+    -- Emerald's art for FR/LG ANIMS, and YOUR SIDE's pictures. Shinies
+    -- are left to when one turns up. -Elvie
+    local LAST_SPECIES = 439 -- the Unown letters end the list -Elvie
+    function mons.prebuildUnits()
+      local units = {}
+      local function add(fn, ...)
+        local args = { ... }
+        units[#units + 1] = function() return fn((table.unpack or unpack)(args)) end
+      end
+      local side = backs == "front"
+      if not (current or borrowing() or side) then return units end
+      for sp = 1, LAST_SPECIES do
+        if current then
+          add(lookup, "front", sp, 0, false)
+          add(lookup, "back", sp, 0, false)
+          add(iconLookup, sp)
+        end
+        -- animation frames: those the front's script uses, else frame 1
+        -- (Emerald's second picture) -Elvie
+        units[#units + 1] = function()
+          local frames = {}
+          if current then
+            local cmds = gbCommands(sp)
+            for _, c in ipairs(cmds or {}) do
+              local f = tonumber(c.frame)
+              if f and f > 0 then frames[f] = true end
+            end
+            if not next(frames) then frames[1] = true end
+            for f in pairs(frames) do gbFrame(sp, f, false) end
+          end
+          if borrowing() then
+            emeraldPic(sp, 0, false)
+            emeraldPic(sp, 1, false)
+            frames[1] = true
+          end
+          if side then
+            frontAsBack(sp, 0, false, 0)
+            for f in pairs(frames) do frontAsBack(sp, 0, false, f) end
+          end
+        end
+      end
+      return units
+    end
+    require("mods.facets.prebuild").provide("mons", mons.prebuildUnits, "start")
+
     configure()
     configureAnims()
     configureBacks()
