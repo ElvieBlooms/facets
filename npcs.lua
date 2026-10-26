@@ -228,6 +228,22 @@ function npcs.init(mod, rows, menu)
   local handle = require("mods.facets.gen3").init(mod, resolve())
   if not handle then return end
 
+  -- PREBUILD: every NPC the set replaces, fetched once the overworld is
+  -- loaded, the way the game fetches them. -Elvie
+  require("mods.facets.prebuild").provide("npcs", function()
+    if not resolve() then return {} end
+    local OwSprites = package.loaded["src.core.game3.ow_sprites"]
+    if not (OwSprites and type(OwSprites.get) == "function") then return {} end
+    local ids = {}
+    for id in pairs(handle.files() or {}) do ids[#ids + 1] = id end
+    table.sort(ids)
+    local units = {}
+    for _, id in ipairs(ids) do
+      units[#units + 1] = function() return OwSprites.get(id) end
+    end
+    return units
+  end, "map")
+
   -- Changing SET applies straight away, no restart. -Elvie
   if mod.events and type(mod.events.on) == "function" then
     mod.events:on("mod.options_changed", function(change)

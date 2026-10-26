@@ -31,6 +31,17 @@ Below those, **POKEMON** has its own **SET** for Pokémon pictures (battle, summ
 
 **YOUR SIDE** shows your own Pokémon by their front picture instead of their back: in battle, in contests, and anywhere else the game uses a back picture. It's BACK by default. FRONT moves the front picture onto the back's ground line, so it stands on the edge of the text box where its back would be (floating Pokémon keep their float). It works with any SET or with the game's own pictures. In battle, your Pokémon then play their front animation (the same one the foe's side plays, frames and all, wherever the game or FR/LG ANIMS has one) in place of the back one, without a second cry. **MIRROR FRONTS** flips those front pictures, and their animations' moves, so your Pokémon face the foe. It's ON by default and does nothing while YOUR SIDE is BACK.
 
+**SPEED** has **PREBUILD**, for small boards, handhelds and anything else where a hitch shows. Facets makes many of its pictures itself, the first time they're needed: GB EMERALD and GBC-ISH Pokémon from your Emerald, Crystal's sprites in their colours, Emerald's art for FR/LG ANIMS, YOUR SIDE's turned-around pictures and the GBC NPCs. On a fast machine that's a few milliseconds each; on a small one, a stutter when a battle starts or a new NPC walks on. With PREBUILD ON:
+
+* Everything your settings need is built in the background from the title screen on, a few milliseconds a frame (Pokémon straight away, NPCs once a map is loaded), so it's ready before it's needed. Shiny pictures are left to when one turns up.
+* What's built is kept on your install, in the engine's per-install mod cache (the place it keeps for data made from your own games, never inside your saves), so the next start reads it back instead of building it again. Pictures built as they're needed are kept too, at the end of a battle, on a map change and when you save. Changing a setting builds what the new one needs.
+* It's all made again only when something it was made from changes: a new Facets, a new gen1recomp (or ROM cache generation), or a game imported again. The old copies are deleted then.
+* It costs memory: every picture for your sets stays loaded (roughly 50 MB for a Game Boy set with YOUR SIDE: FRONT), and a few MB on disk.
+
+It's OFF by default. It doesn't change the GB filter, which is drawn fresh every frame either way.
+
+PREBUILD is only in the mod options, not on the FACETS screen, which has no room for another row.
+
 ### The FACETS screen
 The same choices for the game you're playing are on a screen of their own, laid out like Emerald Lens's LENS screen: **FACETS** on the START menu (above MODS, or EXIT), and **FACETS** on the OPTION menu, which shows the NPC set. With Emerald Lens installed too, the two share one item instead: **PRISM**, on both menus, opens a short list (EMERALD LENS, with your character, and FACETS, with your NPC set), and picking one opens its screen; B there comes back to the list. Each mod has its own gem in the list (emerald for Emerald Lens, amethyst for Facets); the header takes the picked one's colour, and a faceted corner in the same colour shows what it's doing right now: your character, or a Pokémon and an NPC from your sets. Each mod still works on its own, and either can be installed without the other. Up and down pick a row, left and right (or A) change it, and B closes it. Changes apply straight away and are saved to the same settings as the mod options.
 
