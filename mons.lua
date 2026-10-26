@@ -392,6 +392,46 @@ function mons.frontAsBackShift(coords, species)
   return ok and tonumber(shift) or 0
 end
 
+-- A picture another mod supplied through the engine's pokemon.sprite or
+-- pokemon.icon hook (Sprite Swapper's packs, for one): the engine marks
+-- those with the file they came from, and a hidden icon as blank. The
+-- game's own pictures and Facets' carry neither. -Elvie
+function mons.fromHook(entry)
+  if type(entry) ~= "table" then return false end
+  if entry.blank == true then return true end
+  return type(entry.path) == "string" and entry.path ~= "" and not entry.path:find("%.rgba$")
+end
+
+-- The first and last rows with anything drawn in them, or nil when the
+-- picture can't be read or is empty. -Elvie
+function mons.drawnRows(data)
+  if type(data) ~= "table" and type(data) ~= "userdata" then return nil end
+  if not (data.getDimensions and data.getPixel) then return nil end
+  local w, h = data:getDimensions()
+  local top, low
+  for y = 0, h - 1 do
+    for x = 0, w - 1 do
+      local _, _, _, a = data:getPixel(x, y)
+      if a and a > 0 then
+        top = top or y
+        low = y
+        break
+      end
+    end
+  end
+  return top, low
+end
+
+-- A front moved to the back's ground line stays inside the 64x64
+-- picture: a tall front (Skarmory's fills it) stands a little lower
+-- rather than losing its top, and never loses its feet either. -Elvie
+function mons.keptShift(shift, top, low, size)
+  size = size or 64
+  if type(top) == "number" then shift = math.max(shift, -top) end
+  if type(low) == "number" then shift = math.min(shift, size - 1 - low) end
+  return shift
+end
+
 -- menu (menu.lua), if given, gets the POKEMON rows for the FACETS screen. -Elvie
 function mons.init(mod, rows, menu)
   local okP, Pokemon = pcall(require, "src.core.game3.pokemon")
@@ -887,7 +927,9 @@ function mons.init(mod, rows, menu)
 
     -- The front's script as Gen 3 sprite commands: the set's own, or
     -- Crystal's for a Game Boy front. -Elvie
+    local packFront -- set below, once the game's own frontPic is known -Elvie
     local function gbCommands(species)
+      if packFront and packFront(species, false) then return nil end
       local front = lookup("front", species, nil, false)
       if not front then return nil end
       local hit = commands[species]
@@ -1063,8 +1105,20 @@ function mons.init(mod, rows, menu)
     end
     mons.emeraldPic = emeraldPic
 
+    -- Another mod's picture comes first: when a sprite pack (Sprite
+    -- Swapper's, say) has this Pokémon, Facets steps aside for it, and
+    -- fills in only what the pack leaves out. -Elvie
     local origFront, origBack = Pokemon.frontPic, Pokemon.backPic
+    function packFront(species, shiny)
+      if not (current or borrow) then return nil end
+      local ok, under = pcall(origFront, species, 0, shiny)
+      if ok and mons.fromHook(under) then return under end
+      return nil
+    end
+    mons.packFront = packFront
     Pokemon.frontPic = function(species, form, shiny, personality, ...)
+      local under = origFront(species, form, shiny, personality, ...)
+      if mons.fromHook(under) then return under end
       local e = lookup("front", species, form, shiny)
       if e then return e end
       local sp = tonumber(species)
@@ -1072,13 +1126,34 @@ function mons.init(mod, rows, menu)
         e = emeraldPic(sp, 0, shiny and true or false)
         if e then return e end
       end
-      return origFront(species, form, shiny, personality, ...)
+      return under
     end
     -- YOUR SIDE: FRONT. The front picture (from the set, Emerald's or
     -- the game's), moved to the back's ground line and, with MIRROR
     -- FRONTS on, flipped to face the foe. Drawn once into a picture of
     -- its own, then kept. -Elvie
     local backs, mirrored, asBack = "back", false, {}
+    -- A picture's pixels, for one with no ImageData of its own (the
+    -- game's): drawn once into a canvas and read back. -Elvie
+    local function measure(image)
+      if not (image and love.graphics.newCanvas) then return nil end
+      local ok, data = pcall(function()
+        local iw, ih = image:getDimensions()
+        local canvas = love.graphics.newCanvas(iw, ih, { dpiscale = 1 })
+        love.graphics.push("all")
+        love.graphics.setCanvas(canvas)
+        love.graphics.clear(0, 0, 0, 0)
+        love.graphics.origin()
+        love.graphics.setShader()
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(image, 0, 0)
+        love.graphics.pop()
+        local out = canvas:newImageData()
+        canvas:release()
+        return out
+      end)
+      return ok and data or nil
+    end
     local function frontAsBack(species, form, shiny, frame)
       local sp = tonumber(species)
       frame = tonumber(frame) or 0
@@ -1108,8 +1183,19 @@ function mons.init(mod, rows, menu)
       end
       local w, h = SIZE, SIZE
       local shift = mons.frontAsBackShift(PicCoords, sp)
+      -- the still picture's top sets how far every frame may go up, so
+      -- the frames don't jump against each other -Elvie
+      local still = front
+      if frame ~= 0 then
+        local okS, got = pcall(Pokemon.frontPic, sp, form, shiny)
+        still = okS and type(got) == "table" and got or front
+      end
+      local top, low = mons.drawnRows(still.imageData or measure(still.image))
+      shift = mons.keptShift(shift, top, low, h)
       local made, entry = pcall(function()
-        local canvas = love.graphics.newCanvas(w, h)
+        -- dpiscale 1: on a high-DPI screen (Android) a canvas is otherwise
+        -- 2-3x as many pixels, and the picture came out that much bigger -Elvie
+        local canvas = love.graphics.newCanvas(w, h, { dpiscale = 1 })
         love.graphics.push("all")
         love.graphics.setCanvas(canvas)
         love.graphics.clear(0, 0, 0, 0)
@@ -1180,13 +1266,17 @@ function mons.init(mod, rows, menu)
         local e = frontAsBack(species, form, shiny, sp and sideFrame(sp) or 0)
         if e then return e end
       end
-      return lookup("back", species, form, shiny) or origBack(species, form, shiny, ...)
+      local under = origBack(species, form, shiny, ...)
+      if mons.fromHook(under) then return under end
+      return lookup("back", species, form, shiny) or under
     end
     Pokemon.frontSprite = Pokemon.frontPic
     if type(Pokemon.icon) == "function" then
       local origIcon = Pokemon.icon
       Pokemon.icon = function(species, ...)
-        return iconLookup(species) or origIcon(species, ...)
+        local under = origIcon(species, ...)
+        if mons.fromHook(under) then return under end
+        return iconLookup(species) or under
       end
     end
     local okA, MonAnim = pcall(require, "src.core.game3.mon_anim")
@@ -1196,6 +1286,10 @@ function mons.init(mod, rows, menu)
         local f = tonumber(frame) or 0
         local sp = tonumber(species)
         if f ~= 0 and sp then
+          -- a pack's Pokémon keeps the pack's picture for every frame,
+          -- rather than flashing Facets' or Emerald's art mid-move -Elvie
+          local pack = packFront(sp, shiny)
+          if pack then return pack end
           if current then
             local e = gbFrame(sp, f, shiny)
             if e then return e end
@@ -1297,6 +1391,14 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
     end
     return emeraldThere
   end
+  -- whether a sprite pack (another mod's) has any of the showcase -Elvie
+  local function packShowing()
+    if type(mons.packFront) ~= "function" then return false end
+    for _, sp in ipairs(SHOWCASE) do
+      if mons.packFront(sp, false) then return true end
+    end
+    return false
+  end
   local function selected()
     local value = mod.options:get("setMons")
     for _, set in ipairs(sets) do
@@ -1327,7 +1429,10 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
       if who == "mons" then
         local set = selected()
         if not set then return { lines = { { text = "The game's own POKéMON." } } } end
-        return { lines = require("mods.facets.menu").creditLines(set.credit) }
+        local lines = require("mods.facets.menu").creditLines(set.credit)
+        -- first, since FR/LG's screen has room for one line -Elvie
+        if packShowing() then table.insert(lines, 1, { text = "Sprite pack's POKéMON first." }) end
+        return { lines = lines }
       elseif who == "anims" then
         if mod.options:get("animMons") ~= "emerald" then
           return { lines = { { text = "FR/LG's still pictures." } } }
