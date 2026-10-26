@@ -8,7 +8,7 @@ Facets can also swap Pokémon pictures, party icons and animations (Crystal's sp
 
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
-**Status: 0.5.0.** Works in all five games. It ships with four sprite sets, all free to use with credit:
+**Status: 0.5.1.** Works in all five games. It ships with four sprite sets, all free to use with credit:
 
 - **DIEGO:** DiegoWT's Black/White-style trainers and townsfolk.
 - **TAIGA:** Taiga's ORAS-style trainers.
