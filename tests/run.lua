@@ -1265,20 +1265,25 @@ for _, version in ipairs({ "firered", "emerald" }) do
   eq(rows[1].valueLabel, "COMMUNITY", tag .. "NPCS shows the set's label")
   eq(rows[2].valueLabel, "OFF", tag .. "POKEMON starts OFF")
 
-  -- START menu: FACETS above MODS; OPTION menu: FACETS last -Elvie
+  -- START menu: PRISM above MODS, with FACETS and PERFORMANCE; OPTION
+  -- menu: PRISM last -Elvie
   local items = wraps["ui.start_menu.items"](function()
     return { { id = "pokedex" }, { id = "mods" }, { id = "exit" } }
   end, {}, nil)
-  eq(items[2].label .. "," .. items[3].id, "FACETS,mods", tag .. "FACETS goes above MODS")
-  eq(items[2].id, "prism", tag .. "...as the shared PRISM item, with one entry")
+  eq(items[2].label .. "," .. items[3].id, "PRISM,mods", tag .. "PRISM goes above MODS")
+  eq(items[2].id, "prism", tag .. "...as the shared PRISM item")
+  eq(items[2].entries[1].label .. "," .. items[2].entries[2].label, "FACETS,PERFORMANCE", tag .. "...listing FACETS and PERFORMANCE")
   local orows = wraps["ui.options.rows"](function() return { { id = "text_speed" } } end, {}, nil)
-  eq(orows[2].label, "FACETS", tag .. "FACETS on the OPTION menu")
-  eq(orows[2].value(), "COMMUNITY", tag .. "...showing the NPC set")
+  eq(orows[2].label, "PRISM", tag .. "PRISM on the OPTION menu")
+  eq(items[2].entries[1].value(), "COMMUNITY", tag .. "FACETS shows the NPC set")
+  eq(items[2].entries[2].value(), "OFF", tag .. "PERFORMANCE shows PREBUILD")
 
   -- Opening it and changing a row the way the mod settings screen does -Elvie
   local emitted = {}
-  local game = { options = {}, mods = { events = { emit = function(_, name, change) emitted[#emitted + 1] = change end } } }
-  items[2].onSelect(game)
+  local game = { options = {}, mods = { events = { emit = function(_, name, change)
+    emitted[#emitted + 1] = change
+    mod.options:set(change.key, change.value)
+  end } } }
 
   -- Sharing PRISM with another visuals mod (Emerald Lens), whichever
   -- hooks first -Elvie
@@ -1292,13 +1297,14 @@ for _, version in ipairs({ "firered", "emerald" }) do
   local both = wraps["ui.start_menu.items"](function() return V.addStart(base(), lensEntry, lensPicker, {}) end, {}, nil)
   eq(#both, 4, tag .. "with Lens: still one item added")
   eq(both[2].label, "PRISM", tag .. "with Lens: the item is PRISM")
-  eq(both[2].entries[1].label .. "," .. both[2].entries[2].label, "EMERALD LENS,FACETS", tag .. "with Lens: both listed, by label")
+  eq(both[2].entries[1].label .. "," .. both[2].entries[2].label .. "," .. both[2].entries[3].label,
+    "EMERALD LENS,FACETS,PERFORMANCE", tag .. "with Lens: all listed, by label")
   local fe = both[2].entries[2]
   eq(table.concat(fe.colour, ","), "130,60,170", tag .. "FACETS brings its gem colour (amethyst)")
   check(type(fe.draw) == "function", tag .. "...and its live preview for PRISM's corner")
   -- Facets inner, Lens outer -Elvie
   local other = V.addStart(wraps["ui.start_menu.items"](base, {}, nil), lensEntry, lensPicker, {})
-  eq(#other .. ":" .. other[2].label .. ":" .. #other[2].entries, "4:PRISM:2", tag .. "with Lens the other way round: the same")
+  eq(#other .. ":" .. other[2].label .. ":" .. #other[2].entries, "4:PRISM:3", tag .. "with Lens the other way round: the same")
   local orBoth = wraps["ui.options.rows"](function() return V.addOption({ { id = "text_speed" } }, lensEntry, lensPicker, {}) end, {}, nil)
   eq(#orBoth .. ":" .. orBoth[2].label, "2:PRISM", tag .. "with Lens: one PRISM row on the OPTION menu")
   -- PRISM opens the list; A opens the picked mod's screen on top -Elvie
@@ -1311,10 +1317,29 @@ for _, version in ipairs({ "firered", "emerald" }) do
   check(layers.facets ~= nil, tag .. "A on FACETS opens the FACETS screen")
   layers.facets.close()
   check(layers.prism ~= nil, tag .. "closing it comes back to the list")
+  -- PERFORMANCE: its own screen, from the list -Elvie
+  pressV("down"); pressV("a")
+  check(layers.facets_performance ~= nil, tag .. "A on PERFORMANCE opens its screen")
+  local P = layers.facets_performance
+  local function pressP(key) P.handleInput({ wasPressed = function(_, k) return k == key end }) end
+  local perfModel = require("mods.facets.prebuild")
+  pressP("right")
+  eq(game.options.modOptions.facets.prebuild, "on", tag .. "PERFORMANCE: right turns PREBUILD on")
+  pressP("left")
+  eq(game.options.modOptions.facets.prebuild, "__off", tag .. "PERFORMANCE: and off")
+  pressP("down"); pressP("a")
+  eq(game.options.modOptions.facets.prebuild, "on", tag .. "BUILD NOW turns PREBUILD on")
+  check(perfModel.status().forcing, tag .. "BUILD NOW builds everything now")
+  P.close()
+  check(layers.prism ~= nil, tag .. "closing PERFORMANCE comes back to the list")
   pressV("b")
   check(layers.prism == nil, tag .. "B closes the list")
   items[2].onSelect(game)
-  check(layers.facets ~= nil and layers.facets.isOpen(), tag .. "START > FACETS opens the screen")
+  pressV("a")
+  check(layers.facets ~= nil and layers.facets.isOpen(), tag .. "START > PRISM > FACETS opens the screen")
+  layers.prism.close()
+  emitted = {}
+  mod.options:set("prebuild", "__off")
   local function press(key) layers.facets.handleInput({ wasPressed = function(_, k) return k == key end }) end
   press("down")
   eq(layers.facets.state().index, 2, tag .. "down picks the next row")
@@ -1330,6 +1355,7 @@ for _, version in ipairs({ "firered", "emerald" }) do
   check(layers.facets.state().credits == nil, tag .. "B leaves the credits page")
   press("b")
   check(layers.facets == nil, tag .. "B closes the screen")
+  mod.options:set("setMons", "__off")
 
   -- Preview lines and credits -Elvie
   eq(M.preview("npcs").lines[1].text:sub(1, 17), "Overworld sprites", tag .. "NPCS shows the set's credit")

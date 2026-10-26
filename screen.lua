@@ -24,9 +24,12 @@ local function engine(name)
   return ok and m or nil
 end
 
+-- model.layer names its layer (the FACETS screen's by default), so
+-- PERFORMANCE can be a second screen built the same way. -Elvie
 function screen.new(mod, model)
   local S = { isMenu = true }
   local state -- nil while closed -Elvie
+  local LAYER = model.layer or LAYER
 
   local function rows()
     local list = model.rows()
@@ -122,6 +125,9 @@ function screen.new(mod, model)
     if input:wasPressed("up") then state.index = (state.index - 2) % #list + 1
     elseif input:wasPressed("down") then state.index = state.index % #list + 1
     elseif row and row.page and input:wasPressed("a") then openCredits()
+    -- a row that does something (BUILD NOW) instead of changing -Elvie
+    elseif row and row.action and (input:wasPressed("a") or input:wasPressed("right")) then
+      row.action(state.game)
     elseif input:wasPressed("left") then if row then step(row, -1) end
     elseif input:wasPressed("right") or input:wasPressed("a") then if row then step(row, 1) end
     elseif input:wasPressed("b") or input:wasPressed("start") then S.close()
@@ -197,7 +203,7 @@ function screen.new(mod, model)
       local y = ROW_Y0 + (i - 1) * ROW_STEP
       Window.printPx(row.label, LABEL_X, y, { colors = FrlgFont.COLOR.NORMAL })
       local value = fit(FrlgFont, row.valueLabel or "", VALUE_W)
-      local changes = row.choices and #row.choices > 1 or row.page
+      local changes = row.choices and #row.choices > 1 or row.page or row.action
       Window.printPx(value, VALUE_X, y,
         { colors = changes and FrlgFont.COLOR.OPTION_VALUE or FrlgFont.COLOR.NORMAL })
     end

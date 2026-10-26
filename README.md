@@ -8,7 +8,7 @@ Facets can also swap Pokémon pictures, party icons and animations (Crystal's sp
 
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
-**Status: 0.5.2.** Works in all five games. It ships with four sprite sets, all free to use with credit:
+**Status: 0.5.3.** Works in all five games. It ships with four sprite sets, all free to use with credit:
 
 - **DIEGO:** DiegoWT's Black/White-style trainers and townsfolk.
 - **TAIGA:** Taiga's ORAS-style trainers.
@@ -40,10 +40,16 @@ Below those, **POKEMON** has its own **SET** for Pokémon pictures (battle, summ
 
 It's OFF by default. It doesn't change the GB filter, which is drawn fresh every frame either way.
 
-PREBUILD is only in the mod options, not on the FACETS screen, which has no room for another row.
+PREBUILD is also on its own **PERFORMANCE** screen, a second entry in PRISM (the FACETS screen has no room for more rows). It has three rows:
+
+* **PREBUILD**: OFF or ON, the same option.
+* **BUILD NOW**: builds everything at once (turning PREBUILD on if it's off), spending much more of each frame on it, with a progress bar; B leaves it carrying on in the background. DONE once everything's built.
+* **KEPT**: CLEAR deletes the kept pictures, so they're built and kept fresh next start, in case anything ever looks wrong.
+
+Under the rows, the progress: BUILDING with a count, ALL READY, or ALL READY, KEPT once it's written to your install. PRISM's own list shows PREBUILD (ON, OFF, or how far it's got) beside PERFORMANCE, and its corner shows the bar.
 
 ### The FACETS screen
-The same choices for the game you're playing are on a screen of their own, laid out like Emerald Lens's LENS screen: **FACETS** on the START menu (above MODS, or EXIT), and **FACETS** on the OPTION menu, which shows the NPC set. With Emerald Lens installed too, the two share one item instead: **PRISM**, on both menus, opens a short list (EMERALD LENS, with your character, and FACETS, with your NPC set), and picking one opens its screen; B there comes back to the list. Each mod has its own gem in the list (emerald for Emerald Lens, amethyst for Facets); the header takes the picked one's colour, and a faceted corner in the same colour shows what it's doing right now: your character, or a Pokémon and an NPC from your sets. Each mod still works on its own, and either can be installed without the other. Up and down pick a row, left and right (or A) change it, and B closes it. Changes apply straight away and are saved to the same settings as the mod options.
+The same choices for the game you're playing are on a screen of their own, laid out like Emerald Lens's LENS screen. It's reached through **PRISM**, on the START menu (above MODS, or EXIT) and the OPTION menu: a short list of FACETS (with your NPC set) and PERFORMANCE (PREBUILD), plus EMERALD LENS (with your character) when Emerald Lens is installed too, since the two share the one item. Picking one opens its screen; B there comes back to the list. Each has its own gem in the list (emerald for Emerald Lens, amethyst for Facets, topaz for PERFORMANCE); the header takes the picked one's colour, and a faceted corner in the same colour shows what it's doing right now: your character, or a Pokémon and an NPC from your sets. Each mod still works on its own, and either can be installed without the other. Up and down pick a row, left and right (or A) change it, and B closes it. Changes apply straight away and are saved to the same settings as the mod options.
 
 * **NPCS** (this game's SET), **POKéMON** (the Pokémon SET), in FireRed and LeafGreen **ANIMS** (FR/LG ANIMS), **YOUR SIDE** (BACK, MIRRORED or FRONT: both options in one row; MIRRORED is FRONT with MIRROR FRONTS on), then **CREDITS**. On YOUR SIDE the preview shows your side's picture.
 * A preview of what you've picked: a starter from each region in turn, drawn the way the game draws it and playing its front animation when the game has one (so GBC Pokémon flip through Crystal's frames), and everyday NPCs (a nurse, a Youngster, a Lass and others) walking through all four facings with your set's sprites and fallbacks. The NPCs show once a game is loaded.
