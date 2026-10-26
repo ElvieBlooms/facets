@@ -206,6 +206,17 @@ function diskcache.dirty()
   return false
 end
 
+-- Deletes everything kept, so it's built (and kept) again. -Elvie
+function diskcache.clear()
+  if not store then return false end
+  if type(store.delete) == "function" then
+    for file in pairs(listed) do pcall(store.delete, store, file) end
+  end
+  listed, groups = {}, {}
+  writeIndex()
+  return true
+end
+
 -- For the tests -Elvie
 function diskcache.reset()
   store, stamp, enabled, groups, listed = nil, nil, false, {}, {}

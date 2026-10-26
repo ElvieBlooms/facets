@@ -186,18 +186,35 @@ function menu.new(mod)
       end,
       open = function(g) screen.open(liveGame(g)) end,
     }
+    -- PERFORMANCE: PREBUILD's own screen and PRISM entry -Elvie
+    local entries = { entry }
+    local okB, prebuild = pcall(require, "mods.facets.prebuild")
+    if okB and type(prebuild) == "table" and type(prebuild.model) == "function" then
+      local perf = prebuild.model(mod, M.set)
+      local perfScreen = require("mods.facets.screen").new(mod, perf)
+      M.performance = perfScreen
+      entries[2] = { id = "facets_performance", label = "PERFORMANCE", short = "PERFORMANCE",
+        about = "Facets, built ahead of time.",
+        colour = prebuild.COLOUR,
+        draw = function(area) perf.drawPreview(area) end,
+        value = function() return perf.value() end,
+        open = function(g) perfScreen.open(liveGame(g)) end,
+      }
+    end
     mod.hooks:wrap("ui.start_menu.items", function(nextFn, game, items)
       local out = nextFn()
       if type(out) ~= "table" then return out end
       -- Not in the scripted tutorial menu, which waits on a pick. -Elvie
       local StartMenu = package.loaded["src.ui.game3.start_menu"]
       if StartMenu and StartMenu._tutorial then return out end
-      return prism.addStart(out, entry, picker, game)
+      for _, e in ipairs(entries) do out = prism.addStart(out, e, picker, game) end
+      return out
     end)
     mod.hooks:wrap("ui.options.rows", function(nextFn, game, rows)
       local out = nextFn()
       if type(out) ~= "table" then return out end
-      return prism.addOption(out, entry, picker, game)
+      for _, e in ipairs(entries) do out = prism.addOption(out, e, picker, game) end
+      return out
     end)
     return screen
   end
