@@ -213,7 +213,10 @@ function prism.picker()
       if FrlgFont.measure(value) > VALUE_W then value = "" end
       Window.printPx(value, VALUE_X, y, { colors = FrlgFont.COLOR.OPTION_VALUE })
     end
-    local aboutY = ROW_Y0 + (#state.entries + 1) * ROW_STEP
+    -- a blank row before the about line, while there's room for the
+    -- corner below it too -Elvie
+    local gap = #state.entries >= 4 and 0 or 1
+    local aboutY = ROW_Y0 + (#state.entries + gap) * ROW_STEP
     if picked and type(picked.about) == "string" then
       love.graphics.setColor(1, 1, 1, 1)
       Window.printPx(picked.about, 16, aboutY, { colors = FrlgFont.COLOR.NORMAL })

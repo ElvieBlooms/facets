@@ -45,9 +45,13 @@ end
 --   draw(clock, family) draws its side of the preview,
 --   credits(family) -> { { text, heading } },
 -- } -Elvie
-function menu.new(mod)
-  local M = { parts = {} }
-  menu.current = M -- for the tests -Elvie
+-- opts (for another page, like SCREEN): title, layer (its screen's), and
+-- credits = false to leave out the CREDITS row. -Elvie
+function menu.new(mod, opts)
+  local M = { parts = {}, pages = {} }
+  opts = opts or {}
+  if not opts.title then menu.current = M end -- for the tests -Elvie
+  M.layer = opts.layer
 
   function M.register(part)
     if type(part) == "table" then M.parts[#M.parts + 1] = part end
@@ -99,7 +103,9 @@ function menu.new(mod)
       end
     end
     -- A opens the full credits page. -Elvie
-    out[#out + 1] = { key = "credits", label = "CREDITS", who = "credits", page = true, valueLabel = "SEE ALL" }
+    if opts.credits ~= false then
+      out[#out + 1] = { key = "credits", label = "CREDITS", who = "credits", page = true, valueLabel = "SEE ALL" }
+    end
     return out
   end
 
@@ -161,7 +167,7 @@ function menu.new(mod)
     return out
   end
 
-  function M.title() return "FACETS" end
+  function M.title() return opts.title or "FACETS" end
 
   -- The screen and its two doors. -Elvie
   function M.start()
@@ -188,12 +194,27 @@ function menu.new(mod)
     }
     -- PERFORMANCE: PREBUILD's own screen and PRISM entry -Elvie
     local entries = { entry }
+    -- other pages (SCREEN): a screen and a PRISM entry each -Elvie
+    for _, page in ipairs(M.pages) do
+      if #page.parts > 0 and type(page.entry) == "table" then
+        local pageScreen = require("mods.facets.screen").new(mod, page)
+        page.screen = pageScreen
+        local e = {}
+        for k, v in pairs(page.entry) do e[k] = v end
+        e.open = function(g) pageScreen.open(liveGame(g)) end
+        e.value = e.value or function()
+          local first = page.rows()[1]
+          return first and first.valueLabel or ""
+        end
+        entries[#entries + 1] = e
+      end
+    end
     local okB, prebuild = pcall(require, "mods.facets.prebuild")
     if okB and type(prebuild) == "table" and type(prebuild.model) == "function" then
       local perf = prebuild.model(mod, M.set)
       local perfScreen = require("mods.facets.screen").new(mod, perf)
       M.performance = perfScreen
-      entries[2] = { id = "facets_performance", label = "PERFORMANCE", short = "PERFORMANCE",
+      entries[#entries + 1] = { id = "facets_performance", label = "PERFORMANCE", short = "PERFORMANCE",
         about = "Facets, built ahead of time.",
         colour = prebuild.COLOUR,
         draw = function(area) perf.drawPreview(area) end,

@@ -335,6 +335,10 @@ function npcs.screenPart(mod, menu, setsFor, credits)
       if not set then return { lines = { { text = "The game's own NPCs." } } } end
       local lines = {}
       if set.test then lines[1] = { text = "Test frames: numbered, for checking." } end
+      -- first, since FR/LG's screen has room for one line -Elvie
+      if set.gb and not require("mods.facets.gb").imported() then
+        table.insert(lines, 1, { text = "No Gen 1/2 game imported.", red = true })
+      end
       return { lines = require("mods.facets.menu").creditLines(credits[set.key], lines) }
     end,
     -- spots.npc = { x (centre), bottom, height or scale } moves it (PRISM's
