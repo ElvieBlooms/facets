@@ -25,6 +25,8 @@ Under the mod's options there's a heading per game family (FR/LG, R/S/E) with **
 
 If the selected set doesn't have a sheet for someone, the other sets are tried in menu order, then the game's own sprite.
 
+**TRAINERS** has its own **SET** for the pictures of the trainers you battle (also in the Hall of Fame, the PokéNav and the Battle Dome). It's OFF by default; see [Trainer battle pictures](#trainer-battle-pictures).
+
 Below those, **POKEMON** has its own **SET** for Pokémon pictures (battle, summary, Pokédex, PC, evolution, trades and the rest). It's OFF by default, so Facets only changes Pokémon when you ask it to. One choice covers all five games.
 
 **FR/LG ANIMS** gives FireRed and LeafGreen Emerald's front animations: the hop, shake or spin each Pokémon does when it appears or cries, in battle, on hatching, after evolving and in the PC. FR/LG never had them, so Facets reads them from your own imported Emerald (nothing is included), and the option does nothing without one. Emerald's animations flip to a second picture drawn on Emerald's art, and FR/LG redrew most of Kanto (188 Pokémon), so with this on those Pokémon's front pictures are Emerald's, standing on FR/LG's ground line, and they animate in full. Their backs stay FR/LG's, and so does everything that looks the same in both games. It's OFF by default.
@@ -49,9 +51,9 @@ PREBUILD is also on its own **PERFORMANCE** screen, a second entry in PRISM (the
 Under the rows, the progress: BUILDING with a count, ALL READY, or ALL READY, KEPT once it's written to your install. PRISM's own list shows PREBUILD (ON, OFF, or how far it's got) beside PERFORMANCE, and its corner shows the bar.
 
 ### The FACETS screen
-The same choices for the game you're playing are on a screen of their own, laid out like Emerald Lens's LENS screen. It's reached through **PRISM**, on the START menu (above MODS, or EXIT) and the OPTION menu: a short list of FACETS (with your NPC set) and PERFORMANCE (PREBUILD), plus EMERALD LENS (with your character) when Emerald Lens is installed too, since the two share the one item. Picking one opens its screen; B there comes back to the list. Each has its own gem in the list (emerald for Emerald Lens, amethyst for Facets, topaz for PERFORMANCE); the header takes the picked one's colour, and a faceted corner in the same colour shows what it's doing right now: your character, or a Pokémon and an NPC from your sets. Each mod still works on its own, and either can be installed without the other. Up and down pick a row, left and right (or A) change it, and B closes it. Changes apply straight away and are saved to the same settings as the mod options.
+The same choices for the game you're playing are on a screen of their own, laid out like Emerald Lens's LENS screen. It's reached through **PRISM**, on the START menu (above MODS, or EXIT) and the OPTION menu: a short list of FACETS (with your NPC set), PERFORMANCE (PREBUILD) and SCREEN (the filter), plus EMERALD LENS (with your character) when Emerald Lens is installed too, since the two share the one item. Picking one opens its screen; B there comes back to the list. Each has its own gem in the list (emerald for Emerald Lens, amethyst for Facets, topaz for PERFORMANCE, sapphire for SCREEN); the header takes the picked one's colour, and a faceted corner in the same colour shows what it's doing right now: your character, or a Pokémon and an NPC from your sets. Each mod still works on its own, and either can be installed without the other. Up and down pick a row, left and right (or A) change it, and B closes it. Changes apply straight away and are saved to the same settings as the mod options.
 
-* **NPCS** (this game's SET), **POKéMON** (the Pokémon SET), in FireRed and LeafGreen **ANIMS** (FR/LG ANIMS), **YOUR SIDE** (BACK, MIRRORED or FRONT: both options in one row; MIRRORED is FRONT with MIRROR FRONTS on), then **CREDITS**. On YOUR SIDE the preview shows your side's picture.
+* **NPCS** (this game's SET), **TRAINERS** (the trainer SET; its preview shows trainers from the game taking turns), **POKéMON** (the Pokémon SET), in FireRed and LeafGreen **ANIMS** (FR/LG ANIMS), **YOUR SIDE** (BACK, MIRRORED or FRONT: both options in one row; MIRRORED is FRONT with MIRROR FRONTS on), then **CREDITS**. On YOUR SIDE the preview shows your side's picture.
 * A preview of what you've picked: a starter from each region in turn, drawn the way the game draws it and playing its front animation when the game has one (so GBC Pokémon flip through Crystal's frames), and everyday NPCs (a nurse, a Youngster, a Lass and others) walking through all four facings with your set's sprites and fallbacks. The NPCs show once a game is loaded.
 * Under the rows: the selected set's credit, or what OFF keeps.
 * **CREDITS** (press A) opens a page with every set's credit in full, then Facets' own. Up and down scroll, left and right turn a page, B goes back.
@@ -60,7 +62,7 @@ The mod options still have every row for both families.
 
 ## The GB filter
 
-Under **SCREEN**, four options give the game a Game Boy look. They're also on the FACETS screen (as FILTER, SHADES, WHERE and DOTS; SHADES shows with the shade palettes).
+Under **SCREEN**, four options give the game a Game Boy look. They're also on their own **SCREEN** page in PRISM (as FILTER, SHADES, WHERE and DOTS; SHADES shows with the shade palettes), whose corner shows the picked look's shades.
 
 * **FILTER**: **GRAY** turns everything into the Game Boy Pocket's four greys, **GREEN** the original Game Boy's four greens, and **RUBY**, **SAPPHIRE** and **EMERALD** four shades of each gem, for the games themselves (EMERALD is bluer and deeper than GREEN). **GBC** keeps colour but cuts each channel down to four levels, for the flat, bright look of a Game Boy Color game. **OFF** (the default) leaves the game's own colours.
 * **SHADES**: how many shades GRAY, GREEN, RUBY, SAPPHIRE and EMERALD use: **4** (the default, like a Game Boy), **8** or **16** for smoother shading and more of the scene's detail. The extra shades are blended between the four palette colours.
@@ -70,6 +72,27 @@ Under **SCREEN**, four options give the game a Game Boy look. They're also on th
 They go well with the GBC NPCs and the GBC-ISH Pokémon, for a Gen 3 game that looks like it came out in 1998. All three change straight away.
 
 How it works: the whole-screen filter and DOTS are a render pipeline, the engine's own way for a mod to post-process the finished frame, and the engine saves it with the game's options. MAP uses the render.compose hook instead, which sees the map before the menus are drawn over it. Neither needs anything from the games. For GRAY and GREEN, each pixel's brightness picks one of the four shades. Gen 3 is much brighter than a Game Boy game (half a typical scene is brighter than 85%), so the cut-offs between shades sit high. The cut-offs, GBC's levels and saturation, and how dark the dot grid is are all at the top of `filter.lua` if you'd like to tune them.
+
+## Trainer battle pictures
+
+The trainer you battle is drawn from one engine function, `TrainerPic.front`, and Facets wraps it, so a TRAINERS set reaches every screen that shows a trainer's battle picture. Three sets ship:
+
+* **DS**: Gen 4+ style trainers by **KyleDove** (from his XY, ORAS, USUM, SWSH and Ga-Olé trainer class sets), **Mr. Gela** (theo#7722), and more by **KyleDove**, **Jext** and **figyberries**, all used with credit and included. They cover every trainer picture in Emerald and FireRed and LeafGreen (all but the player's own, which Emerald Lens keeps): the everyday classes, every gym leader, Elite Four and champion in both regions, the FR/LG rival, Teams Aqua, Magma and Rocket, Wally, Steven, Professor Oak and the Frontier Brains. Tate and Liza and the Old Couple are each drawn as two people, stood side by side in one picture. A few are stand-ins: a Roughneck as the Cue Ball, Mr. Gela's second Guitarist as the Rocker, his Double Team as the Cool Couple, and KyleDove's Worker as the Engineer. Most of the art is about 80 pixels tall, the DS games' size, so each is shrunk to fit Gen 3's 64x64 trainer frame.
+
+* **GBC-ISH**: 53 Gen 3 trainers have a Gen 1/2 counterpart, and those are drawn as that trainer: Crystal's battle picture (then Gold's or Silver's) in Crystal's own two colours for it, read from your imported game. Kanto's gym leaders, Bruno and Lance, the Youngster, Lass, Hiker, Rocket Grunts, swimmers and the rest are Crystal's; the Gen 1-only ones (Giovanni, Lorelei, Agatha, the Channeler, Engineer, Cue Ball, Gamer, Rocker, Tamer and Blue as your rival) are Yellow's (then Red's or Blue's), in the Crystal colours of a similar trainer. Every other trainer, Hoenn's and Gen 3's new classes, is the game's own picture made Game Boy while you play, in 4 flat shades. The map is `assets/trainers/gbcish/gb.json`.
+* **GAME BOY**: every trainer is the game's own picture made Game Boy in 4 shades, so it needs no other game.
+
+Each picture stands where the game's own does: centred, its feet on the row the game's picture ends on. The Game Boy pictures' white background is cut away from the top and sides (not the bottom, where the trainer is cut off and white clothes can reach the edge).
+
+The player's own pictures are never touched, and any picture another mod has already swapped stays as it is, so with Emerald Lens your character and your rival keep Lens's art. Without a Gen 1/2 game imported, GBC-ISH's preview says so and those trainers are made from the game's own pictures instead. With PREBUILD on, every trainer picture is built ahead and kept.
+
+A set can also have its own pictures: `assets/trainers/<set>/<NAME>.png`, 64x64, named by the game's picture name without `TRAINER_PIC_` (`YOUNGSTER.png`, `LEADER_BROCK.png`; FR/LG's `RS_` versions use the same name). DS is one of those, built with:
+
+```
+python3 tools/make_trainer_set.py tools/recipes/ds_trainers.json . kyle_xy="<XY folder>" kyle_oras="<ORAS folder>" kyle_usum="<USUM folder>" kyle_swsh="<SWSH folder>" kyle_gaole="<Ga-Ole folder>" gela="<Mr. Gela's Characters folder>" more="<DS_Trainers folder>"
+```
+
+The recipe lists, for each Gen 3 trainer, which artist's file to use, first one found wins; the tool halves doubled art, shrinks anything bigger than 64x64 to fit, and stands it at the bottom of the frame. Add a trainer to the recipe and run it again to fill a gap.
 
 ## Pokémon pictures
 
@@ -325,6 +348,8 @@ DIEGO, TAIGA, ZAFFRE and COMMUNITY are included, used with credit. HGSS is Ninte
 - **DS (included):** the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush, with sprites by Wizznats, jhajjar, Vapper3, atif, redriders180, cmbeke, Tailes, SneakerTheOtter, karatekid522, dreamengine, Rizon, Spark, MrDollSteak, PJBottomz, Archeops, dragonflye and Anvils Alive; free to use with credit.
 - **GBC-ISH:** Gen 2 battle sprites, palettes and animations by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; Hoenn made from your own imported Emerald's pictures; none of it is included. Party icons (included): Kanto and Johto from the Minidex 001-251, by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25; Hoenn by eeveeee1999.
 - **GB EMERALD:** made from your own imported Emerald's pictures (Nintendo / Game Freak); none of it is included.
+- **TRAINERS: DS (included):** trainer sprites by KyleDove (XY, ORAS, USUM, SWSH and Ga-Olé trainer classes), by Mr. Gela/theo#7722, and by KyleDove, Jext and figyberries (leaders, Elite Four, Aqua and Magma, the Frontier and more), used with credit.
+- **TRAINERS: GBC-ISH and GAME BOY:** Gen 1/2 trainer pictures and Crystal's colours by Nintendo / Game Freak, read from your own imported games, and the game's own trainer pictures made Game Boy while you play; none of it is included.
 - **GBC ANIM:** Gen 2 battle sprites and palettes by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included. Hoenn sprites and animations (included) by Nuuk (Crystal-style sprites), free to use with credit, not for profit; the rest from GBC-ISH.
 - **SPRITE SWAPPER** is artyrambles' mod; Facets works alongside it and can make packs for it, but includes none of its code.
 - **Sprite data:** which sprite each trainer class uses, and the HGSS overworld model names, come from pret's pokeemerald, pokefirered and pokeheartgold decompilations.

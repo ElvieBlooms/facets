@@ -37,7 +37,8 @@ end
 -- if the engine doesn't say, and whatever needs it is then left off.
 --   assets: the generated art folder (asset transforms read from it)
 --   data: the generated data folder, from Gen 3's animation data path
---   monData: Gen 3's Pokémon data folder, from the same module -Elvie
+--   monData: Gen 3's Pokémon data folder, from the same module
+--   trainers: Gen 3's trainer pictures, from the engine's extractor -Elvie
 -- --------------------------------------------------
 local roots
 function gb.roots()
@@ -46,6 +47,12 @@ function gb.roots()
   local okT, Transform = pcall(require, "src.mods.AssetTransform")
   if okT and type(Transform) == "table" and type(Transform.SOURCE_ROOT) == "string" then
     roots.assets = Transform.SOURCE_ROOT
+  end
+  -- trainers: Gen 3's trainer pictures, from where the engine's own
+  -- trainer_pic.lua reads them -Elvie
+  local okE, Extract = pcall(require, "src.import.gba.extract_island1")
+  if okE and type(Extract) == "table" and type(Extract.CACHE_ROOT) == "string" then
+    roots.trainers = Extract.CACHE_ROOT .. "/trainers"
   end
   local okA, AnimData = pcall(require, "src.core.game3.mon_anim_data")
   if okA and type(AnimData) == "table" then
@@ -82,6 +89,32 @@ function gb.readAt(rel, games)
   end
   return nil
 end
+
+-- The first of games the player has imported (the engine's import
+-- marker is there), or nil. Kept once found; a miss is checked again at
+-- most every few seconds, so importing a game mid-session shows up. -Elvie
+local importedAt, importedMiss = {}, {}
+function gb.imported(games)
+  for _, game in ipairs(games or gb.GAMES) do
+    if importedAt[game] then return game end
+  end
+  local now = love and love.timer and love.timer.getTime and love.timer.getTime() or os.clock()
+  for _, game in ipairs(games or gb.GAMES) do
+    if not importedMiss[game] or now - importedMiss[game] > 5 then
+      local okC, Contract = pcall(require, "src.import.CacheContract")
+      local marker = okC and type(Contract) == "table" and type(Contract.readMarker) == "function"
+        and select(2, pcall(Contract.readMarker, game)) or nil
+      if type(marker) == "string" and marker ~= "" then
+        importedAt[game] = true
+        return game
+      end
+      importedMiss[game] = now
+    end
+  end
+  return nil
+end
+-- For the tests -Elvie
+function gb.resetImported() importedAt, importedMiss = {}, {} end
 
 -- A PNG from the first game that has it, as ImageData. -Elvie
 function gb.readImage(rel, games)

@@ -26,3 +26,11 @@ assets/mons/*
 !assets/mons/gbcish/
 # GB EMERALD ships only its meta.json: it's made from the player's Emerald. -Elvie
 !assets/mons/gb_emerald/
+# Trainer sets: GBC-ISH and GAME BOY ship only their meta.json (and
+# GBC-ISH its gb.json name map); their pictures come from the player's
+# own install. -Elvie
+assets/trainers/*
+!assets/trainers/gbcish/
+!assets/trainers/gameboy/
+# DS: KyleDove's and Mr. Gela's trainer sprites, used with credit. -Elvie
+!assets/trainers/ds/

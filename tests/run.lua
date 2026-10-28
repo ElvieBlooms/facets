@@ -148,6 +148,13 @@ love = {
         d:setPixel(10, 40, 1, 0, 0, 1)
         return d
       end
+      if path:find("/assets/trainers/", 1, true) then
+        -- a trainer picture: its size from the header, one blue pixel at (32, 50) -Elvie
+        local w, h = pngSize(path)
+        local d = pixelData(w, h)
+        d:setPixel(32, 50, 0, 0, 1, 1)
+        return d
+      end
       local strip = path:match("/strips/([%w_]+)%.png$")
       if strip and STRIP_FILES[strip] then return STRIP_FILES[strip]() end
       local w, h = pngSize(path)
@@ -1206,9 +1213,13 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionMons,setMons,animMons,backMons,mirrorMons,sectionSpeed,prebuild", "main: NPC rows, POKEMON rows, then SPEED")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sectionMons,setMons,animMons,backMons,mirrorMons,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
+  local trainerSets = {}
+  for _, c in ipairs(mod.rows[6].choices) do trainerSets[#trainerSets + 1] = c[1] end
+  eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
+  eq(mod.rows[6].default, "__off", "TRAINERS: OFF by default")
   local monSets = {}
-  for _, c in ipairs(mod.rows[6].choices) do monSets[#monSets + 1] = c[1] end
+  for _, c in ipairs(mod.rows[8].choices) do monSets[#monSets + 1] = c[1] end
   eq(table.concat(monSets, ","), "DS,GB EMERALD,GBC ANIM,GBC-ISH,OFF", "shipped: Pokémon sets DS, GB EMERALD, GBC ANIM and GBC-ISH, then OFF")
   package.loaded["src.core.game3.pokemon"] = nil
 end
@@ -1236,7 +1247,7 @@ for _, version in ipairs({ "firered", "emerald" }) do
   local tag = "screen (" .. version .. "): "
   local keys = {}
   for _, r in ipairs(M.rows()) do keys[#keys + 1] = r.label end
-  eq(table.concat(keys, ","), frlg and "NPCS,POKéMON,ANIMS,YOUR SIDE,CREDITS" or "NPCS,POKéMON,YOUR SIDE,CREDITS",
+  eq(table.concat(keys, ","), frlg and "NPCS,TRAINERS,POKéMON,ANIMS,YOUR SIDE,CREDITS" or "NPCS,TRAINERS,POKéMON,YOUR SIDE,CREDITS",
     tag .. "the running game's rows only")
   -- YOUR SIDE: one row here for both options -Elvie
   local side
@@ -1263,7 +1274,8 @@ for _, version in ipairs({ "firered", "emerald" }) do
   local rows = M.rows()
   eq(rows[1].key, frlg and "setFrlg" or "setRse", tag .. "NPCS is this family's SET")
   eq(rows[1].valueLabel, "COMMUNITY", tag .. "NPCS shows the set's label")
-  eq(rows[2].valueLabel, "OFF", tag .. "POKEMON starts OFF")
+  eq(rows[2].valueLabel, "OFF", tag .. "TRAINERS starts OFF")
+  eq(rows[3].valueLabel, "OFF", tag .. "POKEMON starts OFF")
 
   -- START menu: PRISM above MODS, with FACETS and PERFORMANCE; OPTION
   -- menu: PRISM last -Elvie
@@ -1343,11 +1355,12 @@ for _, version in ipairs({ "firered", "emerald" }) do
   local function press(key) layers.facets.handleInput({ wasPressed = function(_, k) return k == key end }) end
   press("down")
   eq(layers.facets.state().index, 2, tag .. "down picks the next row")
+  press("down")
   press("right")
   eq(emitted[1] and emitted[1].key, "setMons", tag .. "right changes POKEMON")
   eq(emitted[1].value, "ds", tag .. "...to the next set")
   eq(game.options.modOptions.facets.setMons, "ds", tag .. "...saved with the options")
-  press("up"); press("up")
+  press("up"); press("up"); press("up")
   eq(layers.facets.state().index, #rows, tag .. "up from the top wraps to CREDITS")
   press("a")
   check(layers.facets.state().credits ~= nil, tag .. "A on CREDITS opens the credits page")
@@ -1359,6 +1372,34 @@ for _, version in ipairs({ "firered", "emerald" }) do
 
   -- Preview lines and credits -Elvie
   eq(M.preview("npcs").lines[1].text:sub(1, 17), "Overworld sprites", tag .. "NPCS shows the set's credit")
+  -- what a set needs imported, said first -Elvie
+  local gbM = require("mods.facets.gb")
+  local markers = {}
+  package.loaded["src.import.CacheContract"] = { readMarker = function(g) return markers[g] end }
+  gbM.resetImported()
+  local npcKey = frlg and "setFrlg" or "setRse"
+  mod.options:set(npcKey, "gbc")
+  eq(M.preview("npcs").lines[1].text, "No Gen 1/2 game imported.", tag .. "GBC NPCs with no Gen 1/2 game: says so")
+  check(M.preview("npcs").lines[1].red, tag .. "...in red")
+  markers.yellow = "rom-cache-v17-yellow:x"
+  gbM.resetImported()
+  check(M.preview("npcs").lines[1].text ~= "No Gen 1/2 game imported.", tag .. "...not once one is")
+  mod.options:set("setMons", "gbcish")
+  eq(M.preview("mons").lines[1].text, "No Crystal imported.", tag .. "GBC-ISH with no Crystal or Emerald")
+  eq(M.preview("mons").lines[2].text, "No Emerald imported.", tag .. "...and no Emerald")
+  markers.emerald = "rom-cache-v17-emerald:x"
+  gbM.resetImported()
+  eq(M.preview("mons").lines[1].text, "No Crystal imported.", tag .. "GBC-ISH with Emerald but no Crystal")
+  eq(M.preview("mons").lines[2].red, nil, tag .. "...and nothing about Emerald")
+  markers.crystal = "rom-cache-v17-crystal8:x"
+  gbM.resetImported()
+  check(not M.preview("mons").lines[1].red, tag .. "GBC-ISH with both: just the credit")
+  mod.options:set("setMons", "ds")
+  check(not M.preview("mons").lines[1].red, tag .. "DS needs nothing imported")
+  mod.options:set("setMons", "__off")
+  mod.options:set(npcKey, "community")
+  package.loaded["src.import.CacheContract"] = nil
+  gbM.resetImported()
   eq(M.preview("mons").lines[1].text, "The game's own POKéMON.", tag .. "POKEMON OFF")
   if frlg then eq(M.preview("anims").lines[1].text, "FR/LG's still pictures.", tag .. "ANIMS OFF") end
   local heads = {}
@@ -1467,6 +1508,16 @@ do
   local frame = { getDimensions = function() return 240, 160 end }
   eq(def.present(frame, {}), frame, "filter: no shader, the frame itself")
   -- render.compose always carries on to the engine's own composite -Elvie
+  -- the dot grid: the engine's scale is already screen pixels; only the
+  -- origin (LÖVE units) takes the DPI -Elvie
+  local cell, origin = filter.gridFor({ scale = 6, dpiX = 2, dpiY = 2, ox = 10, oy = 4, worldActive = true })
+  eq(cell .. ":" .. origin[1] .. "," .. origin[2], "6:20,8", "filter: on a 2x screen, a 6-pixel grid from (20, 8)")
+  cell = filter.gridFor({ scale = 4, ox = 0, oy = 0 })
+  eq(cell, 4, "filter: 1x screen, the scale itself")
+  local rects = { Up = 6.75, uox = 3, uoy = 1 }
+  cell, origin = filter.gridFor({ scale = 6, dpiX = 2, ox = 10, oy = 4, worldActive = false,
+    renderer = { frameRects = function() return rects end } })
+  eq(cell .. ":" .. origin[1] .. "," .. origin[2], "6.75:6,2", "filter: a battle filling the screen uses the UI's scale and origin")
   local carried = wraps["render.compose"](function() return "next" end, {}, { worldActive = true, scale = 3, ox = 10, oy = 4 })
   eq(carried, "next", "filter: render.compose hands on to the composite")
   check(filter.screenOn("off", "screen", "off") == false and filter.screenOn("gbc", "screen", "off") == true
@@ -1481,6 +1532,126 @@ do
   local bare = newMod(ROOT)
   local none = {}
   check(filter.init(bare, none) == nil and #none == 0, "filter: no pipelines, no rows")
+end
+
+-- Trainer battle pictures (foes.lua) -Elvie
+-- --------------------------------------------------
+do
+  fresh("firered")
+  local T = require("mods.facets.foes")
+  eq(T.normal("TRAINER_PIC_RS_YOUNGSTER"), "YOUNGSTER", "trainers: FR/LG's RS_ pictures share Gen 3's names")
+  eq(T.normal("TRAINER_PIC_RS_BRENDAN_1"), "RS_BRENDAN_1", "trainers: ...but the player's keep theirs")
+  local pals = T.parsePalettes(table.concat({ "return {", "  trainers = {", "    YOUNGSTER = {",
+    "      {", "        200,", "        100,", "        50,", "      },", "      {", "        20,", "        30,", "        40,", "      },",
+    "    },", "  },", "}" }, "\n"))
+  eq(pals and table.concat(pals.YOUNGSTER[1], ",") .. "/" .. table.concat(pals.YOUNGSTER[2], ","), "200,100,50/20,30,40",
+    "trainers: Crystal's two colours per trainer")
+  -- a Crystal-style trainer: white all round, a black box from (20, 20) to
+  -- the bottom edge, grey 170 inside, one white pixel enclosed -Elvie
+  local function trainerSprite()
+    local d = pixelData(56, 56)
+    for y = 0, 55 do for x = 0, 55 do
+      local edge = x == 20 or x == 35 or y == 20
+      local inside = x > 20 and x < 35 and y > 20
+      if edge and x >= 20 and x <= 35 and y >= 20 then d:setPixel(x, y, 0, 0, 0, 1)
+      elseif inside then d:setPixel(x, y, 170 / 255, 170 / 255, 170 / 255, 1)
+      else d:setPixel(x, y, 1, 1, 1, 1) end
+    end end
+    d:setPixel(27, 40, 1, 1, 1, 1)
+    return d
+  end
+  local out = T.outside(trainerSprite())
+  check(out[0] and out[55 * 56 + 2], "trainers: the white round the trainer is outside")
+  check(not out[40 * 56 + 27], "trainers: enclosed white is the trainer's")
+  check(not out[55 * 56 + 27], "trainers: the bottom edge isn't flooded from")
+  local function rgbaWith(points)
+    local px = {}
+    for i = 1, 64 * 64 do px[i] = "\0\0\0\0" end
+    for _, p in ipairs(points) do px[p[2] * 64 + p[1] + 1] = string.char(p[3], p[4], p[5], 255) end
+    return table.concat(px)
+  end
+  eq(T.bottomOf(rgbaWith({ { 30, 60, 1, 2, 3 } })), 61, "trainers: the game's picture ends on row 60")
+  eq(T.bottomOf(nil), 64, "trainers: no picture, the frame's bottom")
+
+  GB_FILES["crystal/assets/generated/battle/trainers/youngster.png"] = trainerSprite
+  GB_TEXT["crystal/data/generated/palettes.lua"] = table.concat({ "return {", "  trainers = {", "    YOUNGSTER = {",
+    "      {", "        200,", "        100,", "        50,", "      },", "      {", "        20,", "        30,", "        40,", "      },",
+    "    },", "  },", "}" }, "\n")
+  local R = "x/trainers/front/"
+  GB_TEXT["firered/" .. R .. "82.rgba"] = rgbaWith({ { 30, 60, 1, 2, 3 } })
+  -- Archie: red, blue and dark pixels, for the Game Boy build -Elvie
+  GB_TEXT["firered/" .. R .. "0.rgba"] = rgbaWith({ { 10, 50, 250, 10, 10 }, { 11, 50, 10, 10, 250 }, { 12, 50, 5, 5, 5 },
+    { 13, 50, 240, 240, 240 } })
+  local TP = { _front = {} }
+  function TP.front(id)
+    local n = tonumber(id)
+    TP._front[n] = TP._front[n] or { image = "vanilla" .. n, w = 64, h = 64 }
+    return TP._front[n]
+  end
+  package.loaded["src.core.game3.trainer_pic"] = TP
+  local mod = newMod(ROOT)
+  local rows = {}
+  local start = T.init(mod, rows)
+  mod.options:define(rows)
+  start()
+  eq(rows[2].key .. ":" .. rows[2].default, "setTrainers:__off", "trainers: SET row, OFF by default")
+  eq(TP.front(82).image, "vanilla82", "trainers: OFF, the game's own")
+  eq(T.nameOf(82), "YOUNGSTER", "trainers: picture names from the game")
+  mod.options:set("setTrainers", "gbcish")
+  local y = TP.front(82)
+  check(y.imageData, "trainers: GBC-ISH's Youngster is Crystal's")
+  local function at(x, yy)
+    local r, g, b, a = y.imageData:getPixel(x, yy)
+    return ("%d,%d,%d,%s"):format(math.floor(r * 255 + .5), math.floor(g * 255 + .5), math.floor(b * 255 + .5), tostring(a))
+  end
+  -- 56 wide, centred: x + 4; lowest row 55 on row 60: y + 5 -Elvie
+  eq(at(24, 60), "0,0,0,1", "trainers: black stays black, standing on the game's own bottom row")
+  eq(at(30, 50), "200,100,50,1", "trainers: grey 170 is Crystal's first colour for the Youngster")
+  eq(at(31, 45), "255,255,255,1", "trainers: enclosed white stays white")
+  local _, _, _, oa = y.imageData:getPixel(4, 5)
+  eq(oa, 0, "trainers: the white outside is see-through")
+  eq(TP.front(82), y, "trainers: kept")
+  eq(TP.front(135).image, "vanilla135", "trainers: the player (RED) is left to Emerald Lens")
+  -- another mod (Emerald Lens) swapped the rival: it stays -Elvie
+  local lensRival = { image = "lens-rival", w = 64, h = 64 }
+  local inner = TP.front
+  local wrapped = TP.front
+  TP.front = function(id) if tonumber(id) == 106 then TP._front[106] = TP._front[106] or { image = "vanilla106" }; return lensRival end return inner(id) end
+  -- Facets' wrapper sits over Lens's here: re-run start so it wraps this -Elvie
+  package.loaded["src.core.game3.trainer_pic"] = TP
+  local rows2 = {}
+  local start2 = T.init(mod, rows2)
+  start2()
+  eq(TP.front(106), lensRival, "trainers: a picture another mod swapped stays theirs")
+  TP.front = wrapped
+  mod.options:set("setTrainers", "gameboy")
+  local archie = TP.front(0)
+  check(archie.imageData and archie.image ~= "vanilla0", "trainers: GAME BOY makes Archie from the game's own")
+  local seen = {}
+  for xx = 10, 13 do
+    local r, g, b, a = archie.imageData:getPixel(xx, 50)
+    if a > 0 then seen[#seen + 1] = ("%d,%d,%d"):format(math.floor(r * 255 + .5), math.floor(g * 255 + .5), math.floor(b * 255 + .5)) end
+  end
+  eq(#seen, 4, "trainers: ...every drawn pixel kept, in place")
+  eq(TP.front(5).image, "vanilla5", "trainers: no picture to build from: the game's own")
+  -- DS: the set's own pictures, by name; what it lacks stays the game's -Elvie
+  mod.options:set("setTrainers", "ds")
+  local dsY = TP.front(82)
+  check(dsY.imageData and dsY.image ~= "vanilla82", "trainers: DS has its own Youngster")
+  local r, g, b, a = dsY.imageData:getPixel(32, 60)
+  eq(("%d,%d,%d,%s"):format(r * 255, g * 255, b * 255, tostring(a)), "0,0,255,1", "trainers: ...standing on the game's own bottom row")
+  check(TP.front(132).image ~= "vanilla132", "trainers: DS has its own Oak")
+  check(TP.front(116).image ~= "vanilla116", "trainers: DS has its own Brock")
+  for _, n in ipairs({ "YOUNGSTER", "LASS", "HIKER", "ROCKET_GRUNT_M", "LEADER_GIOVANNI", "AQUA_GRUNT_M", "COOL_COUPLE",
+    "LEADER_TATE_AND_LIZA", "OLD_COUPLE", "ELITE_FOUR_LANCE", "CHAMPION_RIVAL", "PIKE_QUEEN_LUCY",
+    "PROFESSOR_OAK", "PALACE_MAVEN_SPENSER" }) do
+    check(lfs.attributes(ROOT .. "/assets/trainers/ds/" .. n .. ".png"), "trainers: DS ships " .. n)
+  end
+  local runner = require("mods.facets.prebuild").runner(nil)
+  runner.reach("start")
+  eq(runner.total, 148, "trainers: PREBUILD lists every FR/LG trainer picture")
+  require("mods.facets.prebuild").reset()
+  package.loaded["src.core.game3.trainer_pic"] = nil
 end
 
 -- prebuild.lua and diskcache.lua on their own -Elvie

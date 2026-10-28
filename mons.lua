@@ -1511,6 +1511,18 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
     end
     return false
   end
+  -- a set, then the sets its meta.json "fallback" names -Elvie
+  local function chain(set)
+    local out, seen = {}, {}
+    while set and not seen[set.key] do
+      seen[set.key] = true
+      out[#out + 1] = set
+      local nextSet
+      for _, s in ipairs(sets) do if s.key == set.fallback then nextSet = s end end
+      set = nextSet
+    end
+    return out
+  end
   local function selected()
     local value = mod.options:get("setMons")
     for _, set in ipairs(sets) do
@@ -1542,7 +1554,21 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
         local set = selected()
         if not set then return { lines = { { text = "The game's own POKéMON." } } } end
         local lines = require("mods.facets.menu").creditLines(set.credit)
-        -- first, since FR/LG's screen has room for one line -Elvie
+        -- what a set reads that isn't imported, before the credit (FR/LG's
+        -- screen has room for one line) -Elvie
+        local crystal, emerald = false, false
+        for _, s in ipairs(chain(set)) do
+          if s.gb and s.gbSource then crystal = true end
+          if s.gb and s.builtFrom == "emerald" then emerald = true end
+        end
+        local needs = {}
+        if crystal and not gb.imported(GB_GAMES) then
+          needs[#needs + 1] = { text = "No Crystal imported.", red = true }
+        end
+        if emerald and not gb.imported({ "emerald" }) then
+          needs[#needs + 1] = { text = "No Emerald imported.", red = true }
+        end
+        for i = #needs, 1, -1 do table.insert(lines, 1, needs[i]) end
         if packShowing() then table.insert(lines, 1, { text = "Sprite pack's POKéMON first." }) end
         return { lines = lines }
       elseif who == "anims" then
@@ -1570,6 +1596,8 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
     -- row it shows your side's picture instead. -Elvie
     draw = function(clock, family, spots, who)
       if not (love and love.graphics) then return end
+      -- the TRAINERS row shows a trainer in this spot -Elvie
+      if who == "trainers" then return end
       local at = type(spots) == "table" and spots.mon or nil
       local okD, AnimData = pcall(require, "src.core.game3.mon_anim_data")
       local species, frame = mons.showcaseAt(clock, okD and type(AnimData) == "table" and AnimData.anims or nil)

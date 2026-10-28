@@ -90,8 +90,12 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
     o = floor(o * (levels - 1.0) + 0.5) / (levels - 1.0);
   }
   if (dots > 0.5 && cell >= 3.0) {
-    vec2 p = mod(sc - origin, cell);
-    if (p.x < 1.0 || p.y < 1.0) o = o * dotShade;
+    // the first screen pixel of each game pixel, so the lines sit on the
+    // game's pixel edges even when a game pixel isn't a whole number of
+    // screen pixels wide
+    vec2 q = floor((sc - origin) / cell);
+    vec2 r = floor((sc - origin - 1.0) / cell);
+    if (q.x != r.x || q.y != r.y) o = o * dotShade;
   }
   return vec4(o, c.a) * color;
 }
@@ -102,6 +106,54 @@ local function valueOf(list, value, default)
     if c[2] == value then return value end
   end
   return default
+end
+
+-- The game's pixel grid on screen from the engine's frame numbers: cell
+-- is screen pixels per game pixel, origin where the picture starts, in
+-- screen pixels. The engine's scale is already in screen pixels (only the
+-- origin is in LÖVE units, so only it takes the DPI); a battle drawn to
+-- fill the screen uses the UI's own scale and origin. -Elvie
+function filter.gridFor(ctx)
+  if type(ctx) ~= "table" then return nil end
+  local dpiX = tonumber(ctx.dpiX) or 1
+  local dpiY = tonumber(ctx.dpiY) or dpiX
+  local cell, ox, oy = tonumber(ctx.scale) or 0, tonumber(ctx.ox) or 0, tonumber(ctx.oy) or 0
+  if ctx.worldActive == false and type(ctx.renderer) == "table" and type(ctx.renderer.frameRects) == "function" then
+    local ok, r = pcall(ctx.renderer.frameRects, ctx.renderer)
+    if ok and type(r) == "table" and tonumber(r.Up) then
+      cell, ox, oy = tonumber(r.Up), tonumber(r.uox) or ox, tonumber(r.uoy) or oy
+    end
+  end
+  return cell, { ox * dpiX, oy * dpiY }
+end
+
+-- PRISM's corner for SCREEN: the look's shades as a row of swatches,
+-- dark to light (GBC: a few of its colours), on the faceted panel. -Elvie
+local GBC_SWATCH = { { 0, 0, 0 }, { 85, 85, 170 }, { 170, 85, 85 }, { 85, 170, 85 }, { 255, 255, 170 } }
+function filter.drawSwatch(area, get)
+  if type(area) ~= "table" or not (love and love.graphics) then return end
+  local look = filter.settings(get)
+  local list
+  if filter.SHADES[look] then
+    list = {}
+    for i = 4, 1, -1 do list[#list + 1] = filter.SHADES[look][i] end
+  elseif look == "gbc" then
+    list = GBC_SWATCH
+  else
+    return
+  end
+  local size, gap = 14, 3
+  local w = #list * size + (#list - 1) * gap
+  local x0 = math.floor((area.x0 + 30 + area.x1 - 6) / 2 - w / 2)
+  local y = math.floor((area.y0 + area.y1) / 2 - size / 2)
+  for i, c in ipairs(list) do
+    local x = x0 + (i - 1) * (size + gap)
+    love.graphics.setColor(0, 0, 0, 1)
+    love.graphics.rectangle("fill", x - 1, y - 1, size + 2, size + 2)
+    love.graphics.setColor(c[1] / 255, c[2] / 255, c[3] / 255, 1)
+    love.graphics.rectangle("fill", x, y, size, size)
+  end
+  love.graphics.setColor(1, 1, 1, 1)
 end
 
 -- What the options ask for: look, where, dots, shades. -Elvie
@@ -191,7 +243,7 @@ function filter.init(mod, rows, menu)
       local look, where, dots, steps = filter.settings(get)
       if not filter.screenOn(look, where, dots) then return input end
       if grid.cell <= 0 and type(ctx) == "table" then
-        grid.cell = (tonumber(ctx.scale) or 0) * (tonumber(ctx.dpiX) or 1)
+        grid.cell = tonumber(ctx.scale) or 0
       end
       return run(input, "screen", where == "screen" and look or "off", dots == "on", steps) or input
     end,
@@ -210,9 +262,7 @@ function filter.init(mod, rows, menu)
   if mod.hooks and type(mod.hooks.wrap) == "function" then
     mod.hooks:wrap("render.compose", function(nextFn, renderer, ctx)
       if type(ctx) == "table" then
-        local dpi = tonumber(ctx.dpiX) or 1
-        grid.cell = (tonumber(ctx.scale) or 0) * dpi
-        grid.origin = { (tonumber(ctx.ox) or 0) * dpi, (tonumber(ctx.oy) or 0) * dpi }
+        grid.cell, grid.origin = filter.gridFor(ctx)
         local look, where, _, steps = filter.settings(get)
         local world = ctx.worldOverride or ctx.worldCanvas
         if look ~= "off" and where == "map" and ctx.worldActive and world and world.getDimensions then

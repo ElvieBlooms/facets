@@ -1,0 +1,977 @@
+{
+  "about": "DS: DS-style trainer pictures, KyleDove's first (from his XY, ORAS, USUM, SWSH and Ga-Ole trainer class sets) and Mr. Gela's for the rest. Run with one source per KyleDove pack folder and Mr. Gela's Characters folder: kyle_xy=, kyle_oras=, kyle_usum=, kyle_swsh=, kyle_gaole=, gela=, and more= for the folder of extra sprites by KyleDove, Jext and figyberries (DS_Trainers), which comes first where it has a picture. Stand-ins chosen by Elvie: Roughneck as Cue Ball, Guitarist 2 as Rocker, Double Team as Cool Couple, Worker as Engineer.",
+  "set": "ds",
+  "label": "DS",
+  "doubled": "auto",
+  "credit": [
+    "Trainer sprites by KyleDove (XY, ORAS, USUM, SWSH and Ga-Ole trainer classes), used with credit",
+    "Trainer sprites by Mr. Gela/theo#7722, used with credit",
+    "Trainer sprites by KyleDove, Jext and figyberries (leaders, Elite Four, Aqua and Magma, the Frontier and more), used with credit"
+  ],
+  "trainers": {
+    "AQUA_ADMIN_F": [
+      [
+        "more",
+        "aquaadminf"
+      ]
+    ],
+    "AQUA_ADMIN_M": [
+      [
+        "more",
+        "aquaadminm"
+      ]
+    ],
+    "AQUA_GRUNT_F": [
+      [
+        "more",
+        "aquagruntf"
+      ],
+      [
+        "kyle_oras",
+        "AQUAGRUNT_F"
+      ]
+    ],
+    "AQUA_GRUNT_M": [
+      [
+        "more",
+        "aquagruntm"
+      ],
+      [
+        "kyle_oras",
+        "AQUAGRUNT_M"
+      ]
+    ],
+    "AQUA_LEADER_ARCHIE": [
+      [
+        "more",
+        "archie"
+      ]
+    ],
+    "ARENA_TYCOON_GRETA": [
+      [
+        "more",
+        "greta"
+      ]
+    ],
+    "AROMA_LADY": [
+      [
+        "kyle_oras",
+        "AROMALADY"
+      ],
+      [
+        "gela",
+        "trainer128"
+      ]
+    ],
+    "BATTLE_GIRL": [
+      [
+        "kyle_oras",
+        "BATTLEGIRL"
+      ],
+      [
+        "gela",
+        "trainer037"
+      ]
+    ],
+    "BEAUTY": [
+      [
+        "kyle_oras",
+        "BEAUTY"
+      ],
+      [
+        "gela",
+        "trainer062"
+      ]
+    ],
+    "BIKER": [
+      [
+        "gela",
+        "trainer110"
+      ]
+    ],
+    "BIRD_KEEPER": [
+      [
+        "kyle_oras",
+        "BIRDKEEPER"
+      ],
+      [
+        "gela",
+        "trainer130"
+      ]
+    ],
+    "BLACK_BELT": [
+      [
+        "kyle_xy",
+        "BLACKBELT"
+      ],
+      [
+        "gela",
+        "trainer034"
+      ]
+    ],
+    "BUG_CATCHER": [
+      [
+        "kyle_oras",
+        "BUGCATCHER"
+      ],
+      [
+        "gela",
+        "trainer016"
+      ]
+    ],
+    "BUG_MANIAC": [
+      [
+        "kyle_oras",
+        "BUGMANIAC"
+      ]
+    ],
+    "BURGLAR": [
+      [
+        "gela",
+        "trainer106"
+      ]
+    ],
+    "CAMPER": [
+      [
+        "kyle_oras",
+        "CAMPER_M"
+      ],
+      [
+        "gela",
+        "trainer018"
+      ]
+    ],
+    "CHAMPION_RIVAL": [
+      [
+        "more",
+        "Rival3"
+      ]
+    ],
+    "CHAMPION_STEVEN": [
+      [
+        "more",
+        "steven"
+      ]
+    ],
+    "CHAMPION_WALLACE": [
+      [
+        "more",
+        "Wallace"
+      ]
+    ],
+    "CHANNELER": [
+      [
+        "gela",
+        "trainer060"
+      ]
+    ],
+    "COLLECTOR": [
+      [
+        "kyle_oras",
+        "COLLECTOR"
+      ],
+      [
+        "gela",
+        "trainer052"
+      ]
+    ],
+    "COOLTRAINER_F": [
+      [
+        "kyle_oras",
+        "ACETRAINER_F"
+      ],
+      [
+        "gela",
+        "trainer153"
+      ]
+    ],
+    "COOLTRAINER_M": [
+      [
+        "kyle_oras",
+        "ACETRAINER_M"
+      ],
+      [
+        "gela",
+        "trainer149"
+      ]
+    ],
+    "COOL_COUPLE": [
+      [
+        "gela",
+        "trainer169"
+      ]
+    ],
+    "CRUSH_GIRL": [
+      [
+        "more",
+        "crushgirl"
+      ]
+    ],
+    "CRUSH_KIN": [
+      [
+        "more",
+        "crushkin"
+      ]
+    ],
+    "CUE_BALL": [
+      [
+        "more",
+        "Roughneck"
+      ],
+      [
+        "gela",
+        "trainer108"
+      ]
+    ],
+    "CYCLING_TRIATHLETE_F": [
+      [
+        "gela",
+        "trainer042"
+      ]
+    ],
+    "CYCLING_TRIATHLETE_M": [
+      [
+        "kyle_oras",
+        "TRIATHLETE3"
+      ],
+      [
+        "gela",
+        "trainer040"
+      ]
+    ],
+    "DOME_ACE_TUCKER": [
+      [
+        "more",
+        "tucker"
+      ]
+    ],
+    "DRAGON_TAMER": [
+      [
+        "kyle_oras",
+        "DRAGONTAMER"
+      ],
+      [
+        "gela",
+        "trainer117"
+      ]
+    ],
+    "ELITE_FOUR_AGATHA": [
+      [
+        "more",
+        "Agatha"
+      ]
+    ],
+    "ELITE_FOUR_BRUNO": [
+      [
+        "more",
+        "Bruno"
+      ]
+    ],
+    "ELITE_FOUR_DRAKE": [
+      [
+        "more",
+        "drake"
+      ]
+    ],
+    "ELITE_FOUR_GLACIA": [
+      [
+        "more",
+        "Glacia"
+      ]
+    ],
+    "ELITE_FOUR_LANCE": [
+      [
+        "more",
+        "Lance"
+      ]
+    ],
+    "ELITE_FOUR_LORELEI": [
+      [
+        "more",
+        "Lorelie"
+      ]
+    ],
+    "ELITE_FOUR_PHOEBE": [
+      [
+        "more",
+        "phoebe"
+      ]
+    ],
+    "ELITE_FOUR_SIDNEY": [
+      [
+        "more",
+        "sidney"
+      ]
+    ],
+    "ENGINEER": [
+      [
+        "kyle_xy",
+        "WORKER"
+      ],
+      [
+        "gela",
+        "trainer101"
+      ]
+    ],
+    "EXPERT_F": [
+      [
+        "kyle_oras",
+        "EXPERT_F"
+      ]
+    ],
+    "EXPERT_M": [
+      [
+        "kyle_oras",
+        "EXPERT_M"
+      ]
+    ],
+    "FACTORY_HEAD_NOLAND": [
+      [
+        "more",
+        "noland"
+      ]
+    ],
+    "FISHERMAN": [
+      [
+        "kyle_oras",
+        "FISHERMAN"
+      ],
+      [
+        "gela",
+        "trainer032"
+      ]
+    ],
+    "GAMER": [
+      [
+        "gela",
+        "trainer107"
+      ]
+    ],
+    "GENTLEMAN": [
+      [
+        "kyle_oras",
+        "GENTLEMAN"
+      ],
+      [
+        "gela",
+        "trainer141"
+      ]
+    ],
+    "GUITARIST": [
+      [
+        "kyle_oras",
+        "GUITARIST"
+      ],
+      [
+        "gela",
+        "trainer084"
+      ]
+    ],
+    "HEX_MANIAC": [
+      [
+        "kyle_xy",
+        "HEXMANIAC"
+      ]
+    ],
+    "HIKER": [
+      [
+        "kyle_xy",
+        "HIKER"
+      ],
+      [
+        "gela",
+        "trainer044"
+      ]
+    ],
+    "INTERVIEWER": [
+      [
+        "kyle_oras",
+        "INTERVIEWERS"
+      ],
+      [
+        "gela",
+        "trainer172"
+      ]
+    ],
+    "JUGGLER": [
+      [
+        "kyle_gaole",
+        "JUGGLER"
+      ],
+      [
+        "gela",
+        "trainer089"
+      ]
+    ],
+    "KINDLER": [
+      [
+        "kyle_oras",
+        "KINDLER"
+      ],
+      [
+        "gela",
+        "trainer091"
+      ]
+    ],
+    "LADY": [
+      [
+        "kyle_oras",
+        "LADY"
+      ],
+      [
+        "gela",
+        "trainer071"
+      ]
+    ],
+    "LASS": [
+      [
+        "kyle_oras",
+        "LASS"
+      ],
+      [
+        "gela",
+        "trainer008"
+      ]
+    ],
+    "LEADER_BLAINE": [
+      [
+        "more",
+        "Blaine"
+      ]
+    ],
+    "LEADER_BRAWLY": [
+      [
+        "more",
+        "Brawly"
+      ]
+    ],
+    "LEADER_BROCK": [
+      [
+        "more",
+        "Brock"
+      ]
+    ],
+    "LEADER_ERIKA": [
+      [
+        "more",
+        "Erika"
+      ]
+    ],
+    "LEADER_FLANNERY": [
+      [
+        "more",
+        "flannery"
+      ]
+    ],
+    "LEADER_GIOVANNI": [
+      [
+        "more",
+        "giovanni"
+      ],
+      [
+        "gela",
+        "trainer163"
+      ]
+    ],
+    "LEADER_JUAN": [
+      [
+        "more",
+        "juan"
+      ]
+    ],
+    "LEADER_KOGA": [
+      [
+        "more",
+        "Koga"
+      ]
+    ],
+    "LEADER_LT_SURGE": [
+      [
+        "more",
+        "Surge"
+      ]
+    ],
+    "LEADER_MISTY": [
+      [
+        "more",
+        "misty"
+      ]
+    ],
+    "LEADER_NORMAN": [
+      [
+        "more",
+        "norman"
+      ]
+    ],
+    "LEADER_ROXANNE": [
+      [
+        "more",
+        "Roxanne"
+      ]
+    ],
+    "LEADER_SABRINA": [
+      [
+        "more",
+        "Sabrina"
+      ]
+    ],
+    "LEADER_TATE_AND_LIZA": [
+      [
+        "more",
+        [
+          "tate",
+          "liza"
+        ]
+      ]
+    ],
+    "LEADER_WALLACE": [
+      [
+        "more",
+        "Wallace"
+      ]
+    ],
+    "LEADER_WATTSON": [
+      [
+        "more",
+        "wattson"
+      ]
+    ],
+    "LEADER_WINONA": [
+      [
+        "more",
+        "winona"
+      ]
+    ],
+    "MAGMA_ADMIN": [
+      [
+        "more",
+        "magmaadminm"
+      ]
+    ],
+    "MAGMA_ADMIN_F": [
+      [
+        "more",
+        "magmaadminf"
+      ]
+    ],
+    "MAGMA_ADMIN_M": [
+      [
+        "more",
+        "magmaadminm"
+      ]
+    ],
+    "MAGMA_GRUNT_F": [
+      [
+        "more",
+        "magmagruntf"
+      ]
+    ],
+    "MAGMA_GRUNT_M": [
+      [
+        "more",
+        "magmagruntm"
+      ]
+    ],
+    "MAGMA_LEADER_MAXIE": [
+      [
+        "more",
+        "maxie"
+      ]
+    ],
+    "NINJA_BOY": [
+      [
+        "kyle_oras",
+        "NINJABOY"
+      ],
+      [
+        "gela",
+        "trainer020"
+      ]
+    ],
+    "OLD_COUPLE": [
+      [
+        "more",
+        [
+          "old couple man",
+          "old couple woman"
+        ]
+      ]
+    ],
+    "PAINTER": [
+      [
+        "kyle_xy",
+        "ARTIST_F"
+      ]
+    ],
+    "PALACE_MAVEN_SPENSER": [
+      [
+        "more",
+        "spenser"
+      ]
+    ],
+    "PARASOL_LADY": [
+      [
+        "kyle_oras",
+        "PARASOLLADY"
+      ],
+      [
+        "gela",
+        "trainer073"
+      ]
+    ],
+    "PICNICKER": [
+      [
+        "kyle_oras",
+        "CAMPER_F"
+      ],
+      [
+        "gela",
+        "trainer019"
+      ]
+    ],
+    "PIKE_QUEEN_LUCY": [
+      [
+        "more",
+        "lucy"
+      ]
+    ],
+    "POKEFAN_F": [
+      [
+        "kyle_oras",
+        "POKEFAN_F"
+      ],
+      [
+        "gela",
+        "trainer136"
+      ]
+    ],
+    "POKEFAN_M": [
+      [
+        "kyle_oras",
+        "POKEFAN_M"
+      ],
+      [
+        "gela",
+        "trainer134"
+      ]
+    ],
+    "POKEMANIAC": [
+      [
+        "kyle_oras",
+        "POKEMANIAC"
+      ],
+      [
+        "gela",
+        "trainer116"
+      ]
+    ],
+    "POKEMON_BREEDER": [
+      [
+        "kyle_oras",
+        "POKEMONBREEDER_F"
+      ],
+      [
+        "gela",
+        "trainer120"
+      ]
+    ],
+    "POKEMON_BREEDER_F": [
+      [
+        "kyle_oras",
+        "POKEMONBREEDER_F"
+      ],
+      [
+        "gela",
+        "trainer120"
+      ]
+    ],
+    "POKEMON_BREEDER_M": [
+      [
+        "kyle_oras",
+        "POKEMONBREEDER_M"
+      ],
+      [
+        "gela",
+        "trainer118"
+      ]
+    ],
+    "POKEMON_RANGER_F": [
+      [
+        "kyle_oras",
+        "POKEMONRANGER_F"
+      ],
+      [
+        "gela",
+        "trainer126"
+      ]
+    ],
+    "POKEMON_RANGER_M": [
+      [
+        "kyle_oras",
+        "POKEMONRANGER_M"
+      ],
+      [
+        "gela",
+        "trainer124"
+      ]
+    ],
+    "PROFESSOR_OAK": [
+      [
+        "more",
+        "oak"
+      ]
+    ],
+    "PSYCHIC_F": [
+      [
+        "gela",
+        "trainer056"
+      ]
+    ],
+    "PSYCHIC_M": [
+      [
+        "kyle_xy",
+        "PSYCHIC"
+      ],
+      [
+        "gela",
+        "trainer054"
+      ]
+    ],
+    "PYRAMID_KING_BRANDON": [
+      [
+        "more",
+        "brandon"
+      ]
+    ],
+    "RICH_BOY": [
+      [
+        "kyle_oras",
+        "RICHBOY"
+      ],
+      [
+        "gela",
+        "trainer069"
+      ]
+    ],
+    "RIVAL_EARLY": [
+      [
+        "more",
+        "Rival1"
+      ]
+    ],
+    "RIVAL_LATE": [
+      [
+        "more",
+        "Rival2"
+      ]
+    ],
+    "ROCKER": [
+      [
+        "gela",
+        "trainer085"
+      ]
+    ],
+    "ROCKET_GRUNT_F": [
+      [
+        "gela",
+        "trainer158"
+      ]
+    ],
+    "ROCKET_GRUNT_M": [
+      [
+        "gela",
+        "trainer157"
+      ]
+    ],
+    "RUIN_MANIAC": [
+      [
+        "kyle_oras",
+        "RUINMANIAC"
+      ],
+      [
+        "gela",
+        "trainer129"
+      ]
+    ],
+    "RUNNING_TRIATHLETE_F": [
+      [
+        "more",
+        "runningtriathF"
+      ]
+    ],
+    "RUNNING_TRIATHLETE_M": [
+      [
+        "kyle_oras",
+        "TRIATHLETE2"
+      ],
+      [
+        "gela",
+        "trainer039"
+      ]
+    ],
+    "SAILOR": [
+      [
+        "kyle_oras",
+        "SAILOR"
+      ],
+      [
+        "gela",
+        "trainer140"
+      ]
+    ],
+    "SALON_MAIDEN_ANABEL": [
+      [
+        "more",
+        "anabel"
+      ]
+    ],
+    "SCHOOL_KID_F": [
+      [
+        "kyle_oras",
+        "SCHOOLGIRL"
+      ],
+      [
+        "gela",
+        "trainer014"
+      ]
+    ],
+    "SCHOOL_KID_M": [
+      [
+        "kyle_oras",
+        "SCHOOLBOY"
+      ],
+      [
+        "gela",
+        "trainer011"
+      ]
+    ],
+    "SCIENTIST": [
+      [
+        "kyle_xy",
+        "SCIENTIST_M"
+      ],
+      [
+        "gela",
+        "trainer048"
+      ]
+    ],
+    "SIS_AND_BRO": [
+      [
+        "gela",
+        "trainer173"
+      ]
+    ],
+    "SR_AND_JR": [
+      [
+        "more",
+        "sr_jr"
+      ]
+    ],
+    "STEVEN": [
+      [
+        "more",
+        "steven"
+      ]
+    ],
+    "SUPER_NERD": [
+      [
+        "gela",
+        "trainer053"
+      ]
+    ],
+    "SWIMMER_F": [
+      [
+        "kyle_xy",
+        "SWIMMER_F"
+      ],
+      [
+        "gela",
+        "trainer029"
+      ]
+    ],
+    "SWIMMER_M": [
+      [
+        "kyle_xy",
+        "SWIMMER_M"
+      ],
+      [
+        "gela",
+        "trainer026"
+      ]
+    ],
+    "SWIMMING_TRIATHLETE_F": [
+      [
+        "more",
+        "swimmingtraithF"
+      ]
+    ],
+    "SWIMMING_TRIATHLETE_M": [
+      [
+        "kyle_oras",
+        "TRIATHLETE"
+      ]
+    ],
+    "TAMER": [
+      [
+        "more",
+        "tamer"
+      ]
+    ],
+    "TUBER_F": [
+      [
+        "kyle_oras",
+        "TUBER_F"
+      ],
+      [
+        "gela",
+        "trainer025"
+      ]
+    ],
+    "TUBER_M": [
+      [
+        "kyle_oras",
+        "TUBER_M"
+      ],
+      [
+        "gela",
+        "trainer024"
+      ]
+    ],
+    "TWINS": [
+      [
+        "kyle_xy",
+        "TWINS"
+      ],
+      [
+        "gela",
+        "trainer174"
+      ]
+    ],
+    "WALLY": [
+      [
+        "more",
+        "wally"
+      ]
+    ],
+    "YOUNGSTER": [
+      [
+        "kyle_oras",
+        "YOUNGSTER"
+      ],
+      [
+        "gela",
+        "trainer005"
+      ]
+    ],
+    "YOUNG_COUPLE": [
+      [
+        "kyle_oras",
+        "YOUNGCOUPLE"
+      ],
+      [
+        "gela",
+        "trainer177"
+      ]
+    ]
+  }
+}

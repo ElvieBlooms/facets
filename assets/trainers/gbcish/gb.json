@@ -1,0 +1,94 @@
+{
+  "about": "Which Gen 1/2 trainer stands in for each Gen 3 trainer picture, by the picture's name (without TRAINER_PIC_ or FR/LG's RS_). A plain name is Crystal's battle/trainers/<name>.png (then Gold's, Silver's) in Crystal's colours of the same name; {\"red\": ...} is Yellow's (then Red's, Blue's), with \"palette\" naming Crystal's colours to use. Anything not listed is the game's own picture made Game Boy.",
+  "trainers": {
+    "BEAUTY": "beauty",
+    "BIKER": "biker",
+    "BIRD_KEEPER": "bird_keeper",
+    "BLACK_BELT": "blackbelt_t",
+    "BUG_CATCHER": "bug_catcher",
+    "BURGLAR": "burglar",
+    "CAMPER": "camper",
+    "CHAMPION_RIVAL": {
+      "red": "rival3",
+      "palette": "BLUE"
+    },
+    "CHANNELER": {
+      "red": "channeler",
+      "palette": "MEDIUM"
+    },
+    "COOLTRAINER_F": "cooltrainerf",
+    "COOLTRAINER_M": "cooltrainerm",
+    "CUE_BALL": {
+      "red": "cueball",
+      "palette": "BIKER"
+    },
+    "ELITE_FOUR_AGATHA": {
+      "red": "agatha",
+      "palette": "MEDIUM"
+    },
+    "ELITE_FOUR_BRUNO": "bruno",
+    "ELITE_FOUR_LANCE": "champion",
+    "ELITE_FOUR_LORELEI": {
+      "red": "lorelei",
+      "palette": "KAREN"
+    },
+    "ENGINEER": {
+      "red": "engineer",
+      "palette": "HIKER"
+    },
+    "FISHERMAN": "fisher",
+    "GAMER": {
+      "red": "gambler",
+      "palette": "GENTLEMAN"
+    },
+    "GENTLEMAN": "gentleman",
+    "GUITARIST": "guitarist",
+    "HIKER": "hiker",
+    "JUGGLER": "juggler",
+    "KINDLER": "firebreather",
+    "LASS": "lass",
+    "LEADER_BLAINE": "blaine",
+    "LEADER_BROCK": "brock",
+    "LEADER_ERIKA": "erika",
+    "LEADER_GIOVANNI": {
+      "red": "giovanni",
+      "palette": "EXECUTIVEM"
+    },
+    "LEADER_KOGA": "koga",
+    "LEADER_LT_SURGE": "lt_surge",
+    "LEADER_MISTY": "misty",
+    "LEADER_SABRINA": "sabrina",
+    "PICNICKER": "picnicker",
+    "POKEFAN_F": "pokefanf",
+    "POKEFAN_M": "pokefanm",
+    "POKEMANIAC": "pokemaniac",
+    "PROFESSOR_OAK": "pokemon_prof",
+    "PSYCHIC_M": "psychic_t",
+    "RIVAL_EARLY": {
+      "red": "rival1",
+      "palette": "BLUE"
+    },
+    "RIVAL_LATE": {
+      "red": "rival2",
+      "palette": "BLUE"
+    },
+    "ROCKER": {
+      "red": "rocker",
+      "palette": "GUITARIST"
+    },
+    "ROCKET_GRUNT_F": "gruntf",
+    "ROCKET_GRUNT_M": "gruntm",
+    "SAILOR": "sailor",
+    "SCHOOL_KID_M": "schoolboy",
+    "SCIENTIST": "scientist",
+    "SUPER_NERD": "super_nerd",
+    "SWIMMER_F": "swimmerf",
+    "SWIMMER_M": "swimmerm",
+    "TAMER": {
+      "red": "tamer",
+      "palette": "POKEFANM"
+    },
+    "TWINS": "twins",
+    "YOUNGSTER": "youngster"
+  }
+}
