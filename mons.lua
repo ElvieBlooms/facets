@@ -422,6 +422,26 @@ function mons.drawnRows(data)
   return top, low
 end
 
+-- Your side's frame starts this far down the screen (the game's own
+-- player position, less half the 64x64 frame, plus the species' back
+-- offset): R/S 48, FR/LG and Emerald 52. The text box starts at row 112,
+-- so a front stands with its feet on row 110 at the lowest (a row spare
+-- for the bob), above the box instead of behind it like a back's. -Elvie
+mons.BOX_TOP = 112
+mons.BOB = 1
+function mons.sideFrameTop(coords, species, rs)
+  local back = type(coords) == "table" and type(coords.back) == "table" and tonumber(coords.back[species]) or 0
+  return (rs and 48 or 52) + back
+end
+
+-- The shift that puts a front's lowest row just above the text box, or
+-- the back's ground line if that's higher already. -Elvie
+function mons.aboveBoxShift(shift, frameTop, low)
+  if type(low) ~= "number" or type(frameTop) ~= "number" then return shift end
+  -- one more row: picking a move bobs your Pokemon down a pixel -Elvie
+  return math.min(shift, mons.BOX_TOP - 1 - mons.BOB - frameTop - low)
+end
+
 -- A front moved to the back's ground line stays inside the 64x64
 -- picture: a tall front (Skarmory's fills it) stands a little lower
 -- rather than losing its top, and never loses its feet either. -Elvie
@@ -1195,6 +1215,13 @@ function mons.init(mod, rows, menu)
       end)
       return ok and data or nil
     end
+    -- Ruby and Sapphire draw your side 4 pixels higher -Elvie
+    local function rsLayout()
+      local okP, Profile = pcall(require, "src.core.game3.profile")
+      if not okP or type(Profile) ~= "table" or type(Profile.forSession) ~= "function" then return false end
+      local okS, prof = pcall(Profile.forSession)
+      return okS and type(prof) == "table" and type(prof.ui) == "table" and prof.ui.battleSpriteLayout == "rs" or false
+    end
     local function frontAsBack(species, form, shiny, frame)
       local sp = tonumber(species)
       frame = tonumber(frame) or 0
@@ -1211,7 +1238,7 @@ function mons.init(mod, rows, menu)
       -- showing (that can change without Facets knowing) -Elvie
       local okP, under = pcall(origFront, sp, form, shiny)
       local fromPack = okP and mons.fromHook(under)
-      local group = "side-" .. gameName() .. "-" .. (current and current.key or "own")
+      local group = "side2-" .. gameName() .. "-" .. (current and current.key or "own")
         .. (borrowing() and "-em" or "") .. (mirrored and "-m" or "")
       local kept = not fromPack and disk.get(group, key)
       if kept then
@@ -1254,6 +1281,8 @@ function mons.init(mod, rows, menu)
         rows = { top = top, low = low }
         stillRows[rowsKey] = rows
       end
+      shift = mons.aboveBoxShift(shift, mons.sideFrameTop(PicCoords, sp, rsLayout()), rows.low)
+      -- too tall to clear the box: the top stays, the feet go behind it -Elvie
       shift = mons.keptShift(shift, rows.top, rows.low, h)
       local made, entry = pcall(function()
         -- dpiscale 1: on a high-DPI screen (Android) a canvas is otherwise
