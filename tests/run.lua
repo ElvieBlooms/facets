@@ -1611,6 +1611,20 @@ do
   local _, _, _, oa = y.imageData:getPixel(4, 5)
   eq(oa, 0, "trainers: the white outside is see-through")
   eq(TP.front(82), y, "trainers: kept")
+  -- a GBC-ISH file of its own (eli76's Archie) beats making one -Elvie
+  local gArchie = TP.front(0)
+  local ar, ag, ab, aa = gArchie.imageData:getPixel(36, 50) -- 56 wide: x + 4, on Archie's row 50 -Elvie
+  eq(("%d,%d,%d,%s"):format(ar * 255, ag * 255, ab * 255, tostring(aa)), "0,0,255,1", "trainers: GBC-ISH's own Archie")
+  for _, n in ipairs({ "LEADER_ROXANNE", "LEADER_TATE_AND_LIZA", "CHAMPION_WALLACE", "CHAMPION_STEVEN", "ELITE_FOUR_DRAKE",
+    "PALACE_MAVEN_SPENSER", "SALON_MAIDEN_ANABEL", "MAGMA_LEADER_MAXIE", "MAGMA_GRUNT_M", "AQUA_GRUNT_M",
+    "BATTLE_GIRL", "POKEMON_BREEDER", "RUNNING_TRIATHLETE_F", "TUBER_M", "CUE_BALL", "TAMER" }) do
+    check(lfs.attributes(ROOT .. "/assets/trainers/gbcish/" .. n .. ".png"), "trainers: GBC-ISH ships " .. n)
+  end
+  -- the Brains' GBC overworld strips (sirwhibbles'): six 16x16 frames -Elvie
+  for _, n in ipairs({ "ANABEL", "BRANDON", "GRETA", "LUCY", "NOLAND", "SPENSER", "TUCKER" }) do
+    local w, h = pngSize(ROOT .. "/assets/npcs/gbc/strips/" .. n .. ".png")
+    eq(w .. "x" .. h, "16x96", "gbc: " .. n .. "'s strip, six frames")
+  end
   eq(TP.front(135).image, "vanilla135", "trainers: the player (RED) is left to Emerald Lens")
   -- another mod (Emerald Lens) swapped the rival: it stays -Elvie
   local lensRival = { image = "lens-rival", w = 64, h = 64 }
