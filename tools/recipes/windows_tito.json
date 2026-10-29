@@ -1,0 +1,50 @@
+{
+  "about": "Tito Seich / Sage's dialogue boxes (The Textbox of Tito Seich, in the GBA Patches Pack's Text Boxes folder). Run with the unzipped 'The Textbox of Tito Seich' folder as the pack folder.",
+  "set": "tito",
+  "label": "TITO",
+  "credit": [
+    "Text boxes by Tito Seich / Sage, used with credit"
+  ],
+  "styles": [
+    {
+      "name": "CHECKERED",
+      "dialogue": "Checkered/Checkered.bmp"
+    },
+    {
+      "name": "COOL RED",
+      "dialogue": "Cool Red/Cool Red.bmp"
+    },
+    {
+      "name": "EMERALD",
+      "dialogue": "Emerald/Emerald.bmp"
+    },
+    {
+      "name": "HOENN",
+      "dialogue": "Hoenn/Hoenn.bmp"
+    },
+    {
+      "name": "ORANGE",
+      "dialogue": "Orange/Orange.bmp"
+    },
+    {
+      "name": "RED",
+      "dialogue": "Red/textbox final red.bmp"
+    },
+    {
+      "name": "SILVER",
+      "dialogue": "Silver/Silver.bmp"
+    },
+    {
+      "name": "SKY BLUE",
+      "dialogue": "Sky Blue/Sky Blue.bmp"
+    },
+    {
+      "name": "SQUARE RED",
+      "dialogue": "Square Red/Square Red.bmp"
+    },
+    {
+      "name": "WOODY",
+      "dialogue": "Woody/Woody.bmp"
+    }
+  ]
+}

@@ -219,7 +219,7 @@ function screen.new(mod, model)
     for _, line in ipairs(preview.lines or {}) do
       if y + ROW_STEP > WIN_BOTTOM then break end
       local colors = line.red and FrlgFont.COLOR.RED or FrlgFont.COLOR.NORMAL
-      Window.printPx(fit(FrlgFont, line.text, INFO_W), LABEL_X, y, { colors = colors })
+      Window.printPx(fit(FrlgFont, line.text, preview.width or INFO_W), LABEL_X, y, { colors = colors })
       y = y + ROW_STEP
     end
   end

@@ -8,7 +8,7 @@ Facets can also swap Pokémon pictures, party icons and animations (Crystal's sp
 
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
-**Status: 0.5.3.** Works in all five games. It ships with four sprite sets, all free to use with credit:
+**Status: 0.6.0.** Works in all five games. It ships with four sprite sets, all free to use with credit:
 
 - **DIEGO:** DiegoWT's Black/White-style trainers and townsfolk.
 - **TAIGA:** Taiga's ORAS-style trainers.
@@ -18,6 +18,8 @@ Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald
 Together they give **every person in all five games** new art, with no converting needed: 74 NPCs in FireRed/LeafGreen, 104 in Emerald and 98 in Ruby/Sapphire. That's every trainer, townsperson, staff member and story character; checked against the games' sprite tables and pret's maps. Objects keep the game's art, and Pokémon have their own option. HGSS art (Nintendo's) isn't included; its recipe is still there if you'd like HGSS's look for the NPCs it has. A numbered TEST FRAMES set is included for checking frame order; it's only used when picked.
 
 There are also two Game Boy looks, **GBC** and **GBC 2X** (below): Gen 1/2 overworld sprites read from your own imported Crystal, Gold, Silver, Yellow, Red or Blue, with Catwithnojob's Gen 2-style sprites for everyone the Game Boy games never had. With a Gen 1/2 game imported, they cover every person in all five games too.
+
+The trainers you battle get new pictures too: **DS** (Gen 4+ style, every trainer picture in Emerald and FR/LG), **GBC-ISH** (Crystal's and Yellow's trainers from your install, plus hand-made Gen 2-style art for Hoenn) and **GAME BOY**. See [Trainer battle pictures](#trainer-battle-pictures).
 
 ## Options
 
@@ -62,7 +64,7 @@ The mod options still have every row for both families.
 
 ## The GB filter
 
-Under **SCREEN**, four options give the game a Game Boy look. They're also on their own **SCREEN** page in PRISM (as FILTER, SHADES, WHERE and DOTS; SHADES shows with the shade palettes), whose corner shows the picked look's shades.
+Under **SCREEN**, four options give the game a Game Boy look (and three more give its windows and battle boxes Gen 2's, [below](#gbc-windows-and-hp-boxes)). They're also on their own **SCREEN** page in PRISM (as FILTER, SHADES, WHERE and DOTS; SHADES shows with the shade palettes), whose corner shows the picked look's shades.
 
 * **FILTER**: **GRAY** turns everything into the Game Boy Pocket's four greys, **GREEN** the original Game Boy's four greens, and **RUBY**, **SAPPHIRE** and **EMERALD** four shades of each gem, for the games themselves (EMERALD is bluer and deeper than GREEN). **GBC** keeps colour but cuts each channel down to four levels, for the flat, bright look of a Game Boy Color game. **OFF** (the default) leaves the game's own colours.
 * **SHADES**: how many shades GRAY, GREEN, RUBY, SAPPHIRE and EMERALD use: **4** (the default, like a Game Boy), **8** or **16** for smoother shading and more of the scene's detail. The extra shades are blended between the four palette colours.
@@ -72,6 +74,61 @@ Under **SCREEN**, four options give the game a Game Boy look. They're also on th
 They go well with the GBC NPCs and the GBC-ISH Pokémon, for a Gen 3 game that looks like it came out in 1998. All three change straight away.
 
 How it works: the whole-screen filter and DOTS are a render pipeline, the engine's own way for a mod to post-process the finished frame, and the engine saves it with the game's options. MAP uses the render.compose hook instead, which sees the map before the menus are drawn over it. Neither needs anything from the games. For GRAY and GREEN, each pixel's brightness picks one of the four shades. Gen 3 is much brighter than a Game Boy game (half a typical scene is brighter than 85%), so the cut-offs between shades sit high. The cut-offs, GBC's levels and saturation, and how dark the dot grid is are all at the top of `filter.lua` if you'd like to tune them.
+
+### GBC windows and battle UI
+
+Three more options under **SCREEN** (and on the SCREEN page) give the game's windows and battle boxes Gen 2's look, drawn from Crystal's own art in your imported Crystal (then Gold, then Silver), so nothing is included. Each keeps Gen 3's layout: only the frames, bars and background change.
+
+* **WINDOWS**: **GBC 1** to **GBC 8** are Crystal's eight window frames (its TYPE option), on white, for every text box, sign, menu and yes/no box, the FACETS screens included, and for the battle text box, which splits into Crystal-framed boxes the way the game splits its own (message, FIGHT/BAG/POKéMON/RUN, moves and PP). Battle text that Gen 3 writes white on its dark box is written dark on the white one. After those come the window sets' styles (below). **GAME** (the default) keeps the game's own.
+* **BATTLE UI**: **GBC** draws the healthboxes the way Gen 2 does: no box, Crystal's HP bar ("HP:" and six cells, green, yellow or red by Gen 2's own maths) with the bracket under it, and Crystal's EXP bar filling from the right on your side. Names, levels and HP numbers stay where the game puts them. In double battles the boxes go and the bars change, without brackets. After GBC come the battle box sets (below).
+* **BATTLE BG**: **WHITE** swaps the scenery and platforms for Crystal's plain white. **SCENERY** (included) swaps them for the Battle Backgrounds Patch FR's twenty scenes, by **LibertyTwins, princess-phoenix, carchagui, aveontrainer, WesleyFG, kWharever, worldslayer608 and knizz**, used with credit: each of the games' backgrounds is mapped to one (grass to Grass, tall grass to Forest, sand to Beach, ponds to Lake, buildings to Lab, routes' trainers to Route, gyms, leaders and the Elite Four to Gym, the Champion to Space, and in Emerald Groudon and Team Magma to Volcano, Kyogre and Team Aqua to Sea, Rayquaza to Space, the Frontier to Neutral). It's separate from the other two, so it works with either, or with the game's own boxes. A battle background set is a folder in `assets/battlebg/` with 240x112 scenes and a meta.json mapping the games' background names to them, built with `python3 tools/make_battle_bg_set.py tools/recipes/battlebg_scenery.json . "<the patch's Resources folder>"`.
+
+On the SCREEN page, the WINDOWS, BATTLE UI and BATTLE BG rows show a sample square in the window's corner, drawn with what's picked: the text box for WINDOWS, your healthbox over the message box for BATTLE UI, and the foe's side of the scene for BATTLE BG.
+
+Without a Gen 1/2 game imported, WINDOWS' GBC frames and BATTLE UI' GBC draw the game's own and the SCREEN page says so; the window sets and BATTLE BG need nothing.
+
+#### Battle box sets
+
+A battle box set replaces the battle healthboxes, HP and EXP bars and battle text box with ones from a FireRed patch, in FR/LG and Emerald (R/S keep their own). Included, all used with credit:
+
+* **XY**: XY-style healthboxes, bars and text box by **Verloren 5** (XY-Styled Battle Boxes).
+* **GAIA**: healthboxes and bars by **YoY-X and Spherical Ice** (Gaia HP Boxes).
+* **TEX BOX**: a battle text box by **Cesar Alarcon** (Battle Tex Box).
+* **PLAIN**: a plain grey battle text box by **Neon Skylar** (Plain Battle Box).
+* **ZEKE BLUE, DARK BLUE, DARK GREEN, GREEN, ORANGE, RED and VIOLET**: recoloured healthboxes by **Zeke** (HP Bar Recolours).
+
+A piece a patch redrew is its picture; a piece it only recoloured is the game's own picture in its colours, made while you play. Names, levels and HP numbers on the boxes take the set's colours too. The menus in the text box (FIGHT/BAG, the moves) stay the game's, as they do with the patch, since the game draws those in your window frame.
+
+A battle box set is a folder in `assets/battleui/` with the pictures (laid out the way the engine lays out FireRed's) and a meta.json holding the patch's palettes, built from a patch that `ips_extract.py` has pulled apart: `python3 tools/make_battle_ui_set.py extracted/<patch> . <set> "<LABEL>" "<credit>"`. The text box needs FireRed's text box map, which the tool fetches from pret's pokefirered the first time.
+
+#### Window sets
+
+A window set is a folder in `assets/windows/` with Gen 3-format window art: menu frames (24x24, 3x3 tiles), a dialogue box (18 tiles) and a signpost box (19 tiles), plus a meta.json naming its styles. Each style shows in WINDOWS as the set's label and the style's name. Its frame replaces menus, yes/no boxes and the FACETS screens' windows, and its dialogue box the text box and signs, drawn exactly the way Gen 3 draws its own; anything a style doesn't have stays the game's. Battle boxes stay the game's own with a set.
+
+* **TITO** (included): ten dialogue boxes by **Tito Seich / Sage** (Checkered, Cool Red, Emerald, Hoenn, Orange, Red, Silver, Sky Blue, Square Red and Woody), used with credit. Menus keep the game's own frames.
+
+Sets are built from a pack's own images with:
+
+```
+python3 tools/make_window_set.py tools/recipes/windows_tito.json . "<The Textbox of Tito Seich folder>"
+```
+
+`tools/recipes/windows_libertytwins.json` builds **LIBERTY** from LibertyTwins' Custom Text Boxes FR the same way: ten frames with their dialogue and sign boxes. It doesn't ship until it's confirmed the frames are LibertyTwins' own drawings, so it stays on your machine (`.gitignore`).
+
+##### From IPS patches
+
+Most text box patches, and most other FireRed patches, only come as `.ips` files. `tools/ips_extract.py` reads them with your own FireRed 1.0 ROM, without patching anything on disk (each patch is applied to a copy in memory), and pulls out everything they change, sorted by kind:
+
+```
+python3 tools/ips_extract.py "<FireRed 1.0 ROM>" . "<a patch, a folder of patches, or a .zip>"
+```
+
+* A folder or zip is searched for every `.ips` inside, zips in zips too, so a whole pack can go in at once.
+* Every changed piece of the ROM is named with pret's FireRed symbols (`pokefirered.sym`, fetched from GitHub the first time and kept beside the tool, or given with `--sym`), and sorted into **audio**, **tilesets**, **battle_backgrounds**, **battle_anims**, **battle_scripts**, **battle_ui**, **pokemon** (pictures and data), **trainers**, **overworld**, **windows_fonts**, **items**, **menus**, **text**, **maps_scripts** (scripts, map data and wild encounters), **sprite_tables**, **graphics** (any other picture or palette), **code**, **other** and **new_data** (bytes nothing points at, often injected code). A piece the patch moved elsewhere in the ROM is found by following the pointers to it.
+* Each lands in `extracted/<patch>/<kind>/` as its bytes (unpacked if LZ77-compressed), with a PNG for graphics (coloured by the palette of the same name when there is one, grey otherwise), a glyph sheet for fonts, a swatch PNG for palettes, and a WAV for sound samples. Two patches with the same name from different packs get separate folders. Songs stay as their raw sequence data. `report.md` in each patch's folder lists every piece, whether it was edited in place or moved, where and how big; `extracted/index.md` sums up every patch. `--out` puts them somewhere else.
+* When a patch changes the option-menu frames, the dialogue box or the signpost box, those also become a window set (`assets/windows/x_<patch>/`) with the credits from any `#CREDITS.txt` or README beside the patch, ready for WINDOWS.
+
+It only accepts FireRed 1.0 (BPRE), which the patches are made for. The art and sound are the patch authors', and many DS-style patches carry the DS games' own, so all of it stays on your machine: `.gitignore` keeps `extracted/` and `assets/windows/` out, except the sets that ship.
 
 ## Trainer battle pictures
 
@@ -350,6 +407,10 @@ DIEGO, TAIGA, ZAFFRE and COMMUNITY are included, used with credit. HGSS is Ninte
 - **GB EMERALD:** made from your own imported Emerald's pictures (Nintendo / Game Freak); none of it is included.
 - **TRAINERS: DS (included):** trainer sprites by KyleDove (XY, ORAS, USUM, SWSH and Ga-Olé trainer classes), by Mr. Gela/theo#7722, and by KyleDove, Jext and figyberries (leaders, Elite Four, Aqua and Magma, the Frontier and more), used with credit.
 - **TRAINERS: GBC-ISH and GAME BOY:** Gen 1/2 trainer pictures and Crystal's colours by Nintendo / Game Freak, read from your own imported games, and the game's own trainer pictures made Game Boy while you play; none of it is included.
+- **WINDOWS: TITO (included):** text boxes by Tito Seich / Sage, used with credit.
+- **BATTLE BG: SCENERY (included):** battle backgrounds by LibertyTwins, princess-phoenix, carchagui, aveontrainer, WesleyFG, kWharever, worldslayer608 and knizz (Battle Backgrounds Patch FR), used with credit.
+- **BATTLE UI (included):** XY by Verloren 5; GAIA by YoY-X and Spherical Ice; TEX BOX by Cesar Alarcon; PLAIN by Neon Skylar; the ZEKE recolours by Zeke; all used with credit.
+- **WINDOWS and BATTLE UI: GBC:** Crystal's window frames, HP and EXP bars, HUD brackets and bar colours by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included.
 - **GBC NPCs, Frontier Brains (included):** overworld sprites by sirwhibbles, used with credit.
 - **TRAINERS: GBC-ISH (included):** Gen 2-style Hoenn gym leaders, Elite Four, Wallace and Steven by jphyper; Battle Frontier Brains by sirwhibbles; Archie, Maxie and the Aqua and Magma grunts by eli76; trainer classes by SkidMarc25; all used with credit.
 - **GBC ANIM:** Gen 2 battle sprites and palettes by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included. Hoenn sprites and animations (included) by Nuuk (Crystal-style sprites), free to use with credit, not for profit; the rest from GBC-ISH.

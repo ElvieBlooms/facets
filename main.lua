@@ -7,11 +7,12 @@
 --
 -- Each part adds its option rows and its rows on the FACETS screen
 -- (menu.lua, screen.lua), then starts once the rows are defined. filter.lua
--- is the GB FILTER, a screen shader over the whole game; prebuild.lua
+-- is the GB FILTER, a screen shader over the whole game; gbui.lua gives
+-- windows and battle boxes Crystal's look; prebuild.lua
 -- (PREBUILD) builds the other parts' pictures ahead of time.
 -- An NPC-only build drops "mons" from this list (and mons.lua,
 -- mon_names.lua and assets/mons/). -Elvie
-local PARTS = { "npcs", "foes", "mons", "filter", "prebuild" }
+local PARTS = { "npcs", "foes", "mons", "filter", "gbui", "prebuild" }
 
 return function(mod)
   local rows, starts = {}, {}
@@ -26,7 +27,7 @@ return function(mod)
       require("mods.facets.filter").drawSwatch(area, function(k) return mod.options:get(k) end)
     end }
   menu.pages[#menu.pages + 1] = screenPage
-  local PAGE = { filter = screenPage }
+  local PAGE = { filter = screenPage, gbui = screenPage }
   for _, name in ipairs(PARTS) do
     local start = require("mods.facets." .. name).init(mod, rows, PAGE[name] or menu)
     if start then starts[#starts + 1] = start end
