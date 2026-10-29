@@ -1,0 +1,98 @@
+{
+  "label": "TITO",
+  "credit": [
+    "Text boxes by Tito Seich / Sage, used with credit"
+  ],
+  "styles": [
+    {
+      "name": "CHECKERED",
+      "dialogue": "dialogue_checkered.png",
+      "fill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "COOL RED",
+      "dialogue": "dialogue_cool_red.png",
+      "fill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "EMERALD",
+      "dialogue": "dialogue_emerald.png",
+      "fill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "HOENN",
+      "dialogue": "dialogue_hoenn.png",
+      "fill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "ORANGE",
+      "dialogue": "dialogue_orange.png",
+      "fill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "RED",
+      "dialogue": "dialogue_red.png",
+      "fill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "SILVER",
+      "dialogue": "dialogue_silver.png",
+      "fill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "SKY BLUE",
+      "dialogue": "dialogue_sky_blue.png",
+      "fill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "SQUARE RED",
+      "dialogue": "dialogue_square_red.png",
+      "fill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "WOODY",
+      "dialogue": "dialogue_woody.png",
+      "fill": [
+        248,
+        200,
+        120
+      ]
+    }
+  ]
+}

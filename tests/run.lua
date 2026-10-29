@@ -1219,7 +1219,7 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sectionMons,setMons,animMons,backMons,mirrorMons,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sectionMons,setMons,animMons,backMons,mirrorMons,sectionScreen,gbcFrame,gbcHud,gbcBattleBg,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
   local trainerSets = {}
   for _, c in ipairs(mod.rows[6].choices) do trainerSets[#trainerSets + 1] = c[1] end
   eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
@@ -1322,7 +1322,8 @@ for _, version in ipairs({ "firered", "emerald" }) do
   check(type(fe.draw) == "function", tag .. "...and its live preview for PRISM's corner")
   -- Facets inner, Lens outer -Elvie
   local other = V.addStart(wraps["ui.start_menu.items"](base, {}, nil), lensEntry, lensPicker, {})
-  eq(#other .. ":" .. other[2].label .. ":" .. #other[2].entries, "4:PRISM:3", tag .. "with Lens the other way round: the same")
+  -- with SCREEN (its windows and HP boxes rows) as the fourth -Elvie
+  eq(#other .. ":" .. other[2].label .. ":" .. #other[2].entries, "4:PRISM:4", tag .. "with Lens the other way round: the same")
   local orBoth = wraps["ui.options.rows"](function() return V.addOption({ { id = "text_speed" } }, lensEntry, lensPicker, {}) end, {}, nil)
   eq(#orBoth .. ":" .. orBoth[2].label, "2:PRISM", tag .. "with Lens: one PRISM row on the OPTION menu")
   -- PRISM opens the list; A opens the picked mod's screen on top -Elvie
@@ -1672,6 +1673,132 @@ do
   eq(runner.total, 148, "trainers: PREBUILD lists every FR/LG trainer picture")
   require("mods.facets.prebuild").reset()
   package.loaded["src.core.game3.trainer_pic"] = nil
+end
+
+-- gbui.lua: Crystal's windows, HP boxes and white battle background -Elvie
+-- --------------------------------------------------
+do
+  local G = require("mods.facets.gbui")
+  local function boxes(b) local t = {} for _, x in ipairs(b) do t[#t + 1] = x[1] .. ":" .. x[2] end return table.concat(t, " ") end
+  eq(boxes(G.panelBoxes("none")), "0:30", "gbc ui: the message box is the whole row")
+  eq(boxes(G.panelBoxes("menu")), "0:15 15:15", "gbc ui: FR/LG's menu, two halves")
+  eq(boxes(G.panelBoxes("moves")), "0:20 20:10", "gbc ui: the move list and PP box")
+  eq(boxes(G.panelBoxes("menu", { { 18, 15, 11, 4 } })), "0:17 17:13", "gbc ui: R/S's menu, from its own frame")
+  eq(G.hpPixels(23, 37), 29, "gbc ui: HP bar pixels, Gen 2's maths")
+  eq(G.hpPixels(1, 500), 1, "gbc ui: alive is never an empty bar")
+  eq(G.hpPixels(0, 37), 0, "gbc ui: fainted is empty")
+  eq(G.hpColour(24) .. G.hpColour(23) .. G.hpColour(10) .. G.hpColour(9), "greenyellowyellowred", "gbc ui: bar colour by pixels, as GetHPPal")
+  local bars = G.parseBars(table.concat({ "return {", "  expBar = {", "    {", "      1,", "      2,", "      3,", "    },",
+    "    {", "      4,", "      5,", "      6,", "    },", "  },", "  hpBar = {",
+    "    green = {", "      {", "        10,", "        11,", "        12,", "      },", "      {", "        13,", "        14,", "        15,", "      },", "    },",
+    "    yellow = {", "      {", "        20,", "        21,", "        22,", "      },", "      {", "        23,", "        24,", "        25,", "      },", "    },",
+    "    red = {", "      {", "        30,", "        31,", "        32,", "      },", "      {", "        33,", "        34,", "        35,", "      },", "    },",
+    "  },", "}" }, "\n"))
+  eq(bars and (bars.exp[2][3] .. "," .. bars.green[1][1] .. "," .. bars.red[2][3]), "6,10,35", "gbc ui: HP and EXP bar colours from palettes.lua")
+  eq(G.lightText({ fg = { 1, 1, 1, 1 } }), true, "gbc ui: white battle text is swapped")
+  eq(G.lightText({ fg = { 0.3, 0.3, 0.3, 1 } }), false, "gbc ui: dark text is left alone")
+
+  -- window sets from assets/windows, after Crystal's eight -Elvie
+  local wmod = newMod(ROOT)
+  local list = G.loadSets(wmod)
+  check(G.SETS.tito, "gbc ui: Tito Seich's window set is found")
+  eq(G.WINDOWS[2][1] .. "," .. G.WINDOWS[9][1], "GBC 1,GBC 8", "gbc ui: Crystal's frames first")
+  local seen = {}
+  for _, c in ipairs(G.WINDOWS) do seen[c[2]] = c[1] end
+  eq(seen["tito:1"], "TITO CHECKERED", "gbc ui: a set's styles by name")
+  eq(seen["tito:10"], "TITO WOODY", "gbc ui: ...all ten")
+  local st = G.style("tito:10")
+  eq(st and st.dialogue, "dialogue_woody.png", "gbc ui: a style's dialogue box")
+  eq(st and table.concat(st.fill, ","), "248,200,120", "gbc ui: ...filled with its colour 1")
+  eq(G.settings(function(k) return k == "gbcFrame" and "tito:3" or nil end), "tito:3", "gbc ui: a set's style is a WINDOWS value")
+  eq(G.settings(function(k) return k == "gbcFrame" and "nope:3" or nil end), "game", "gbc ui: an unknown one is GAME")
+  for _, key in ipairs({ "tito" }) do
+    for _, style in ipairs(G.SETS[key].styles) do
+      for _, kind in ipairs({ "frame", "dialogue", "sign" }) do
+        if style[kind] then check(lfs.attributes(ROOT .. "/assets/windows/" .. key .. "/" .. style[kind]), "gbc ui: " .. key .. " ships " .. style[kind]) end
+      end
+    end
+  end
+
+  -- battle background sets, after GAME and WHITE -Elvie
+  G.loadBgSets(wmod)
+  local bset = G.BG_SETS.scenery
+  check(bset, "gbc ui: the SCENERY battle backgrounds are found")
+  eq(G.BG[3] and (G.BG[3][1] .. "," .. G.BG[3][2]), "SCENERY,scenery", "gbc ui: ...as a BATTLE BG choice")
+  eq(bset and (bset.keys.cave .. "," .. bset.keys.champion .. "," .. bset.keys.leader), "cave,space,gym", "gbc ui: the games' backgrounds map to scenes")
+  local n = 0
+  for name, file in pairs(bset and bset.scenes or {}) do
+    n = n + 1
+    check(lfs.attributes(ROOT .. "/assets/battlebg/scenery/" .. file), "gbc ui: SCENERY ships " .. file)
+  end
+  eq(n, 20, "gbc ui: ...all twenty scenes")
+  for key, scene in pairs(bset and bset.keys or {}) do check(bset.scenes[scene], "gbc ui: " .. key .. " has a scene") end
+  eq(select(3, G.settings(function(k) return k == "gbcBattleBg" and "scenery" or nil end)), "scenery", "gbc ui: a set is a BATTLE BG value")
+
+  -- battle box sets, after GAME and GBC -Elvie
+  G.loadUiSets(wmod)
+  eq(G.HUD[1][2] .. "," .. G.HUD[2][2], "game,gbc", "gbc ui: GAME and GBC first in BATTLE UI")
+  local hudSeen = {}
+  for _, c in ipairs(G.HUD) do hudSeen[c[2]] = c[1] end
+  for key, label in pairs({ xy = "XY", gaia = "GAIA", texbox = "TEX BOX", plain = "PLAIN", zeke_blue = "ZEKE BLUE", zeke_green = "ZEKE GREEN" }) do
+    eq(hudSeen[key], label, "gbc ui: the " .. label .. " battle boxes are a choice")
+  end
+  for key, set in pairs(G.UI_SETS) do
+    for name, file in pairs(set.images) do
+      check(lfs.attributes(ROOT .. "/assets/battleui/" .. key .. "/" .. file), "gbc ui: " .. key .. " ships " .. file)
+    end
+    check(type(set.credit) == "table" and type(set.credit[1]) == "string", "gbc ui: " .. key .. " has a credit")
+    for name, p in pairs(set.palettes) do
+      eq(#p.from .. "," .. #p.to, "16,16", "gbc ui: " .. key .. "'s " .. name .. " palette is a whole palette")
+    end
+  end
+  eq(G.UI_SETS.xy and #G.UI_SETS.xy.textboxKeep > 0, true, "gbc ui: XY's text box keeps the game's menus")
+  eq(select(2, G.settings(function(k) return k == "gbcHud" and "xy" or nil end)), "xy", "gbc ui: a set is a BATTLE UI value")
+  eq(select(2, G.settings(function(k) return k == "gbcHud" and "nope" or nil end)), "game", "gbc ui: ...an unknown one is GAME")
+  local cmap = G.colourMap({ 0, 31, 31, 992, 5 }, { 1, 31744, 32767, 992, 5 })
+  eq(cmap[0], nil, "gbc ui: see-through isn't recoloured")
+  eq(cmap[31] and (cmap[31][1] + cmap[31][2] == 0 and cmap[31][3] == 1), true, "gbc ui: a colour maps to the set's")
+  eq(cmap[992], nil, "gbc ui: unchanged colours are left out")
+  local hit = G.mapColour(cmap, 1, 0, 0)
+  eq(hit and hit[3], 1, "gbc ui: the game's red finds its new colour")
+  eq(G.mapColour(cmap, 0, 1, 0), nil, "gbc ui: ...others are left alone")
+
+  -- the wraps: off, and on without a Gen 2 game, both draw the game's own -Elvie
+  local drawn = {}
+  local Chrome = { stdFrame = function() drawn[#drawn + 1] = "std" end, dialogueFrame = function() drawn[#drawn + 1] = "dlg" end }
+  local BC = { drawPanel = function(m) drawn[#drawn + 1] = "panel:" .. tostring(m) end,
+    drawEnemyBox = function() drawn[#drawn + 1] = "ebox" end }
+  local Bg = { draw = function() drawn[#drawn + 1] = "bg"; return true end }
+  local saved = {}
+  for name, m in pairs({ ["src.ui.game3.chrome"] = Chrome, ["src.ui.game3.battle_chrome"] = BC, ["src.core.game3.battle.bg"] = Bg }) do
+    saved[name] = package.loaded[name]; package.loaded[name] = m
+  end
+  package.loaded["mods.facets.gb"] = nil
+  local mod = newMod(ROOT)
+  local rows = {}
+  local start = G.init(mod, rows, nil)
+  mod.options:define(rows)
+  eq(rows[1].key .. "," .. rows[2].key .. "," .. rows[3].key .. "," .. rows[4].key, "sectionScreen,gbcFrame,gbcHud,gbcBattleBg",
+    "gbc ui: rows under a SCREEN heading of their own when the filter isn't there")
+  eq(rows[2].default .. "," .. rows[3].default .. "," .. rows[4].default, "game,game,game", "gbc ui: all the game's own by default")
+  start()
+  Chrome.stdFrame(1, 1, 4, 2); Chrome.dialogueFrame(); BC.drawPanel("menu"); BC.drawEnemyBox(0, 0); Bg.draw()
+  eq(table.concat(drawn, ","), "std,dlg,panel:menu,ebox,bg", "gbc ui: GAME draws the game's own")
+  drawn = {}
+  mod.options:set("gbcFrame", "3"); mod.options:set("gbcHud", "gbc")
+  Chrome.stdFrame(1, 1, 4, 2); BC.drawPanel("none"); BC.drawEnemyBox(0, 0)
+  eq(table.concat(drawn, ","), "std,panel:none,ebox", "gbc ui: no Gen 2 game imported: still the game's own")
+  drawn = {}
+  local filled = {}
+  local LG = love.graphics
+  local savedRect, savedSet = LG.rectangle, LG.setColor
+  LG.rectangle = function(mode, x, y, w, h) filled[#filled + 1] = mode .. ":" .. x .. "," .. y .. "," .. w .. "," .. h end
+  LG.setColor = LG.setColor or function() end
+  mod.options:set("gbcBattleBg", "white")
+  eq(Bg.draw(), true, "gbc ui: WHITE draws the battle background itself")
+  eq(table.concat(filled, ";") .. "|" .. table.concat(drawn, ","), "fill:0,0,240,160|", "gbc ui: ...plain white, not the scenery")
+  LG.rectangle, LG.setColor = savedRect, savedSet
+  for name, m in pairs(saved) do package.loaded[name] = m end
 end
 
 -- prebuild.lua and diskcache.lua on their own -Elvie

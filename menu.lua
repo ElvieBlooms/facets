@@ -41,7 +41,7 @@ end
 
 -- part = {
 --   rows(family) -> { { key, label, who, choices, value }, ... },
---   preview(who, family) -> { lines = { { text, red } } },
+--   preview(who, family) -> { lines = { { text, red } }, width = narrower lines },
 --   draw(clock, family) draws its side of the preview,
 --   credits(family) -> { { text, heading } },
 -- } -Elvie
@@ -110,19 +110,20 @@ function menu.new(mod, opts)
   end
 
   function M.preview(who)
-    local family, lines = menu.family(), {}
+    local family, lines, width = menu.family(), {}, nil
     if family then
       for _, part in ipairs(M.parts) do
         if type(part.preview) == "function" then
           local ok, got = pcall(part.preview, who, family)
           if ok and type(got) == "table" then
             for _, line in ipairs(got.lines or {}) do lines[#lines + 1] = line end
+            if tonumber(got.width) then width = math.min(width or math.huge, tonumber(got.width)) end
           end
         end
       end
     end
     if who == "credits" then lines[#lines + 1] = { text = "Everyone whose art Facets uses." } end
-    return { lines = lines }
+    return { lines = lines, width = width }
   end
 
   -- who: the row the cursor is on, for a part that previews it -Elvie

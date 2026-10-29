@@ -1,0 +1,90 @@
+{
+  "about": "LibertyTwins' Custom Text Boxes FR: ten window frames, with their dialogue and signpost boxes. Run with the 'Custom Text Boxes FR/Resources' folder as the pack folder.",
+  "set": "libertytwins",
+  "label": "LIBERTY",
+  "credit": [
+    "Text boxes by LibertyTwins (Custom Text Boxes FR), used with credit"
+  ],
+  "styles": [
+    {
+      "name": "1",
+      "frame": "box1.png",
+      "dialogue": "boxnormal.png",
+      "dialogueAs": "dialogue.png",
+      "sign": "boxsign.png",
+      "signAs": "sign.png"
+    },
+    {
+      "name": "2",
+      "frame": "box2.png",
+      "dialogue": "boxnormal.png",
+      "dialogueAs": "dialogue.png",
+      "sign": "boxsign.png",
+      "signAs": "sign.png"
+    },
+    {
+      "name": "3",
+      "frame": "box3.png",
+      "dialogue": "boxnormal.png",
+      "dialogueAs": "dialogue.png",
+      "sign": "boxsign.png",
+      "signAs": "sign.png"
+    },
+    {
+      "name": "4",
+      "frame": "box4.png",
+      "dialogue": "boxnormal.png",
+      "dialogueAs": "dialogue.png",
+      "sign": "boxsign.png",
+      "signAs": "sign.png"
+    },
+    {
+      "name": "5",
+      "frame": "box5.png",
+      "dialogue": "boxnormal.png",
+      "dialogueAs": "dialogue.png",
+      "sign": "boxsign.png",
+      "signAs": "sign.png"
+    },
+    {
+      "name": "6",
+      "frame": "box6.png",
+      "dialogue": "boxnormal.png",
+      "dialogueAs": "dialogue.png",
+      "sign": "boxsign.png",
+      "signAs": "sign.png"
+    },
+    {
+      "name": "7",
+      "frame": "box7.png",
+      "dialogue": "boxnormal.png",
+      "dialogueAs": "dialogue.png",
+      "sign": "boxsign.png",
+      "signAs": "sign.png"
+    },
+    {
+      "name": "8",
+      "frame": "box8.png",
+      "dialogue": "boxnormal.png",
+      "dialogueAs": "dialogue.png",
+      "sign": "boxsign.png",
+      "signAs": "sign.png"
+    },
+    {
+      "name": "9",
+      "frame": "box9.png",
+      "dialogue": "boxnormal.png",
+      "dialogueAs": "dialogue.png",
+      "sign": "boxsign.png",
+      "signAs": "sign.png"
+    },
+    {
+      "name": "10",
+      "frame": "box10.png",
+      "dialogue": "boxnormal.png",
+      "dialogueAs": "dialogue.png",
+      "sign": "boxsign.png",
+      "signAs": "sign.png"
+    }
+  ]
+}
