@@ -8,7 +8,7 @@ Facets can also swap Pokémon pictures, party icons and animations (Crystal's sp
 
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
-**Status: 0.6.0.** Works in all five games. It ships with four sprite sets, all free to use with credit:
+**Status: 0.6.1.** Works in all five games. It ships with four sprite sets, all free to use with credit:
 
 - **DIEGO:** DiegoWT's Black/White-style trainers and townsfolk.
 - **TAIGA:** Taiga's ORAS-style trainers.
@@ -19,7 +19,7 @@ Together they give **every person in all five games** new art, with no convertin
 
 There are also two Game Boy looks, **GBC** and **GBC 2X** (below): Gen 1/2 overworld sprites read from your own imported Crystal, Gold, Silver, Yellow, Red or Blue, with Catwithnojob's Gen 2-style sprites for everyone the Game Boy games never had. With a Gen 1/2 game imported, they cover every person in all five games too.
 
-The trainers you battle get new pictures too: **DS** (Gen 4+ style, every trainer picture in Emerald and FR/LG), **GBC-ISH** (Crystal's and Yellow's trainers from your install, plus hand-made Gen 2-style art for Hoenn) and **GAME BOY**. See [Trainer battle pictures](#trainer-battle-pictures).
+The trainers you battle get new pictures too: **DS** (Gen 4+ style, every trainer picture in all five games), **GBC-ISH** (Crystal's and Yellow's trainers from your install, plus hand-made Gen 2-style art for Hoenn) and **GAME BOY**. See [Trainer battle pictures](#trainer-battle-pictures).
 
 ## Options
 
@@ -89,15 +89,17 @@ Without a Gen 1/2 game imported, WINDOWS' GBC frames and BATTLE UI' GBC draw the
 
 #### Battle box sets
 
-A battle box set replaces the battle healthboxes, HP and EXP bars and battle text box with ones from a FireRed patch, in FR/LG and Emerald (R/S keep their own). Included, all used with credit:
+A battle box set replaces the battle healthboxes, HP and EXP bars and battle text box with ones from a FireRed patch, in all five games. Ruby and Sapphire keep their own status icons and the tiles under the name (their HP sheet differs from FireRed's there), in the set's colours. Included, all used with credit:
 
 * **XY**: XY-style healthboxes, bars and text box by **Verloren 5** (XY-Styled Battle Boxes).
 * **GAIA**: healthboxes and bars by **YoY-X and Spherical Ice** (Gaia HP Boxes).
+* **DP, PLATINUM, HGSS, BW, B2W2 BLACK and B2W2 WHITE**: Gen 4 and 5-style healthboxes and bars from DPPtHGSSBWB2W2 Styled Battle Boxes and HP Bars: DP by **Dinisk, Prof. Leon Dias, Neon Skylar and Verloren 5**; PLATINUM by **Omega Zero and Verloren 5**; HGSS by **YoY-X, Neon Skylar, Jaizu and Verloren 5**; BW by **Vytron and Verloren 5**; B2W2 BLACK and WHITE by **Verloren 5**.
+* **B2W2**: Black 2 and White 2-style healthboxes, HP and EXP bars by **Verloren 5** (B2W2 HP Bars, from LibertyTwins' BW Patch Collection FR, whose terms are to credit the creators of any patches used).
 * **TEX BOX**: a battle text box by **Cesar Alarcon** (Battle Tex Box).
 * **PLAIN**: a plain grey battle text box by **Neon Skylar** (Plain Battle Box).
 * **ZEKE BLUE, DARK BLUE, DARK GREEN, GREEN, ORANGE, RED and VIOLET**: recoloured healthboxes by **Zeke** (HP Bar Recolours).
 
-A piece a patch redrew is its picture; a piece it only recoloured is the game's own picture in its colours, made while you play. Names, levels and HP numbers on the boxes take the set's colours too. The menus in the text box (FIGHT/BAG, the moves) stay the game's, as they do with the patch, since the game draws those in your window frame.
+A piece a patch redrew is its picture; a piece it only recoloured is the game's own picture in its colours, made while you play. Names, levels and HP numbers on the boxes take the set's colours too. A set that redraws the party bar (the line of Poké Balls when a trainer sends out their team) changes that too. The menus in the text box (FIGHT/BAG, the moves) stay the game's, as they do with the patch, since the game draws those in your window frame.
 
 A battle box set is a folder in `assets/battleui/` with the pictures (laid out the way the engine lays out FireRed's) and a meta.json holding the patch's palettes, built from a patch that `ips_extract.py` has pulled apart: `python3 tools/make_battle_ui_set.py extracted/<patch> . <set> "<LABEL>" "<credit>"`. The text box needs FireRed's text box map, which the tool fetches from pret's pokefirered the first time.
 
@@ -134,7 +136,7 @@ It only accepts FireRed 1.0 (BPRE), which the patches are made for. The art and 
 
 The trainer you battle is drawn from one engine function, `TrainerPic.front`, and Facets wraps it, so a TRAINERS set reaches every screen that shows a trainer's battle picture. Three sets ship:
 
-* **DS**: Gen 4+ style trainers by **KyleDove** (from his XY, ORAS, USUM, SWSH and Ga-Olé trainer class sets), **Mr. Gela** (theo#7722), and more by **KyleDove**, **Jext** and **figyberries**, all used with credit and included. They cover every trainer picture in Emerald and FireRed and LeafGreen (all but the player's own, which Emerald Lens keeps): the everyday classes, every gym leader, Elite Four and champion in both regions, the FR/LG rival, Teams Aqua, Magma and Rocket, Wally, Steven, Professor Oak and the Frontier Brains. Tate and Liza and the Old Couple are each drawn as two people, stood side by side in one picture. A few are stand-ins: a Roughneck as the Cue Ball, Mr. Gela's second Guitarist as the Rocker, his Double Team as the Cool Couple, and KyleDove's Worker as the Engineer. Most of the art is about 80 pixels tall, the DS games' size, so each is shrunk to fit Gen 3's 64x64 trainer frame.
+* **DS**: Gen 4+ style trainers by **KyleDove** (from his XY, ORAS, USUM, SWSH and Ga-Olé trainer class sets), **Mr. Gela** (theo#7722), and more by **KyleDove**, **Jext** and **figyberries**, all used with credit and included. They cover every trainer picture in all five games (all but the player's own, which Emerald Lens keeps; Ruby and Sapphire's own names for Emerald's pictures find them too): the everyday classes, every gym leader, Elite Four and champion in both regions, the FR/LG rival, Teams Aqua, Magma and Rocket, Wally, Steven, Professor Oak and the Frontier Brains. Tate and Liza and the Old Couple are each drawn as two people, stood side by side in one picture. A few are stand-ins: a Roughneck as the Cue Ball, Mr. Gela's second Guitarist as the Rocker, his Double Team as the Cool Couple, and KyleDove's Worker as the Engineer. Most of the art is about 80 pixels tall, the DS games' size, so each is shrunk to fit Gen 3's 64x64 trainer frame.
 
 * **GBC-ISH**: 53 Gen 3 trainers have a Gen 1/2 counterpart, and those are drawn as that trainer: Crystal's battle picture (then Gold's or Silver's) in Crystal's own two colours for it, read from your imported game. Kanto's gym leaders, Bruno and Lance, the Youngster, Lass, Hiker, Rocket Grunts, swimmers and the rest are Crystal's; the Gen 1-only ones (Giovanni, Lorelei, Agatha, the Gamer and Blue as your rival) are Yellow's (then Red's or Blue's), in the Crystal colours of a similar trainer. Hoenn's leaders and villains have Gen 2-style pictures of their own, included and used with credit: the gym leaders (but Juan), the Elite Four, Wallace and Steven by **jphyper**, the Battle Frontier Brains by **sirwhibbles**, and Archie, Maxie and the male Aqua and Magma grunts by **eli76**. Most of Gen 3's new trainer classes are **SkidMarc25**'s Gen 2-style sprites (the Battle Girl, Bug Maniac, Collector, triathletes on foot and on bikes, Experts, Interviewer, Lady, Painter, Breeders, Rangers, Psychic, Rich Boy, Ruin Maniac, School Kid and Tubers), as are the Channeler, Cue Ball, Engineer, Rocker and Tamer in place of Yellow's, all included and used with credit. Every other trainer (Juan, Wally, the admins, the female grunts, the pairs and couples, the swimming triathletes, the Aroma and Parasol Ladies, the Dragon Tamer, Hex Maniac and Ninja Boy) is the game's own picture made Game Boy while you play, in 4 flat shades. The map is `assets/trainers/gbcish/gb.json`.
 * **GAME BOY**: every trainer is the game's own picture made Game Boy in 4 shades, so it needs no other game.
@@ -409,7 +411,7 @@ DIEGO, TAIGA, ZAFFRE and COMMUNITY are included, used with credit. HGSS is Ninte
 - **TRAINERS: GBC-ISH and GAME BOY:** Gen 1/2 trainer pictures and Crystal's colours by Nintendo / Game Freak, read from your own imported games, and the game's own trainer pictures made Game Boy while you play; none of it is included.
 - **WINDOWS: TITO (included):** text boxes by Tito Seich / Sage, used with credit.
 - **BATTLE BG: SCENERY (included):** battle backgrounds by LibertyTwins, princess-phoenix, carchagui, aveontrainer, WesleyFG, kWharever, worldslayer608 and knizz (Battle Backgrounds Patch FR), used with credit.
-- **BATTLE UI (included):** XY by Verloren 5; GAIA by YoY-X and Spherical Ice; TEX BOX by Cesar Alarcon; PLAIN by Neon Skylar; the ZEKE recolours by Zeke; all used with credit.
+- **BATTLE UI (included):** XY and B2W2 by Verloren 5; DP by Dinisk, Prof. Leon Dias, Neon Skylar and Verloren 5; PLATINUM by Omega Zero and Verloren 5; HGSS by YoY-X, Neon Skylar, Jaizu and Verloren 5; BW by Vytron and Verloren 5; B2W2 BLACK and WHITE by Verloren 5; GAIA by YoY-X and Spherical Ice; TEX BOX by Cesar Alarcon; PLAIN by Neon Skylar; the ZEKE recolours by Zeke; all used with credit.
 - **WINDOWS and BATTLE UI: GBC:** Crystal's window frames, HP and EXP bars, HUD brackets and bar colours by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included.
 - **GBC NPCs, Frontier Brains (included):** overworld sprites by sirwhibbles, used with credit.
 - **TRAINERS: GBC-ISH (included):** Gen 2-style Hoenn gym leaders, Elite Four, Wallace and Steven by jphyper; Battle Frontier Brains by sirwhibbles; Archie, Maxie and the Aqua and Magma grunts by eli76; trainer classes by SkidMarc25; all used with credit.
