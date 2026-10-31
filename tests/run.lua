@@ -1976,5 +1976,55 @@ do
   disk.reset()
 end
 
+
+-- Gen 2 Pokémon pictures: cut, fit, mirror and which file -Elvie
+do
+  local classic = require("mods.facets.classic_mons")
+  local d = love.image.newImageData(64, 64)
+  -- art at x 4..63, y 2..61: 60 wide, 60 tall, a marker at the bottom left -Elvie
+  for y = 2, 61 do for x = 4, 63 do d:setPixel(x, y, 0.5, 0.5, 0.5, 1) end end
+  d:setPixel(4, 61, 1, 0, 0, 1)
+  local x0, y0, x1, y1 = classic.bounds(d)
+  eq(x0 .. "," .. y0 .. "," .. x1 .. "," .. y1, "4,2,63,61", "classic: bounds find the art")
+  eq(classic.bounds(love.image.newImageData(4, 4)), nil, "classic: an empty picture has no bounds")
+  eq(classic.fitScale(40, 40, 56), 1, "classic: small art isn't grown")
+  eq(classic.fitScale(60, 30, 48), 0.8, "classic: big art shrinks by its longer side")
+  local cut = classic.build(d, nil, false)
+  eq(select(1, cut:getDimensions()) .. "x" .. select(2, cut:getDimensions()), "60x60", "classic: cut to the art")
+  local fit = classic.build(d, 56, false)
+  eq(select(1, fit:getDimensions()) .. "x" .. select(2, fit:getDimensions()), "56x56", "classic: fit to the front box")
+  local r = fit:getPixel(0, 55)
+  eq(r, 1, "classic: the bottom row stays the bottom row")
+  local m = classic.build(d, 56, true)
+  eq((m:getPixel(55, 55)), 1, "classic: mirrored")
+
+  local files = { ["assets/mons/ds/front/006.png"] = true, ["assets/mons/ds/back/006.png"] = true,
+    ["assets/mons/ds/front_shiny/006.png"] = true }
+  local opts = { set = "ds", size = "fit", side = "back", has = function(rel) return files[rel] end }
+  local p = classic.choose(opts, 6, "front", "battle", false)
+  eq(p and p.rel, "assets/mons/ds/front/006.png", "classic: a front")
+  eq(p and p.box, 56, "classic: FIT fits fronts to 56")
+  eq(p and p.path, "facets/classic/ds/front/006@56.png", "classic: its own path")
+  p = classic.choose(opts, 6, "back", "battle", true)
+  eq(p and p.rel, "assets/mons/ds/back/006.png", "classic: no shiny back, the plain one")
+  eq(p and p.box, 48, "classic: FIT fits backs to 48")
+  eq(classic.choose(opts, 6, "front", "battle_anim", false), nil, "classic: animations stay the game's own")
+  eq(classic.choose(opts, 7, "front", "battle", false), nil, "classic: a missing Pokemon stays the game's own")
+  eq(classic.choose(opts, nil, "front", "battle", false), nil, "classic: no dex number, the game's own")
+  opts.side = "mirrored"
+  p = classic.choose(opts, 6, "back", "battle", true)
+  eq(p and p.rel, "assets/mons/ds/front_shiny/006.png", "classic: YOUR SIDE uses the front, shiny too")
+  check(p and p.mirror and p.box == 48, "classic: mirrored into the back box")
+  p = classic.choose(opts, 6, "back", "summary", false)
+  check(p and p.rel:find("/back/") and not p.mirror, "classic: YOUR SIDE is battle only")
+  opts.size = "0.75"
+  p = classic.choose(opts, 6, "front", "battle", false)
+  check(p and p.scale == 0.75 and p.box == nil and p.path:find("@cut"), "classic: a fixed scale cuts and scales")
+  p = classic.choose(opts, 6, "front", "pokedex", false)
+  check(p and p.scale == nil and p.box == 56, "classic: other screens always fit")
+  opts.set = "__off"
+  eq(classic.choose(opts, 6, "front", "battle", false), nil, "classic: OFF is the game's own")
+end
+
 print(("%d passed, %d failed"):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)
