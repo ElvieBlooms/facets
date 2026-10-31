@@ -1,7 +1,7 @@
 {
   "id": "facets",
   "name": "Facets",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -9,7 +9,7 @@
   "category": "GRAPHICS",
   "priority": 100,
   "dependencies": [],
-  "optional_dependencies": [],
+  "optional_dependencies": ["recomp_achievements@>=0.1.0"],
   "conflicts": [],
   "incompatible": [],
   "experimental": false,

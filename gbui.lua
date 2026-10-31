@@ -8,7 +8,8 @@
 --   BATTLE UI: the battle healthboxes as Gen 2 draws them: no box, the
 --     bracket under the HP bar, Crystal's HP and EXP bars; or a battle box
 --     set's (assets/battleui/<set>/): healthboxes, bars and text box from
---     a patch, or its colours on the game's own. FR/LG and Emerald.
+--     a patch, or its colours on the game's own. All five games: R/S keep
+--     their own status icons and name-row tiles, in the set's colours.
 --   BATTLE BG: the terrain and platforms swapped for Crystal's plain white,
 --     or a battle background set's scenes (assets/battlebg/<set>/), each
 --     of the games' backgrounds mapped to one of its scenes.
@@ -337,6 +338,14 @@ end
 -- A set's scene for one of the games' backgrounds (grass, cave, gym...),
 -- loaded once; the set's default for one it doesn't map. -Elvie
 local scenes = {}
+-- The scene name a set gives one of the games' backgrounds, or nil. -Elvie
+function gbui.sceneName(setKey, bgKey)
+  local set = gbui.BG_SETS[setKey]
+  if not set then return nil end
+  local name = set.keys[tostring(bgKey or "")] or set.default
+  return type(name) == "string" and set.scenes[name] and name or nil
+end
+
 function gbui.scene(mod, setKey, bgKey)
   local set = gbui.BG_SETS[setKey]
   if not set then return nil end
@@ -399,19 +408,29 @@ gbui.UI_PIECES = {
   { name = "textbox", field = "_textbox", w = 256, h = 512, pal = "textbox" },
 }
 
+-- The tiles of R/S's HP and EXP sheet that differ from FireRed's and
+-- Emerald's (compared tile by tile, 8x8, 40 to a row): its status icons
+-- and the box tiles R/S lays under the name. -Elvie
+gbui.RS_ELEMENT_TILES = { 22, 25, 26, 27, 31, 34, 42, 44, 45, 46, 72, 75, 76, 77, 81, 84, 87, 90, 91, 92,
+  96, 99, 102, 105, 106, 107, 111, 114 }
+
 local function key5(r, g, b)
   return math.floor(r * 31 + 0.5) + math.floor(g * 31 + 0.5) * 32 + math.floor(b * 31 + 0.5) * 1024
 end
 
 -- GBA colour pairs as a lookup: game colour -> the set's, as 0..1 RGB.
 -- Colour 0 (see-through) and unchanged ones are left out; where the game
--- uses one colour twice, the first wins. into: add to that table. -Elvie
-function gbui.colourMap(from, to, into)
+-- uses one colour twice, the first wins. into: add to that table. base:
+-- the palette the set was made against (FireRed's), when the game's own
+-- (from) differs: only the colours the set changed from base are moved,
+-- so another game's colours never take FireRed's. -Elvie
+function gbui.colourMap(from, to, into, base)
   local out = into or {}
   if type(from) ~= "table" or type(to) ~= "table" then return out end
+  base = type(base) == "table" and base or from
   for i = 2, 16 do
-    local a, b = tonumber(from[i]), tonumber(to[i])
-    if a and b and a ~= b and out[a] == nil then
+    local a, b, was = tonumber(from[i]), tonumber(to[i]), tonumber(base[i])
+    if a and b and was and was ~= b and out[a] == nil then
       out[a] = { (b % 32) / 31, (math.floor(b / 32) % 32) / 31, (math.floor(b / 1024) % 32) / 31 }
     end
   end
@@ -455,7 +474,7 @@ function gbui.uiArt(mod, key, read, pals, size)
   for name, p in pairs(set.palettes) do
     if type(p) == "table" then
       local from = type(pals[name]) == "table" and #pals[name] >= 16 and pals[name] or p.from
-      maps[name] = gbui.colourMap(from, p.to)
+      maps[name] = gbui.colourMap(from, p.to, nil, p.from)
     end
   end
   local out = { images = {}, text = {} }
@@ -479,12 +498,37 @@ function gbui.uiArt(mod, key, read, pals, size)
       if game and #game >= w * h * 4 then
         local base = map and next(map) and gbui.recolourRgba(game, w, h, map) or love.image.newImageData(w, h, "rgba8", game)
         local dw, dh = data:getDimensions()
+        -- R/S's message box runs a column further before its menu (FR/LG's
+        -- ends at column 15, R/S's at 16): keep the set's last inside
+        -- column and its edge to widen it -Elvie
+        local saved
+        if size and size.rs and dw >= 17 * T and dh >= 40 * T then
+          saved = love.image.newImageData(2 * T, 6 * T)
+          saved:paste(data, 0, 0, 14 * T, 34 * T, 2 * T, 6 * T)
+        end
         for _, r in ipairs(set.textboxKeep) do
           local x, y, n = (tonumber(r[1]) or 0) * T, (tonumber(r[2]) or 0) * T, (tonumber(r[3]) or 0) * T
           if x + n <= math.min(w, dw) and y + T <= math.min(h, dh) then
             for py = y, y + T - 1 do
               for px = x, x + n - 1 do data:setPixel(px, py, base:getPixel(px, py)) end
             end
+          end
+        end
+        if saved then
+          data:paste(saved, 15 * T, 34 * T, 0, 0, T, 6 * T)
+          data:paste(saved, 16 * T, 34 * T, T, 0, T, 6 * T)
+        end
+      end
+    elseif data and size and size.rs and (piece.name == "elements" or piece.name == "elements_exp") then
+      -- R/S's sheet has its own tiles in these places (its status icons
+      -- and the tiles under the name): the game's own, in the set's colours -Elvie
+      local game = read(piece.name)
+      if game and #game >= w * h * 4 then
+        local base = map and next(map) and gbui.recolourRgba(game, w, h, map) or love.image.newImageData(w, h, "rgba8", game)
+        for _, t in ipairs(gbui.RS_ELEMENT_TILES) do
+          local x, y = (t % 40) * T, math.floor(t / 40) * T
+          for py = y, y + T - 1 do
+            for px = x, x + T - 1 do data:setPixel(px, py, base:getPixel(px, py)) end
           end
         end
       end
@@ -726,10 +770,6 @@ function gbui.init(mod, rows, menu)
         elseif who == "gbcHud" then
           local uset = gbui.UI_SETS[hud]
           if uset then
-            local okB, BC = pcall(require, "src.ui.game3.battle_chrome")
-            if okB and type(BC) == "table" and type(BC.layout) == "function" and BC.layout() == "rs" then
-              lines[#lines + 1] = { text = "FR/LG and Emerald only.", red = true }
-            end
             lines[#lines + 1] = { text = "New battle boxes." }
             local credit = type(uset.credit) == "table" and uset.credit[1] or uset.credit
             if type(credit) == "string" then lines[#lines + 1] = { text = credit } end
@@ -789,7 +829,7 @@ function gbui.init(mod, rows, menu)
     local function uiOn()
       local _, hud = gbui.settings(get)
       if not gbui.UI_SETS[hud] or not (okB and type(BattleChrome) == "table") then return nil end
-      if type(BattleChrome.layout) == "function" and BattleChrome.layout() == "rs" then return nil end
+      local rs = type(BattleChrome.layout) == "function" and BattleChrome.layout() == "rs"
       local m = type(BattleChrome._manifest) == "table" and BattleChrome._manifest or {}
       local base = okX and type(Extract) == "table" and Extract.CACHE_ROOT
       local root = tostring(base) .. "/pokemon/battle/"
@@ -800,7 +840,7 @@ function gbui.init(mod, rows, menu)
         return okR and type(d) == "string" and d or nil
       end
       return gbui.uiArt(mod, hud, read, { healthbox = m.healthboxPal, healthbar = m.healthbarPal, textbox = m.textboxPal },
-        { id = tostring(BattleChrome._installKey), w = m.textboxW, h = m.textboxH })
+        { id = tostring(BattleChrome._installKey), w = m.textboxW, h = m.textboxH, rs = rs })
     end
     local function restore(a, saved, ok, ...)
       for field, img in pairs(a.images) do
@@ -817,6 +857,15 @@ function gbui.init(mod, rows, menu)
         local saved = {}
         for field, img in pairs(a.images) do saved[field] = BattleChrome[field]; BattleChrome[field] = img end
         return restore(a, saved, pcall(fn, ...))
+      end
+    end
+    if okB and type(BattleChrome) == "table" and type(BattleChrome.drawElementTile) == "function" then
+      -- R/S lays box tiles under the name over its own box; a set's box
+      -- already has its own there -Elvie
+      local origTile = BattleChrome.drawElementTile
+      BattleChrome.drawElementTile = function(ti, ...)
+        if ti == 43 and type(BattleChrome.layout) == "function" and BattleChrome.layout() == "rs" and uiOn() then return end
+        return origTile(ti, ...)
       end
     end
     if okB and type(BattleChrome) == "table" then
@@ -862,9 +911,19 @@ function gbui.init(mod, rows, menu)
           end
           return setColor(r, g, b, al)
         end
+        -- R/S paints each text row in the box's colour, at its own box's
+        -- rows; a set's box has its own shape, so those fills are left out -Elvie
+        local rect = G.rectangle
+        if type(BattleChrome) == "table" and type(BattleChrome.layout) == "function" and BattleChrome.layout() == "rs" then
+          G.rectangle = function(mode, ...)
+            if mode == "fill" then return end
+            return rect(mode, ...)
+          end
+        end
         textMap = a.text
         local ok, x, y = pcall(origDraw, ...)
         textMap = nil
+        G.rectangle = rect
         G.setColor = setColor
         if not ok then error(x, 0) end
         return x, y
@@ -1038,6 +1097,7 @@ function gbui.init(mod, rows, menu)
         if type(orig) == "function" then
           BattleChrome[name] = function(key, ...)
             local _, _, bg = gbui.settings(get)
+            if name == "drawTerrain" then gbui.lastTerrain = key end -- for achievements.lua -Elvie
             local img = gbui.BG_SETS[bg] and gbui.scene(mod, bg, key)
             if img then
               love.graphics.setColor(0, 0, 0, 1)

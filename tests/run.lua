@@ -1675,6 +1675,20 @@ do
   package.loaded["src.core.game3.trainer_pic"] = nil
 end
 
+-- foes.lua: Ruby and Sapphire's trainer names find the sets' pictures -Elvie
+do
+  local F = require("mods.facets.foes")
+  eq(F.normal("TRAINER_PIC_ARCHIE"), "AQUA_LEADER_ARCHIE", "trainers: R/S's ARCHIE is Emerald's AQUA_LEADER_ARCHIE")
+  eq(F.normal("TRAINER_PIC_WALLACE"), "LEADER_WALLACE", "trainers: R/S's Wallace is the gym leader")
+  eq(F.normal("TRAINER_PIC_COOL_TRAINER_F"), "COOLTRAINER_F", "trainers: R/S's COOL_TRAINER_F")
+  eq(F.normal("TRAINER_PIC_RS_MAY_1"), "RS_MAY_1", "trainers: the player's own stay as they are")
+  for _, set in ipairs({ "ds" }) do
+    for rs, name in pairs(F.RS_NAMES) do
+      check(lfs.attributes(ROOT .. "/assets/trainers/" .. set .. "/" .. name .. ".png"), "trainers: " .. set .. " has R/S's " .. rs)
+    end
+  end
+end
+
 -- gbui.lua: Crystal's windows, HP boxes and white battle background -Elvie
 -- --------------------------------------------------
 do
@@ -1740,7 +1754,7 @@ do
   eq(G.HUD[1][2] .. "," .. G.HUD[2][2], "game,gbc", "gbc ui: GAME and GBC first in BATTLE UI")
   local hudSeen = {}
   for _, c in ipairs(G.HUD) do hudSeen[c[2]] = c[1] end
-  for key, label in pairs({ xy = "XY", gaia = "GAIA", texbox = "TEX BOX", plain = "PLAIN", zeke_blue = "ZEKE BLUE", zeke_green = "ZEKE GREEN" }) do
+  for key, label in pairs({ xy = "XY", gaia = "GAIA", texbox = "TEX BOX", plain = "PLAIN", zeke_blue = "ZEKE BLUE", zeke_green = "ZEKE GREEN", b2w2 = "B2W2", dp = "DP", platinum = "PLATINUM", hgss = "HGSS", bw = "BW", b2w2_black = "B2W2 BLACK", b2w2_white = "B2W2 WHITE" }) do
     eq(hudSeen[key], label, "gbc ui: the " .. label .. " battle boxes are a choice")
   end
   for key, set in pairs(G.UI_SETS) do
@@ -1762,6 +1776,10 @@ do
   local hit = G.mapColour(cmap, 1, 0, 0)
   eq(hit and hit[3], 1, "gbc ui: the game's red finds its new colour")
   eq(G.mapColour(cmap, 0, 1, 0), nil, "gbc ui: ...others are left alone")
+  -- another game's palette: only what the set changed from FireRed's moves -Elvie
+  local other = G.colourMap({ 0, 31, 992, 5 }, { 0, 31744, 31775, 5 }, nil, { 0, 31, 31775, 5 })
+  eq(other[31] and other[31][3], 1, "gbc ui: a colour the set changed moves on another game")
+  eq(other[992], nil, "gbc ui: ...one it kept from FireRed doesn't take FireRed's")
 
   -- the wraps: off, and on without a Gen 2 game, both draw the game's own -Elvie
   local drawn = {}
@@ -1799,6 +1817,100 @@ do
   eq(table.concat(filled, ";") .. "|" .. table.concat(drawn, ","), "fill:0,0,240,160|", "gbc ui: ...plain white, not the scenery")
   LG.rectangle, LG.setColor = savedRect, savedSet
   for name, m in pairs(saved) do package.loaded[name] = m end
+end
+
+-- achievements.lua: the looks, and a stand-in Recomp Achievements -Elvie
+-- --------------------------------------------------
+do
+  local A = require("mods.facets.achievements")
+  local ids = {}
+  for _, d in ipairs(A.LIST) do
+    check(#d.title <= 32, "achievements: " .. d.id .. "'s title fits (32)")
+    check(#d.description <= 160, "achievements: " .. d.id .. "'s description fits (160)")
+    check(d.id:match("^[a-z0-9_%-]+$") and #d.id <= 48, "achievements: " .. d.id .. " is a valid id")
+    check(not ids[d.id], "achievements: " .. d.id .. " is unique")
+    ids[d.id] = true
+  end
+  local gbc = { npcs = "gbc", trainers = "gbcish", mons = "gbc_anim", frame = "4", hud = "gbc", bg = "white",
+    look = "off", where = "screen", dots = "off", shades = "4", side = "back", gen2 = true }
+  eq(A.isGbc(gbc), true, "achievements: the full GBC look")
+  local noGen2 = {}
+  for k, v in pairs(gbc) do noGen2[k] = v end
+  noGen2.gen2 = false
+  eq(A.isGbc(noGen2), false, "achievements: ...but not without a Gen 2 game to draw it")
+  local scenery = {}
+  for k, v in pairs(gbc) do scenery[k] = v end
+  scenery.bg = "scenery"
+  eq(A.isGbc(scenery), false, "achievements: ...and not with SCENERY behind it")
+  local ds = { npcs = "community", trainers = "ds", mons = "ds", frame = "game", hud = "b2w2_black", bg = "scenery",
+    look = "off", where = "screen", dots = "off", shades = "4", side = "front", gen2 = false }
+  eq(A.isModern(ds), true, "achievements: a Gen 4+ look")
+  ds.hud = "gaia"
+  eq(A.isModern(ds), false, "achievements: ...not with Gaia's boxes")
+  ds.hud = "xy"
+  local e = A.earned(ds, "trainer", "beach")
+  eq((e.ids.to_the_future and "y" or "n") .. (e.ids.go_back and "y" or "n") .. tostring(e.side) .. tostring(e.scene),
+    "yntruebeach", "achievements: a trainer win in it earns To the Future!, counts YOUR SIDE and the scene")
+  eq(A.earned(ds, "wild").ids.to_the_future, nil, "achievements: ...a wild one doesn't")
+  local green = { look = "green", where = "screen", dots = "on", shades = "4", side = "back" }
+  eq(A.earned(green, "wild").ids.original_recipe, true, "achievements: GREEN, 4 shades, DOTS: Original Recipe")
+  green.shades = "16"
+  eq(A.earned(green, "wild").ids.original_recipe, nil, "achievements: ...not at 16 shades")
+  eq(A.earned({ look = "ruby", where = "map", dots = "off", shades = "8", side = "back" }, "wild").gem, "ruby",
+    "achievements: a gem filter counts toward Gem Collector anywhere")
+
+  -- the part, against a stand-in framework -Elvie
+  local unlocked, progress, registered = {}, {}, nil
+  local handle = {}
+  function handle:registerMany(list) registered = list; return #list, {} end
+  function handle:unlock(id) unlocked[id] = true; return true end
+  function handle:isUnlocked(id) return unlocked[id] or false end
+  function handle:getProgress(id) return progress[id] or 0, 10 end
+  function handle:setProgress(id, n) progress[id] = n; return true end
+  function handle:addProgress(id, n) progress[id] = (progress[id] or 0) + (n or 1); return true end
+  local fake = { apiVersion = "1.3.0", events = { ready = "ach.ready", unlocked = "ach.unlocked", progress = "ach.progress" },
+    connect = function(_, opts) handle.tab = opts and opts.tab; return handle end }
+  local amod = newMod(ROOT)
+  amod.find = function(id) return id == "recomp_achievements" and { exports = fake } or nil end
+  local stored
+  amod.storage = { read = function() return stored end, write = function(_, _, _, v) stored = v; return true end }
+  local arows = {}
+  local gbuiM = require("mods.facets.gbui")
+  gbuiM.loadBgSets(amod)
+  A.init(amod)()
+  eq(handle.tab, "FACETS", "achievements: its own FACETS tab")
+  eq(registered and #registered, #A.LIST, "achievements: all registered")
+  local function fire(name, ev) for _, fn in ipairs(amod.on[name] or {}) do fn(ev) end end
+  fire("ach.ready", {})
+  amod.options:set("backMons", "front")
+  amod.options:set("filter", "sapphire")
+  amod.options:set("gbcBattleBg", "scenery")
+  fire("battle.started", { kind = "wild" })
+  gbuiM.lastTerrain = "sand"
+  fire("battle.ended", { result = "win" })
+  eq(progress.face_to_face, 1, "achievements: a win with YOUR SIDE on FRONT counts")
+  eq(progress.gem_collector, 1, "achievements: ...and SAPPHIRE for Gem Collector")
+  eq(progress.scenic_route, 1, "achievements: ...and the beach for Scenic Route")
+  eq(stored and stored.scenes and stored.scenes.beach, true, "achievements: the scene is kept with the save")
+  fire("battle.started", { kind = "wild" })
+  gbuiM.lastTerrain = "sand"
+  fire("battle.ended", { result = "win" })
+  eq(progress.scenic_route, 1, "achievements: the same scene twice counts once")
+  fire("battle.started", { kind = "wild" })
+  fire("battle.ended", { result = "lost" })
+  eq(progress.face_to_face, 2, "achievements: a lost battle earns nothing")
+  amod.options:set("setTrainers", "ds"); amod.options:set("setMons", "ds"); amod.options:set("gbcHud", "hgss")
+  fire("battle.started", { kind = "trainer" })
+  fire("battle.ended", { result = "win" })
+  eq(unlocked.to_the_future, nil, "achievements: To the Future! needs the NPCs too")
+  unlocked.go_back = true; unlocked.to_the_future = true
+  fire("battle.started", { kind = "wild" })
+  fire("battle.ended", { result = "win" })
+  eq(unlocked.time_traveler, true, "achievements: both looks earn Time Traveler")
+  local none = newMod(ROOT)
+  none.find = function() return nil end
+  A.init(none)()
+  eq(none.on["battle.ended"], nil, "achievements: without Recomp Achievements, nothing is listened to")
 end
 
 -- prebuild.lua and diskcache.lua on their own -Elvie

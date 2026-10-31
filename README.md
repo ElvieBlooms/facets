@@ -392,6 +392,24 @@ GEN1RECOMP_SRC=<unzipped .love> GEN1RECOMP_DATA=<install folder> texlua tests/ru
 
 (`texlua` comes with TeX Live and has `lfs` built in; plain Lua 5.1–5.4 or LuaJIT with luafilesystem works too.)
 
+## Achievements
+
+With [Recomp Achievements](https://github.com/ElvieBlooms/recomp_achievements) installed, Facets adds its own tab, **FACETS**, to the TROPHIES menu. Each one is earned by winning a battle in a look, judged by your settings when the battle started. They count on Recomp Achievements' Extra Credit board, not the main one. Without it, Facets carries on as before.
+
+| | | |
+|---|---|---|
+| **We have to go Back...** | 25 | Win a trainer battle in full Game Boy Color: GBC or GBC 2X NPCs, GBC-ISH trainers, GBC-ISH or GBC ANIM Pokémon, a GBC window frame, GBC battle boxes and a WHITE battle background (with a Gen 2 game imported to draw them). |
+| **To the Future!** | 25 | Win a trainer battle in a Gen 4+ look: DIEGO, TAIGA, ZAFFRE or COMMUNITY NPCs, DS trainers and Pokémon, and DP, PLATINUM, HGSS, BW, B2W2 or XY battle boxes. |
+| **Time Traveler** (hidden) | 10 | Earn both of those. |
+| **Original Recipe** | 10 | Win a battle with the whole screen in GREEN, 4 shades, with DOTS on. |
+| **Pocket Monsters** | 5 | Win a battle with the whole screen in GRAY, 4 shades. |
+| **Gem Collector** | 15 | Win a battle under each of the RUBY, SAPPHIRE and EMERALD filters. |
+| **Face to Face** | 10 | Win 10 battles with YOUR SIDE on FRONT or MIRRORED. |
+| **Scenic Route** | 15 | Win battles in 8 different SCENERY backgrounds. |
+| **Built to Last** | 5 | Let PREBUILD build and keep everything your settings need. |
+
+Catching a wild Pokémon counts as a win. The scenes and filters you've won in are kept with your save, so Gem Collector and Scenic Route carry on where they left off.
+
 ## Credits
 
 Code by Elvie, MIT licensed. Built on the approach of Emerald Lens and Crystal Lens (dburton95).
