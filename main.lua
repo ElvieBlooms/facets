@@ -15,7 +15,33 @@
 -- mon_names.lua and assets/mons/). -Elvie
 local PARTS = { "npcs", "foes", "mons", "filter", "gbui", "prebuild", "achievements" }
 
+-- The Game Boy games get their own parts, set from the Mods manager: the
+-- Gen 3 ones above reach into Gen 3's engine and screens. -Elvie
+local CLASSIC_PARTS = { "classic_mons" }
+
+-- 1, 2 or 3 for the running game -Elvie
+local function generation()
+  local ok, GameVersion = pcall(require, "src.core.GameVersion")
+  if not ok or type(GameVersion) ~= "table" then return 3 end
+  if type(GameVersion.generation) == "function" then
+    local okG, gen = pcall(GameVersion.generation)
+    if okG and type(gen) == "number" then return gen end
+  end
+  return 3
+end
+
+local function startClassic(mod)
+  local rows, starts = {}, {}
+  for _, name in ipairs(CLASSIC_PARTS) do
+    local start = require("mods.facets." .. name).init(mod, rows)
+    if start then starts[#starts + 1] = start end
+  end
+  if #rows > 0 then mod.options:define(rows) end
+  for _, start in ipairs(starts) do start() end
+end
+
 return function(mod)
+  if generation() ~= 3 then return startClassic(mod) end
   local rows, starts = {}, {}
   local menuMod = require("mods.facets.menu")
   local menu = menuMod.new(mod)
