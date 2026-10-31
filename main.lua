@@ -9,10 +9,11 @@
 -- (menu.lua, screen.lua), then starts once the rows are defined. filter.lua
 -- is the GB FILTER, a screen shader over the whole game; gbui.lua gives
 -- windows and battle boxes Crystal's look; prebuild.lua
--- (PREBUILD) builds the other parts' pictures ahead of time.
+-- (PREBUILD) builds the other parts' pictures ahead of time, and
+-- achievements.lua adds a FACETS tab to Recomp Achievements when it's there.
 -- An NPC-only build drops "mons" from this list (and mons.lua,
 -- mon_names.lua and assets/mons/). -Elvie
-local PARTS = { "npcs", "foes", "mons", "filter", "gbui", "prebuild" }
+local PARTS = { "npcs", "foes", "mons", "filter", "gbui", "prebuild", "achievements" }
 
 return function(mod)
   local rows, starts = {}, {}
