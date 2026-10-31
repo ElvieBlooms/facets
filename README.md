@@ -8,7 +8,7 @@ Facets can also swap Pokémon pictures, party icons and animations (Crystal's sp
 
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
-**Status: 0.6.1.** Works in all five games. It ships with four sprite sets, all free to use with credit:
+**Status: 0.7.0.** Works in all five games. It ships with four sprite sets, all free to use with credit:
 
 - **DIEGO:** DiegoWT's Black/White-style trainers and townsfolk.
 - **TAIGA:** Taiga's ORAS-style trainers.
@@ -201,7 +201,7 @@ The Pokémon side is `mons.lua`, `mon_names.lua` and `assets/mons/`, listed once
 
 ### With SPRITE SWAPPER (and other sprite pack mods)
 
-[SPRITE SWAPPER](https://github.com/artyrambles/ST_SPRITESWAPPER) by artyrambles swaps Pokémon pictures for sprite packs through the engine's `pokemon.sprite` and `pokemon.icon` hooks. Facets steps aside for it: when the pack you've picked there (or any mod using those hooks) has a picture for a Pokémon, that picture shows, front, back and icon, whatever Facets' SET or FR/LG ANIMS say. Facets fills in only what the pack doesn't have, so with a pack picked and a SET on, a Pokémon the pack leaves out still gets the set's picture. A pack's Pokémon keep the pack's picture through their whole animation instead of flashing Facets' or Emerald's art mid-move. YOUR SIDE: FRONT still works, using the pack's front. When the FACETS screen's preview has a pack's Pokémon in it, the POKéMON row says so. With no pack picked, nothing changes.
+[SPRITE SWAPPER](https://github.com/artyrambles/ST_SPRITESWAPPER) by artyrambles swaps Pokémon pictures for sprite packs through the engine's `pokemon.sprite` and `pokemon.icon` hooks. Facets steps aside for it: when the pack you've picked there (or any mod using those hooks) has a picture for a Pokémon, that picture shows, front, back and icon, whatever Facets' SET or FR/LG ANIMS say. Facets fills in only what the pack doesn't have, so with a pack picked and a SET on, a Pokémon the pack leaves out still gets the set's picture. A pack's Pokémon keep the pack's picture through their whole animation instead of flashing Facets' or Emerald's art mid-move. YOUR SIDE: FRONT still works, using the pack's front. When the FACETS screen's preview has a pack's Pokémon in it, the POKéMON row says so, and names the pack (SPRITE SWAPPER shares which one is picked). Picking another pack there clears the turned-around pictures YOUR SIDE: FRONT made from the old one's, so they follow straight away. With no pack picked, nothing changes.
 
 Facets' own art can go the other way too: `tools/make_sprite_swapper_pack.py` turns a set into a SPRITE SWAPPER sprite pack (Gen 3 only, and it needs SPRITE SWAPPER). Each picture is stood where the game's own would stand, using FireRed and LeafGreen's height offsets from gen1recomp's source, so in FR/LG a pack picture lands exactly where Facets puts it; in Ruby, Sapphire and Emerald a few redrawn Kanto Pokémon stand a pixel or two off. Two recipes are included:
 

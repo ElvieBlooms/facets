@@ -402,6 +402,28 @@ function mons.fromHook(entry)
   return type(entry.path) == "string" and entry.path ~= "" and not entry.path:find("%.rgba$")
 end
 
+-- SPRITE SWAPPER's own settings, which it shares (from its 2025-10
+-- update): exports.spritepack, the pack picked there, and
+-- exports.backspritescale. Read fresh each time, since they change when
+-- the player changes them and may be unset just after loading. nil
+-- without SPRITE SWAPPER or before it says. -Elvie
+function mons.swapper(mod)
+  if type(mod) ~= "table" or type(mod.find) ~= "function" then return nil end
+  local ok, found = pcall(mod.find, "ST_SPRITESWAPPER")
+  local ex = ok and type(found) == "table" and found.exports
+  return type(ex) == "table" and ex or nil
+end
+
+-- The pack picked in SPRITE SWAPPER, as text, or nil for none. -Elvie
+function mons.packName(mod)
+  local ex = mons.swapper(mod)
+  local pack = ex and ex.spritepack
+  if pack == nil or pack == false then return nil end
+  pack = tostring(pack)
+  if pack == "" then return nil end
+  return pack
+end
+
 -- The first and last rows with anything drawn in them, or nil when the
 -- picture can't be read or is empty. -Elvie
 function mons.drawnRows(data)
@@ -979,6 +1001,7 @@ function mons.init(mod, rows, menu)
     -- The front's script as Gen 3 sprite commands: the set's own, or
     -- Crystal's for a Game Boy front. -Elvie
     local packFront -- set below, once the game's own frontPic is known -Elvie
+    local packChanged = function() return false end -- set below, with YOUR SIDE's pictures -Elvie
     local function gbCommands(species)
       if packFront and packFront(species, false) then return nil end
       local front = lookup("front", species, nil, false)
@@ -1222,6 +1245,16 @@ function mons.init(mod, rows, menu)
       local okS, prof = pcall(Profile.forSession)
       return okS and type(prof) == "table" and type(prof.ui) == "table" and prof.ui.battleSpriteLayout == "rs" or false
     end
+    -- A new pack picked in SPRITE SWAPPER: the turned-around pictures
+    -- made from the old pack's fronts go -Elvie
+    local lastPack = mons.packName(mod)
+    packChanged = function()
+      local now = mons.packName(mod)
+      if now == lastPack then return false end
+      lastPack = now
+      asBack, stillRows = {}, {}
+      return true
+    end
     local function frontAsBack(species, form, shiny, frame)
       local sp = tonumber(species)
       frame = tonumber(frame) or 0
@@ -1232,6 +1265,7 @@ function mons.init(mod, rows, menu)
         suffix = okS and type(got) == "string" and got or ""
       end
       local key = sp .. suffix .. ":" .. (tonumber(form) or 0) .. ":" .. frame .. (shiny and ":s" or "")
+      packChanged()
       local hit = asBack[key]
       if hit ~= nil then return hit or nil end
       -- kept from an earlier start, unless a sprite pack's picture is
@@ -1598,7 +1632,10 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
           needs[#needs + 1] = { text = "No Emerald imported.", red = true }
         end
         for i = #needs, 1, -1 do table.insert(lines, 1, needs[i]) end
-        if packShowing() then table.insert(lines, 1, { text = "Sprite pack's POKéMON first." }) end
+        if packShowing() then
+          local name = mons.packName(mod)
+          table.insert(lines, 1, { text = name and ("SPRITE SWAPPER: " .. name:upper() .. " first.") or "Sprite pack's POKéMON first." })
+        end
         return { lines = lines }
       elseif who == "anims" then
         if mod.options:get("animMons") ~= "emerald" then

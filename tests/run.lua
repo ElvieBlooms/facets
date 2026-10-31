@@ -1819,6 +1819,18 @@ do
   for name, m in pairs(saved) do package.loaded[name] = m end
 end
 
+-- mons.lua: SPRITE SWAPPER's shared settings -Elvie
+do
+  local M = require("mods.facets.mons")
+  local ex = { spritepack = "FACETS DS", backspritescale = 1 }
+  local smod = { find = function(id) return id == "ST_SPRITESWAPPER" and { exports = ex } or nil end }
+  eq(M.packName(smod), "FACETS DS", "swapper: the pack picked in SPRITE SWAPPER")
+  ex.spritepack = ""
+  eq(M.packName(smod), nil, "swapper: none picked")
+  eq(M.packName({ find = function() return nil end }), nil, "swapper: not installed")
+  eq(M.packName({}), nil, "swapper: no mod.find")
+end
+
 -- achievements.lua: the looks, and a stand-in Recomp Achievements -Elvie
 -- --------------------------------------------------
 do
