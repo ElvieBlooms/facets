@@ -17,7 +17,7 @@ local PARTS = { "npcs", "foes", "mons", "filter", "gbui", "prebuild", "achieveme
 
 -- The Game Boy games get their own parts, set from the Mods manager: the
 -- Gen 3 ones above reach into Gen 3's engine and screens. -Elvie
-local CLASSIC_PARTS = { "classic_mons" }
+local CLASSIC_PARTS = { "classic_mons", "classic_foes" }
 
 -- 1, 2 or 3 for the running game -Elvie
 local function generation()
@@ -36,7 +36,10 @@ local function startClassic(mod)
     local start = require("mods.facets." .. name).init(mod, rows)
     if start then starts[#starts + 1] = start end
   end
-  if #rows > 0 then mod.options:define(rows) end
+  if #rows > 0 then
+    require("mods.facets.classic").sizeRow(rows)
+    mod.options:define(rows)
+  end
   for _, start in ipairs(starts) do start() end
 end
 
