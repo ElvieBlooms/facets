@@ -103,7 +103,7 @@ def read_script(text):
 def main():
     if len(sys.argv) != 4:
         sys.exit(__doc__)
-    recipe = json.load(open(sys.argv[1]))
+    recipe = json.load(open(sys.argv[1], encoding="utf-8-sig"))
     outer = zipfile.ZipFile(sys.argv[2])
     base = os.path.join(sys.argv[3], "assets", "mons", recipe["set"])
     for d in ("front", "front_shiny", "back", "back_shiny", "anim", "anim_shiny"):

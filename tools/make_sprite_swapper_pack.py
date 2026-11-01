@@ -165,7 +165,7 @@ def main():
     if len(sys.argv) != 5:
         sys.exit(__doc__)
     recipe_path, facets, engine, out_root = sys.argv[1:]
-    r = json.load(open(recipe_path, encoding="utf-8"))
+    r = json.load(open(recipe_path, encoding="utf-8-sig"))
     for key in ("id", "name", "label", "description", "version", "sets", "credit"):
         if key not in r:
             sys.exit(f"{recipe_path}: no \"{key}\"")

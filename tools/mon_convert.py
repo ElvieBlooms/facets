@@ -48,7 +48,7 @@ def main():
     if len(sys.argv) != 4:
         sys.exit(__doc__)
     recipe_path, pack, mod_dir = sys.argv[1:]
-    r = json.load(open(recipe_path, encoding="utf-8"))
+    r = json.load(open(recipe_path, encoding="utf-8-sig"))
     set_dir = os.path.join(mod_dir, "assets", "mons", r["set"])
     internal = {int(k): v for k, v in r.get("internal", {}).items()}
     skip_front = set(r.get("skip_front", []))

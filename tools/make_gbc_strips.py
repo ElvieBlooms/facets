@@ -72,7 +72,7 @@ def main():
     if len(sys.argv) != 4:
         sys.exit(__doc__)
     recipe_path, pack, mod_dir = sys.argv[1:]
-    recipe = json.load(open(recipe_path))
+    recipe = json.load(open(recipe_path, encoding="utf-8-sig"))
     set_dir = os.path.join(mod_dir, "assets", "npcs", "gbc")
     strips_dir = os.path.join(set_dir, "strips")
     os.makedirs(strips_dir, exist_ok=True)
@@ -80,7 +80,7 @@ def main():
         f = e["file"] + ("" if e.get("variant", "-") == "-" else "_" + e["variant"]) + ".png"
         strip(os.path.join(pack, f), e.get("recolor"), int(e.get("sit", 0))).save(os.path.join(strips_dir, name + ".png"))
     gbjson = os.path.join(set_dir, "gb.json")
-    m = json.load(open(gbjson))
+    m = json.load(open(gbjson, encoding="utf-8-sig"))
     added = 0
     for fam in ("frlg", "rse"):
         for npc, name in (recipe.get(fam) or {}).items():
