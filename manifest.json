@@ -1,6 +1,6 @@
 {
-  "id": "facets",
-  "name": "Facets",
+  "id": "facets_testing",
+  "name": "Facets Testing",
   "version": "0.7.0",
   "api": 2,
   "entry": "main.lua",

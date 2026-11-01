@@ -2026,5 +2026,31 @@ do
   eq(classic.choose(opts, 6, "front", "battle", false), nil, "classic: OFF is the game's own")
 end
 
+
+-- Gen 2 trainer pictures: by the Gen 2 class, then the Gen 3 stand-in -Elvie
+do
+  local foes = require("mods.facets.classic_foes")
+  local files = { ["assets/trainers/ds/YOUNGSTER.png"] = true, ["assets/trainers/ds/FALKNER.png"] = true,
+    ["assets/trainers/ds/LEADER_BROCK.png"] = true, ["assets/trainers/ds/RIVAL_EARLY.png"] = true }
+  local opts = { set = "ds", size = "fit", has = function(rel) return files[rel] end }
+  local p = foes.choose(opts, "YOUNGSTER")
+  eq(p and p.rel, "assets/trainers/ds/YOUNGSTER.png", "classic foes: same name")
+  eq(p and p.box, 56, "classic foes: fit to the box")
+  eq(p and p.path, "facets/classic/trainers/ds/YOUNGSTER@56.png", "classic foes: its own path")
+  eq((foes.choose(opts, "BROCK") or {}).rel, "assets/trainers/ds/LEADER_BROCK.png", "classic foes: the Gen 3 name")
+  eq((foes.choose(opts, "FALKNER") or {}).rel, "assets/trainers/ds/FALKNER.png", "classic foes: a Johto file by its own name")
+  eq(foes.choose(opts, "BUGSY"), nil, "classic foes: no art, the game's own")
+  eq(foes.choose(opts, "RIVAL1"), nil, "classic foes: the rival is Crystal Lens's")
+  eq(foes.choose(opts, nil), nil, "classic foes: no class, the game's own")
+  opts.size = "0.5"
+  p = foes.choose(opts, "YOUNGSTER")
+  check(p and p.scale == 0.5 and not p.box, "classic foes: PICTURE SIZE scales")
+  opts.set = "__off"
+  eq(foes.choose(opts, "YOUNGSTER"), nil, "classic foes: OFF")
+  for class, name in pairs(foes.NAMES) do
+    check(io.open(ROOT .. "/assets/trainers/ds/" .. name .. ".png") ~= nil, "classic foes: DS has " .. name .. " for " .. class)
+  end
+end
+
 print(("%d passed, %d failed"):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)
