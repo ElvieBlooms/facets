@@ -24,6 +24,24 @@ local function engine(name)
   return ok and m or nil
 end
 
+-- The info lines under the rows, cut to the room there is: red ones (a
+-- game that needs importing) go first, the rest keep their order -Elvie
+function screen.fitting(lines, room)
+  if #lines <= room then return lines end
+  local pick, n = {}, 0
+  for i, line in ipairs(lines) do
+    if line.red and n < room then pick[i], n = true, n + 1 end
+  end
+  for i in ipairs(lines) do
+    if not pick[i] and n < room then pick[i], n = true, n + 1 end
+  end
+  local out = {}
+  for i, line in ipairs(lines) do
+    if pick[i] then out[#out + 1] = line end
+  end
+  return out
+end
+
 -- model.layer names its layer (the FACETS screen's by default), so
 -- PERFORMANCE can be a second screen built the same way. -Elvie
 function screen.new(mod, model)
@@ -84,6 +102,19 @@ function screen.new(mod, model)
       else
         if line ~= "" then out[#out + 1] = line end
         line = word
+        if FrlgFont.measure(word) > width then
+          -- cut into pieces that fit, a whole UTF-8 character at a time;
+          -- the last piece starts the next line -Elvie
+          line = ""
+          for ch in word:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+            if line ~= "" and FrlgFont.measure(line .. ch) > width then
+              out[#out + 1] = line
+              line = ch
+            else
+              line = line .. ch
+            end
+          end
+        end
       end
     end
     if line ~= "" or #out == 0 then out[#out + 1] = line end
@@ -216,7 +247,7 @@ function screen.new(mod, model)
 
     local preview = model.preview(selected and selected.who or "npcs")
     local y = ROW_Y0 + #list * ROW_STEP + 2
-    for _, line in ipairs(preview.lines or {}) do
+    for _, line in ipairs(screen.fitting(preview.lines or {}, math.floor((WIN_BOTTOM - y) / ROW_STEP))) do
       if y + ROW_STEP > WIN_BOTTOM then break end
       local colors = line.red and FrlgFont.COLOR.RED or FrlgFont.COLOR.NORMAL
       Window.printPx(fit(FrlgFont, line.text, preview.width or INFO_W), LABEL_X, y, { colors = colors })

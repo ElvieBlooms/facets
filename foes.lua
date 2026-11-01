@@ -37,13 +37,26 @@ trainers.PLAYER = {
   RS_BRENDAN_2 = true, RS_MAY_2 = true,
 }
 
+-- Ruby and Sapphire's names for pictures Emerald renamed: sets are named
+-- by Emerald's (and FR/LG's). R/S's Wallace is the Sootopolis leader. -Elvie
+trainers.RS_NAMES = {
+  ARCHIE = "AQUA_LEADER_ARCHIE", MAXIE = "MAGMA_LEADER_MAXIE",
+  ROXANNE = "LEADER_ROXANNE", BRAWLY = "LEADER_BRAWLY", WATTSON = "LEADER_WATTSON",
+  FLANNERY = "LEADER_FLANNERY", NORMAN = "LEADER_NORMAN", WINONA = "LEADER_WINONA",
+  TATE_AND_LIZA = "LEADER_TATE_AND_LIZA", WALLACE = "LEADER_WALLACE",
+  SIDNEY = "ELITE_FOUR_SIDNEY", PHOEBE = "ELITE_FOUR_PHOEBE", GLACIA = "ELITE_FOUR_GLACIA",
+  DRAKE = "ELITE_FOUR_DRAKE",
+  COOL_TRAINER_F = "COOLTRAINER_F", COOL_TRAINER_M = "COOLTRAINER_M",
+}
+
 -- A picture's name without TRAINER_PIC_ and FR/LG's RS_ (Ruby and
--- Sapphire's versions of the same trainer). -Elvie
+-- Sapphire's versions of the same trainer), R/S's own names as Emerald's. -Elvie
 function trainers.normal(name)
   if type(name) ~= "string" then return nil end
   name = name:gsub("^TRAINER_PIC_", "")
   if trainers.PLAYER[name] then return name end
-  return (name:gsub("^RS_", ""))
+  name = name:gsub("^RS_", "")
+  return trainers.RS_NAMES[name] or name
 end
 
 -- Crystal's trainer colours: palettes.lua's trainers = { NAME = { {r,g,b},
@@ -301,6 +314,7 @@ function trainers.init(mod, rows, menu)
       current = nil
       for _, set in ipairs(sets) do if set.key == value then current = set end end
       cache = {}
+      if palettes == false then palettes = nil end -- Crystal imported since: read it again -Elvie
     end
     configure()
     if mod.events and type(mod.events.on) == "function" then

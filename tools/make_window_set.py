@@ -48,7 +48,7 @@ def retile(img, count, across):
 def main():
     if len(sys.argv) < 4:
         sys.exit(__doc__)
-    recipe = json.load(open(sys.argv[1], encoding="utf-8"))
+    recipe = json.load(open(sys.argv[1], encoding="utf-8-sig"))
     mod, pack = sys.argv[2], sys.argv[3]
     out_dir = os.path.join(mod, "assets", "windows", recipe["set"])
     os.makedirs(out_dir, exist_ok=True)
