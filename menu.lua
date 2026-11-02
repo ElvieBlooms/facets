@@ -186,7 +186,7 @@ function menu.new(mod, opts)
     local entry = { id = "facets", label = "FACETS", short = "FACETS",
       about = "The look of everything else.",
       colour = { 130, 60, 170 }, -- amethyst -Elvie
-      order = 20, -- under the lens mods in PRISM
+      order = 20, -- under the lens mods in PRISM -Elvie
       draw = function(area, clock) M.drawPreview(area, clock) end,
       value = function()
         local first = M.rows()[1]

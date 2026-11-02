@@ -1307,7 +1307,7 @@ for _, version in ipairs({ "firered", "emerald" }) do
   -- hooks first -Elvie
   local lensOpened = 0
   local V = require("mods.facets.prism")
-  local lensEntry = { id = "emerald_lens", label = "EMERALD LENS", short = "LENS",
+  local lensEntry = { id = "emerald_lens", label = "EMERALD LENS", short = "LENS", order = 10,
     value = function() return "KRIS" end, open = function() lensOpened = lensOpened + 1 end }
   local lensPicker = V.picker()
   local base = function() return { { id = "pokedex" }, { id = "mods" }, { id = "exit" } } end
@@ -2179,6 +2179,27 @@ do
   eq(cm.step(e[1].choices, "diego", 1), "__off", "options page: the next choice")
   eq(cm.step(e[1].choices, "__off", 1), "diego", "options page: wraps round")
   eq(cm.step(e[1].choices, "diego", -1), "__off", "options page: and back")
+end
+
+-- PRISM on the Game Boy games: where the item goes, and the lens first -Elvie
+do
+  local P = require("mods.facets.prism")
+  local mod = { ui = { push = function() end } }
+  local a = { id = "facets", label = "FACETS", short = "FACETS", order = 20, open = function() end }
+  local b = { id = "crystal_lens", label = "CRYSTAL LENS", short = "LENS", order = 10, open = function() end }
+  local out = P.addStartGb(mod, { { label = "SAVE" }, { label = "OPTION" }, { label = "MODS" }, { label = "QUIT" } }, a, {}, "s")
+  eq(out[3].label .. "," .. out[4].label, "FACETS,MODS", "prism gb: just above MODS")
+  out = P.addStartGb(mod, { { label = "SAVE" }, { label = "QUIT" } }, a, {}, "s")
+  eq(out[2].label, "FACETS", "prism gb: above QUIT with no MODS")
+  out = P.addStartGb(mod, out, b, {}, "t")
+  eq(#out .. "," .. out[2].label .. "," .. out[2].entries[1].label .. "," .. out[2].screen, "3,PRISM,CRYSTAL LENS,s",
+    "prism gb: a second mod makes it PRISM, the lens first, on the first screen")
+  out = P.addStartGb(mod, { { label = "SAVE" }, { label = "LENS", onSelect = function() end }, { label = "MODS" } }, a, {}, "s")
+  eq(out[3].label, "FACETS", "prism gb: just under another mod's own LENS")
+  local rows = P.addOptionGb(mod, { { id = "text_speed" }, { label = "BACK", cancel = true } }, a, {}, "s")
+  eq(rows[2].label .. "," .. rows[3].label, "FACETS,BACK", "prism gb: OPTION row before BACK")
+  rows = P.addOptionGb(mod, rows, b, {}, "t")
+  eq(#rows .. "," .. rows[2].label, "3,PRISM", "prism gb: one PRISM row")
 end
 
 -- Gen 2 BATTLE UI in wide battles: FireRed's text, HP bar and colours -Elvie

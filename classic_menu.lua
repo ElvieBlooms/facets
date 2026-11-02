@@ -77,7 +77,7 @@ function cmenu.start(mod, rows)
   end
 
   -- Gen 1's own page for a list of rows; Gen 2's built the way its
-  -- OPTION screen builds a group's page
+  -- OPTION screen builds a group's page -Elvie
   local function open(g)
     if gen1 then
       g.stack:push(OptionsMenu.new(g, { rows = members() }))
@@ -97,13 +97,13 @@ function cmenu.start(mod, rows)
   -- START and OPTION menus through prism.lua, as in the Gen 3 games: on
   -- its own it's FACETS on both; with Emerald Lens (or another visuals
   -- mod) they share one PRISM item. The OPTION row shows the first
-  -- setting, the NPC set.
+  -- setting, the NPC set. -Elvie
   local prism = require("mods.facets.prism")
   local prismScreen = prism.registerGb(mod)
   local entry = { id = "facets", label = "FACETS", short = "FACETS",
     about = "The look of everything else.",
-    colour = { 130, 60, 170 }, -- amethyst
-    order = 20, -- under the lens mods in PRISM
+    colour = { 130, 60, 170 }, -- amethyst -Elvie
+    order = 20, -- under the lens mods in PRISM -Elvie
     value = function()
       local first = members()[1]
       return first and tostring(first.value()) or "OFF"
