@@ -26,10 +26,12 @@ from PIL import Image
 LOOKS = [
     ("hat", "pikachu_hat_by_vitorluiscolnago_dldja39", "rpgmaker"),
     ("belle", "cosplay_pikachu_bella_form_overworld_sprite_sheet_by_piphybuilder88_d9kehd8", "follower"),
-    ("rock_star", "cosplay_pikachu_rockstar_form_overworld_sprites_by_piphybuilder88_d9kei63", "follower"),
+    # the rockstar and libre files hold each other's costume (Rock Star's
+    # red and black jacket, Libre's orange suit), so they're crossed here -Elvie
+    ("rock_star", "cosplay_pikachu_libre_form_overworld_sprite_sheet_by_piphybuilder88_d9kehrf", "follower"),
     ("phd", "cosplay_pikachu_p_h_d_form_overworld_sprite_sheet_by_piphybuilder88_d9kehwz", "follower"),
     ("pop_star", "cosplay_pikachu_popstar_form_overworld_sprites_by_piphybuilder88_d9kei19", "follower"),
-    ("libre", "cosplay_pikachu_libre_form_overworld_sprite_sheet_by_piphybuilder88_d9kehrf", "follower"),
+    ("libre", "cosplay_pikachu_rockstar_form_overworld_sprites_by_piphybuilder88_d9kei63", "follower"),
     ("cosplay", "cosplay_pikachu_overworld_sprites_by_piphybuilder88_d9k2ofj", "follower"),
 ]
 
