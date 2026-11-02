@@ -25,6 +25,20 @@ classic.fitScale = shared.fitScale
 classic.build = shared.build
 classic.SIDES = { { "BACK", "back" }, { "MIRRORED", "mirrored" }, { "FRONT", "front" } }
 
+-- Party icons: the game's own shapes, or the Minidex's one per Pokémon
+-- (Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25), the same
+-- icons GBC-ISH uses on Gen 3. They're the Game Boy's own 16x16, two
+-- frames, so they drop straight in -Elvie
+classic.ICONS = { { "GAME", "game" }, { "MINIDEX", "minidex" } }
+classic.ICON_DIR = "assets/mons/gbcish/icons"
+
+-- The icon file for a Pokémon, or nil for the game's own -Elvie
+function classic.iconFor(choice, dex, has)
+  if choice ~= "minidex" or type(dex) ~= "number" or dex < 1 or dex > 251 then return nil end
+  local rel = ("%s/%03d.png"):format(classic.ICON_DIR, dex)
+  return has(rel) and rel or nil
+end
+
 -- Which picture a request gets: the file to read, the box (nil = cut but
 -- not shrunk), the mirror, and the battle scale. nil = the game's own. -Elvie
 -- opts = { set, size, side, has = function(rel) } -Elvie
@@ -112,6 +126,7 @@ function classic.init(mod, rows)
     choices = { { "", "_" } }, default = "_" }
   rows[#rows + 1] = { key = "classicMons", type = "choice", label = "  SET", choices = choices, default = OFF }
   rows[#rows + 1] = { key = "classicSide", type = "choice", label = "  YOUR SIDE", choices = classic.SIDES, default = "back" }
+  rows[#rows + 1] = { key = "classicIcons", type = "choice", label = "  ICONS", choices = classic.ICONS, default = "game" }
 
   return function()
     local pics = shared.setup(mod)
@@ -145,6 +160,16 @@ function classic.init(mod, rows)
       if type(fpath) ~= "string" or fpath == "" then return path end
       if opts.side == "mirrored" then return pics.flipped(fpath) end
       return fpath
+    end)
+    -- ICONS: party and naming screen icons -Elvie
+    mod.hooks:wrap("pokemon.icon", function(nextFn, path, ctx)
+      local choice = mod.options:get("classicIcons")
+      local data = type(ctx) == "table" and ctx.data
+      local def = type(data) == "table" and type(data.pokemon) == "table" and ctx.species and data.pokemon[ctx.species]
+      local rel = choice ~= "game" and classic.iconFor(choice, type(def) == "table" and tonumber(def.dex) or nil, pics.has)
+      if not rel then return nextFn(path, ctx) end
+      ctx.trueColor = true
+      return mod.assets:path(rel)
     end)
     -- a game imported since: look again -Elvie
     if mod.events and type(mod.events.on) == "function" then
