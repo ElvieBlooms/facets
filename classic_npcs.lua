@@ -254,7 +254,7 @@ function classic.init(mod, rows)
       defs[key] = false
       local want = classic.candidates(def.id, names)
       if not want then return nil end
-      local path, fw, fh, read
+      local path, fw, fh, read, rel
       local grey = false
       if pikaLook == classic.PIKA_GAME then
         return nil
@@ -282,16 +282,28 @@ function classic.init(mod, rows)
         end
       elseif chosen == OFF then
         return nil
-      elseif gba.isChoice(chosen) then
-        -- the GBA look: the Gen 3 sheet from the player's own game -Elvie
-        local found = gba.npcSheet(chosen, want)
-        if not found then return nil end
-        fw, fh = classic.frameSize(found.w, found.h)
-        path = PREFIX .. chosen .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
-        read = function() return gba.load(found) end
       else
-        local rel = classic.find(order, want, pics.has)
-        if not rel then return nil end
+        if gba.isChoice(chosen) then
+          -- the GBA look: the Gen 3 sheet from the player's own game; anyone
+          -- neither game has comes from the fill-in sets (Heart & Soul's,
+          -- GBA-style already) -Elvie
+          local found = gba.npcSheet(chosen, want)
+          if found then
+            fw, fh = classic.frameSize(found.w, found.h)
+            path = PREFIX .. chosen .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
+            read = function() return gba.load(found) end
+          else
+            local fills = {}
+            for _, set in ipairs(sets) do if set.fill then fills[#fills + 1] = set.key end end
+            rel = classic.find(fills, want, pics.has)
+            if not rel then return nil end
+          end
+        else
+          rel = classic.find(order, want, pics.has)
+          if not rel then return nil end
+        end
+      end
+      if not read then
         local okI, src = pcall(love.image.newImageData, mod.assets:path(rel))
         if not okI then
           mod.log:warn("%s couldn't be read", rel)

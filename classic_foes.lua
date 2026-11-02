@@ -46,6 +46,9 @@ foes.NAMES = {
   LORELEI = "ELITE_FOUR_LORELEI", AGATHA = "ELITE_FOUR_AGATHA", LANCE = "ELITE_FOUR_LANCE",
 }
 
+-- Where the GBA look finds Heart & Soul's pictures -Elvie
+foes.FILL = "ds"
+
 -- Crystal Lens's -Elvie
 foes.SKIP = { RIVAL1 = true, RIVAL2 = true, RIVAL3 = true, CAL = true }
 
@@ -57,9 +60,15 @@ function foes.choose(opts, classId)
   if gba.isChoice(opts.set) then
     -- the GBA look: the Gen 3 picture from the player's own game -Elvie
     local found = (opts.gbaFind or gba.trainerPicture)(opts.set, { foes.NAMES[classId] or classId, classId })
-    if not found then return nil end
-    rel = opts.set .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
-    load = function() return gba.load(found) end
+    if found then
+      rel = opts.set .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
+      load = function() return gba.load(found) end
+    else
+      -- a class neither game has: Heart & Soul's picture, GBA-style
+      -- already, from the DS set's gb/ folder -Elvie
+      local try = DIR .. "/" .. foes.FILL .. "/gb/" .. classId .. ".png"
+      if opts.has(try) then rel = try end
+    end
   else
     -- the set's gb/ folder first: art under the Game Boy class's own name,
     -- kept apart so Gen 3 never picks it up (RED, BLUE) -Elvie
