@@ -17,7 +17,7 @@ local PARTS = { "npcs", "foes", "mons", "filter", "gbui", "prebuild", "achieveme
 
 -- The Game Boy games get their own parts, set from the Mods manager: the
 -- Gen 3 ones above reach into Gen 3's engine and screens. -Elvie
-local CLASSIC_PARTS = { "classic_mons", "classic_foes" }
+local CLASSIC_PARTS = { "classic_npcs", "classic_foes", "classic_mons" }
 
 -- 1, 2 or 3 for the running game -Elvie
 local function generation()
