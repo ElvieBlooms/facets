@@ -56,6 +56,12 @@ classic.STAND_INS = {
   PHARMACIST = { "MART_EMPLOYEE" },
 }
 
+-- A name looked for before the sprite's own, in one generation: Crystal's
+-- Mom is Johto's, not the sets' Kanto one -Elvie
+classic.OWN_NAME_BY_GEN = {
+  [2] = { MOM = "MOM_JOHTO" },
+}
+
 -- The same sprite name, a different person in each generation -Elvie
 classic.STAND_INS_BY_GEN = {
   [1] = { FISHING_GURU = { "FISHER" } },
@@ -103,6 +109,8 @@ function classic.candidates(id, names, gen)
   if not short or classic.SKIP[short] then return nil end
   local out, seen = {}, {}
   local function add(name) if not seen[name] then seen[name] = true; out[#out + 1] = name end end
+  local own = classic.OWN_NAME_BY_GEN[gen or 0]
+  if own and own[short] then add(own[short]) end
   add(short)
   for _, name in ipairs(names[short] or {}) do add(name) end
   for _, name in ipairs(classic.STAND_INS[short] or {}) do add(name) end
