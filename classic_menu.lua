@@ -213,9 +213,20 @@ function cmenu.start(mod, rows)
     return page
   end
 
-  local function open(g)
-    g.stack:push(gen1 and gen1Page(g) or gen2Page(g))
+  -- key: a setting to start on (the game's COLORS row opens it at
+  -- COLORS) -Elvie
+  local function open(g, key)
+    local page = gen1 and gen1Page(g) or gen2Page(g)
+    local rows = page.view or page.rows or {}
+    for i, row in ipairs(rows) do
+      if key and row.id == "facets." .. key then
+        page.index = i
+        if gen1 then page.scroll = math.max(0, i - 4) end
+      end
+    end
+    g.stack:push(page)
   end
+  cmenu.open = open
 
   -- START and OPTION menus through prism.lua, as in the Gen 3 games: on
   -- its own it's FACETS on both; with Emerald Lens (or another visuals

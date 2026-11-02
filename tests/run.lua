@@ -2252,6 +2252,17 @@ do
   eq(w.boxKind(12, 20, 4), "frame", "windows: only while the page marks it")
 end
 
+-- COLORS on the Game Boy games: when Facets holds the full-colour mode -Elvie
+do
+  local c = require("mods.facets.classic_colors")
+  local defaults = { classicNpcs = "__off", filter = "off", classicSize = "fit" }
+  eq(c.holds("full", { classicNpcs = "__off", filter = "off" }, defaults), false, "colors: nothing on, the game's own")
+  eq(c.holds("full", { classicNpcs = "community", filter = "off" }, defaults), true, "colors: a look on holds full colour")
+  eq(c.holds("full", { classicNpcs = "__off", filter = "gray" }, defaults), true, "colors: the filter counts")
+  eq(c.holds("game", { classicNpcs = "community" }, defaults), false, "colors: GAME never holds")
+  eq(c.holds("full", { classicSize = "0.5" }, defaults), false, "colors: PICTURE SIZE alone doesn't count")
+end
+
 -- Gen 2 BATTLE UI in wide battles: FireRed's text, HP bar and colours -Elvie
 do
   local hud = require("mods.facets.classic_hud")
