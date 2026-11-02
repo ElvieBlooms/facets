@@ -7,7 +7,7 @@
 -- opens a list of them. Another mod can join by doing the same: an item
 -- or row with id "prism" and an `entries` list. -Elvie
 -- In the Game Boy games it's the same, through the *Gb functions at the
--- end of this file.
+-- end of this file. -Elvie
 -- --------------------------------------------------
 
 local prism = {}
@@ -39,7 +39,7 @@ end
 -- label, so the order doesn't depend on which mod loaded first. A mod's
 -- entry replaces an older one with its id. -Elvie
 -- An entry's optional `order` comes before its label: the lens mods (10)
--- go first, then Facets (20) and its other pages (21 on); no order is 50.
+-- go first, then Facets (20) and its other pages (21 on); no order is 50. -Elvie
 local function orderOf(e) return tonumber(e.order) or 50 end
 local function withEntry(entries, entry)
   local out = {}
@@ -303,7 +303,7 @@ end
 -- value under it and the picked one's about line at the bottom. The list
 -- is a screen each mod registers while it loads (prism.registerGb), under
 -- its own id, so two mods carrying this file don't clash; the item keeps
--- whichever was registered first.
+-- whichever was registered first. -Elvie
 -- --------------------------------------------------
 local GB_ROW_Y, GB_ROW_H = 24, 20
 local GB_GEM_X, GB_LABEL_X = 16, 28
@@ -385,7 +385,7 @@ function prism.registerGb(mod)
 end
 
 -- START menu: the PRISM item (or the one mod's own), just above MODS, or
--- QUIT if there's no MODS. screenId: what prism.registerGb gave back.
+-- QUIT if there's no MODS. screenId: what prism.registerGb gave back. -Elvie
 function prism.addStartGb(mod, items, entry, game, screenId)
   local found
   for i, item in ipairs(items) do
@@ -406,7 +406,7 @@ function prism.addStartGb(mod, items, entry, game, screenId)
     return items
   end
   -- just under another mod's own LENS item, so the lens comes first;
-  -- else above MODS, or QUIT
+  -- else above MODS, or QUIT -Elvie
   local at
   for i, it in ipairs(items) do
     if not at and type(it) == "table" and it.label == "LENS" and it.id ~= ID then at = i + 1 end
@@ -421,7 +421,7 @@ function prism.addStartGb(mod, items, entry, game, screenId)
 end
 
 -- OPTION menu: a row just before BACK, where a mod's rows go, shaped like
--- the screen's own rows that open a page (value, activate).
+-- the screen's own rows that open a page (value, activate). -Elvie
 function prism.addOptionGb(mod, rows, entry, game, screenId)
   local found
   for i, row in ipairs(rows) do
