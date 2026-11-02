@@ -1,19 +1,22 @@
--- NPC overworld sprites on the Game Boy games (Gold, Silver, Crystal)
+-- NPC overworld sprites on the Game Boy games (Red, Blue, Yellow, Gold, Silver, Crystal)
 -- Every person on a map is drawn by a SpriteRenderer made from the game's
 -- sprite record (SPRITE_YOUNGSTER and so on), so one wrap on
 -- SpriteRenderer.new covers them all, including someone who changes
 -- sprite mid-script. -Elvie
 --
 -- The sets are the Gen 3 ones: 9-frame sheets cut down to the game's 6
--- (stand down, up, left; step down, up, left), in full colour. Gen 3
--- people are taller than Gen 2's and stand into the tile above, as they
--- do on the GBA. -Elvie
+-- (stand down, up, left; step down, up, left), with Gen 3's second steps
+-- on the other beat, in full colour. Gen 3 people are taller than the
+-- Game Boy's and stand into the tile above, as they do on the GBA. -Elvie
 --
--- A sheet is found by the Gen 2 name first (FALKNER.png in either family
--- folder), then by the Gen 3 names gbc/gb.json pairs with that sprite,
--- then by STAND_INS. The selected set is tried first, then the others in
--- menu order. Anyone without a sheet stays the game's own, and so do the
--- player and the rival (Crystal Lens's) and anything that isn't a person. -Elvie
+-- A sheet is found by the sprite's own name first (FALKNER.png) in every
+-- set, then by the Gen 3 names gbc/gb.json pairs with it and STAND_INS,
+-- set by set. The chosen set comes first, then the others in menu order,
+-- then the fill-in sets (DS-style ones before GBA-style ones). The GBA
+-- look reads the player's FireRed or Emerald, then the fill-ins (GBA-style
+-- first). Anyone without a sheet stays the game's own, and so do the
+-- player and the rival (Crystal Lens's and Emerald Lens's) and anything
+-- that isn't a person. Yellow's Pikachu has a row of its own. -Elvie
 -- --------------------------------------------------
 
 local classic = {}
@@ -24,7 +27,7 @@ local NPCS_DIR = "assets/npcs"
 local OFF = "__off"
 local PREFIX = "facets/classic/npcs/"
 -- johto: sheets under the Game Boy sprite's own name, which Gen 3 never
--- reads (the HEART & SOUL fill-in set) -Elvie
+-- reads (the fill-in sets keep theirs there) -Elvie
 local FAMILIES = { "frlg", "rse", "johto" }
 
 -- the Gen 3 frames for the game's 6 (stand down, up, left, step down, up,

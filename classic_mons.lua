@@ -1,13 +1,14 @@
--- Pokémon pictures on the Game Boy games (Gold, Silver, Crystal)
+-- Pokémon pictures on the Game Boy games (Red, Blue, Yellow, Gold, Silver, Crystal)
 -- Every Pokémon picture there comes through the pokemon.sprite hook
 -- (battle, summary, Pokédex, PC, Hall of Fame, trades...), so one wrap
 -- covers them all. A set's 64x64 art is cut to the Pokémon itself and,
 -- under FIT, shrunk only if it still doesn't fit the game's own box: 56x56
 -- for a front, 48x48 for a back (classic.lua makes the pictures). -Elvie
 --
--- Only full-colour sets are offered: the Game Boy ones (GBC-ISH and so on)
--- are these games' own look already. Crystal's animations stay on its own
--- pictures; a replaced one is still. -Elvie
+-- Only full-colour sets are offered (and on Red, Blue and Yellow, Crystal's
+-- own sprites): the Game Boy ones (GBC-ISH and so on) are these games' own
+-- look already. Crystal's animations stay on its own pictures; a replaced
+-- one is still, apart from Emerald's on the GBA look. -Elvie
 -- --------------------------------------------------
 
 local classic = {}

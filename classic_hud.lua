@@ -239,11 +239,6 @@ function hud.init(mod, rows)
       end
       return q
     end
-    local function width(ids)
-      local w = 0
-      for _, id in ipairs(ids) do w = w + (font.widths[id] or font.widths[0] or 5) end
-      return w
-    end
     local function text(ids, x, y, colours)
       local G = love.graphics
       local cx = x

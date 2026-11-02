@@ -542,8 +542,6 @@ function gbui.uiArt(mod, key, read, pals, size)
   return out
 end
 
-function gbui.resetUi() uiArt = {} end
-
 -- A style's pictures, loaded once: { frame, dialogue, sign } images. -Elvie
 local styleArt = {}
 function gbui.styleArt(mod, value)
