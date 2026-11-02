@@ -71,10 +71,17 @@ function menu.new(mod, opts)
     if Runtime and Runtime.safeMode then return end
     game = liveGame(game)
     if not game then return end
-    if type(game.options) == "table" then
-      game.options.modOptions = game.options.modOptions or {}
-      game.options.modOptions[mod.id] = game.options.modOptions[mod.id] or {}
-      game.options.modOptions[mod.id][key] = value
+    -- The settings that get saved: game.options in Gold/Silver/Crystal and
+    -- the Gen 3 games, game.save.options in Red/Blue/Yellow (the same table
+    -- in Gold/Silver/Crystal), as the Mods manager writes them
+    local saved = {}
+    if type(game.options) == "table" then saved[#saved + 1] = game.options end
+    local fromSave = type(game.save) == "table" and game.save.options
+    if type(fromSave) == "table" and fromSave ~= game.options then saved[#saved + 1] = fromSave end
+    for _, t in ipairs(saved) do
+      t.modOptions = t.modOptions or {}
+      t.modOptions[mod.id] = t.modOptions[mod.id] or {}
+      t.modOptions[mod.id][key] = value
     end
     local loader = game.mods
     if type(loader) == "table" then
