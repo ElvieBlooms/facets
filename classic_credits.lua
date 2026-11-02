@@ -93,7 +93,7 @@ function credits.entries(rows, read, fills)
         folders[#folders + 1] = folder
       end
     end
-    -- the fill-in sets (Heart & Soul, Jessie & James) stand in for every
+    -- the fill-in sets (Heart & Soul, kalarie's) stand in for every
     -- NPC set -Elvie
     if key == "classicNpcs" and row then
       for _, fill in ipairs(fills or { "hns" }) do
