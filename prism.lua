@@ -4,7 +4,8 @@
 -- the OPTION menu through it: the first one there makes the item, the
 -- next adds itself to that item's list. With one mod it's that mod's own
 -- item (LENS, FACETS) and opens its screen; with more it's PRISM and
--- opens a list of them. Another mod can join by doing the same: an item
+-- opens a list of them. It works on the Game Boy games too, drawn their
+-- way, so Crystal Lens carries a copy as well. Another mod can join by doing the same: an item
 -- or row with id "prism" and an `entries` list. -Elvie
 -- --------------------------------------------------
 
@@ -55,7 +56,7 @@ end
 -- The list screen. Picking an entry opens its screen on top, so B there
 -- comes back here. -Elvie
 -- --------------------------------------------------
-function prism.picker()
+local function gen3Picker()
   local P = { isMenu = true }
   local state
 
@@ -235,8 +236,90 @@ function prism.picker()
   return P
 end
 
+-- 1, 2 or 3 for the running game -Elvie
+local function generation()
+  local GameVersion = engine("src.core.GameVersion")
+  if GameVersion and type(GameVersion.generation) == "function" then
+    local ok, gen = pcall(GameVersion.generation)
+    if ok and type(gen) == "number" then return gen end
+  end
+  return 3
+end
+prism.generation = generation
+
+local function cut(text, n)
+  text = tostring(text or "")
+  return #text > n and text:sub(1, n) or text
+end
+
+-- Words to lines of at most n letters -Elvie
+local function wrap(text, n)
+  local lines, line = {}, ""
+  for word in tostring(text or ""):gmatch("%S+") do
+    if line == "" then line = cut(word, n)
+    elseif #line + 1 + #word <= n then line = line .. " " .. word
+    else lines[#lines + 1] = line line = cut(word, n) end
+  end
+  if line ~= "" then lines[#lines + 1] = line end
+  return lines
+end
+
+-- The Game Boy list: the game's own box and font, each entry's name with
+-- its value under it, and the picked one's line in a box at the bottom.
+-- Up and down pick, A opens, B (or START) closes. -Elvie
+local function gbPicker(mod)
+  local P = { isMenu = true }
+  local Font = (mod and mod.ui and mod.ui.Font) or engine("src.render.Font")
+  local Theme = (mod and mod.ui and mod.ui.Theme) or engine("src.ui.Theme")
+
+  function P.open(game, entries)
+    if not (Font and game and game.stack) then return end
+    local self = { isOpaque = true, index = 1 }
+    function self:update()
+      local input = game.input
+      local n = #entries
+      if n == 0 or not input then return end
+      if input:wasPressed("b") or input:wasPressed("start") then game.stack:pop() return end
+      if input:wasPressed("up") then self.index = (self.index - 2) % n + 1
+      elseif input:wasPressed("down") then self.index = self.index % n + 1
+      elseif input:wasPressed("a") or input:wasPressed("right") then
+        local picked = entries[self.index]
+        if picked and type(picked.open) == "function" then picked.open(game) end
+      end
+    end
+    function self:draw()
+      Font.drawBox(0, 0, 20, 12)
+      Font.draw("PRISM", 8, 8)
+      for i, e in ipairs(entries) do
+        local y = i * 24
+        if i == self.index then
+          if Theme and Theme.cursor and Font.drawCode then Font.drawCode(Theme.cursor, 8, y)
+          else Font.draw(">", 8, y) end
+        end
+        Font.draw(cut(e.label, 16), 16, y)
+        Font.draw(cut(valueOf(e), 15), 32, y + 8)
+      end
+      Font.drawBox(0, 12, 20, 6)
+      local picked = entries[self.index]
+      for i, line in ipairs(wrap(picked and picked.about, 18)) do
+        if i <= 4 then Font.draw(line, 8, 104 + (i - 1) * 8) end
+      end
+    end
+    game.stack:push(self)
+  end
+
+  return P
+end
+
+-- The list screen for the running game. A Game Boy game's needs the
+-- mod's own `mod` for the game's font. -Elvie
+function prism.picker(mod)
+  if generation() ~= 3 then return gbPicker(mod) end
+  return gen3Picker()
+end
+
 -- START menu: add `entry` to the PRISM item (making it, just above MODS
--- or EXIT, if it isn't there). Returns the new list. -Elvie
+-- or EXIT/QUIT, if it isn't there). Returns the new list. -Elvie
 function prism.addStart(items, entry, picker, game)
   local out, found = {}, nil
   for i, item in ipairs(items) do
@@ -244,7 +327,8 @@ function prism.addStart(items, entry, picker, game)
     if type(item) == "table" and item.id == ID and type(item.entries) == "table" then found = i end
   end
   local entries = withEntry(found and out[found].entries, entry)
-  local item = { id = ID, entries = entries }
+  -- Crystal's description box under the START menu -Elvie
+  local item = { id = ID, entries = entries, desc = { "Change", "the looks" } }
   if #entries == 1 then
     item.label = entry.short or entry.label
     item.onSelect = function(g) entry.open(g or game) end
@@ -257,9 +341,15 @@ function prism.addStart(items, entry, picker, game)
     return out
   end
   local at
+  -- Gen 1's items have no ids, only labels -Elvie
+  local mods, last
   for i, it in ipairs(out) do
-    if type(it) == "table" and (it.id == "mods" or (it.id == "exit" and not at)) then at = i end
+    if type(it) == "table" then
+      if it.id == "mods" or it.label == "MODS" then mods = mods or i end
+      if it.id == "exit" or it.id == "quit" or it.label == "QUIT" then last = last or i end
+    end
   end
+  at = mods or last
   if not at then return items end
   table.insert(out, at, item)
   return out
@@ -284,7 +374,14 @@ function prism.addOption(rows, entry, picker, game)
     row.value = function() return "" end
     row.activate = function(g) picker.open(g or game, entries) end
   end
-  if found then out[found] = row else out[#out + 1] = row end
+  if found then
+    out[found] = row
+    return out
+  end
+  -- just before BACK on the Game Boy games, where a mod's rows go -Elvie
+  local at = #out + 1
+  for i, r in ipairs(out) do if type(r) == "table" and r.cancel then at = i break end end
+  table.insert(out, at, row)
   return out
 end
 

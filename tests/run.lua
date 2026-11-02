@@ -2181,6 +2181,26 @@ do
   eq(cm.step(e[1].choices, "diego", -1), "__off", "options page: and back")
 end
 
+-- PRISM on the Game Boy games: Gen 1's label-only START items, and the
+-- OPTION row before BACK -Elvie
+do
+  local P = require("mods.facets.prism")
+  local picker = { open = function() end }
+  local a = { id = "facets", label = "FACETS", short = "FACETS", open = function() end }
+  local b = { id = "crystal_lens", label = "CRYSTAL LENS", short = "LENS", open = function() end }
+  local g1 = { { label = "SAVE" }, { label = "OPTION" }, { label = "MODS" }, { label = "QUIT" } }
+  local out = P.addStart(g1, a, picker, {})
+  eq(out[3].label .. "," .. out[4].label, "FACETS,MODS", "prism gb: just above MODS on Gen 1")
+  out = P.addStart({ { label = "SAVE" }, { label = "QUIT" } }, a, picker, {})
+  eq(out[2].label, "FACETS", "prism gb: above QUIT with no MODS")
+  out = P.addStart(out, b, picker, {})
+  eq(#out .. "," .. out[2].label .. "," .. #out[2].entries, "3,PRISM,2", "prism gb: a second mod makes it PRISM")
+  local rows = P.addOption({ { id = "text_speed" }, { label = "BACK", cancel = true } }, a, picker, {})
+  eq(rows[2].label .. "," .. rows[3].label, "FACETS,BACK", "prism gb: OPTION row before BACK")
+  rows = P.addOption(rows, b, picker, {})
+  eq(#rows .. "," .. rows[2].label, "3,PRISM", "prism gb: one PRISM row")
+end
+
 -- Gen 2 BATTLE UI in wide battles: FireRed's text, HP bar and colours -Elvie
 do
   local hud = require("mods.facets.classic_hud")
