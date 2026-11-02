@@ -2,15 +2,29 @@
 
 # Facets
 
-NPC overworld sprites for the Gen 3 games in gen1recomp: FireRed, LeafGreen, Ruby, Sapphire and Emerald. Townsfolk, trainers, nurses, gym leaders and villains can each get new art, one sheet at a time. Anything without a sheet stays the game's own.
+New looks for everyone but you, in all eleven of gen1recomp's games: FireRed, LeafGreen, Ruby, Sapphire and Emerald, and Red, Blue, Yellow, Gold, Silver and Crystal. The people on the map, the trainers and Pokémon you battle, party icons, battle scenes and boxes, windows and the whole screen can each get a new look, one option at a time. Anything you don't change stays the game's own.
 
-Facets can also swap Pokémon pictures, party icons and animations (Crystal's sprites with a Game Boy Hoenn made from your own Emerald, animations and all, every Pokémon made Game Boy from your Emerald, Crystal's sprites with Nuuk's animated Hoenn, or the DS-style 64x64 resource), show your own Pokémon by their front, and give the whole screen a Game Boy filter (below).
+Facets leaves the player and the rival alone: [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens) draws them in the Gen 3 games and [Crystal Lens](https://github.com/dburton95/crystal) in the Game Boy games. They never touch the same sprites, so they work together in either load order, and share one **PRISM** item on the START and OPTION menus.
 
-Facets works on the Game Boy games too: Red, Blue, Yellow, Gold, Silver and Crystal get the same NPCs, trainers and Pokémon, a GBA look made from your own FireRed or Emerald, and more. See [Gen 1 and 2](#gen-1-and-2).
+**Status: 1.0.0.** Needs gen1recomp 0.3.98 or newer. What's new is in [CHANGELOG.md](CHANGELOG.md).
 
-Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
+| | Gen 3 (FireRed, LeafGreen, Ruby, Sapphire, Emerald) | Game Boy (Red, Blue, Yellow, Gold, Silver, Crystal) |
+| --- | --- | --- |
+| People on the map | COMMUNITY, DIEGO, TAIGA and ZAFFRE (every person, included); GBC and GBC 2X from your Gen 1/2 games | The same four sets, with fill-ins for everyone else (every person); FIRERED and EMERALD from your GBA games |
+| Trainer pictures | DS, GBC-ISH, GAME BOY | DS (every class); FIRERED and EMERALD |
+| Pokémon pictures | DS, GBC-ISH, GBC ANIM, GB EMERALD; FR/LG ANIMS | DS; FIRERED and EMERALD (with Emerald's animations on Gold, Silver and Crystal); CRYSTAL on Red, Blue and Yellow |
+| Your side | YOUR SIDE: your Pokémon by their front | The same |
+| Party icons | GBC-ISH's Game Boy icons | MINIDEX; CRYSTAL on Red, Blue and Yellow |
+| Battle | SCENERY and WHITE scenes, battle box sets, GBC boxes | SCENERY and battle box sets (box sets in wide battles; on Red, Blue and Yellow, scenes too) |
+| Windows | GBC frames, TITO and other window sets | FireRed's frames, TITO |
+| Screen | The GB filter | The GB filter; COLORS keeps the game in full colour |
+| Yellow's Pikachu | | Seven looks, in battle too |
 
-**Status: 1.0.0.** Works in all eleven games: FireRed, LeafGreen, Ruby, Sapphire and Emerald, and Red, Blue, Yellow, Gold, Silver and Crystal. It ships with four sprite sets, all free to use with credit:
+**Contents:** [The Gen 3 games](#the-gen-3-games) · [Options](#options) · [The GB filter](#the-gb-filter) · [Trainer battle pictures](#trainer-battle-pictures) · [Pokémon pictures](#pokémon-pictures) · [Sprite sets](#sprite-sets) · [Converting a sprite pack](#converting-a-sprite-pack) · [Gen 1 and 2](#gen-1-and-2) · [Achievements](#achievements) · [Tools](#tools) · [Testing](#testing) · [Credits](#credits)
+
+## The Gen 3 games
+
+FireRed, LeafGreen, Ruby, Sapphire and Emerald. Four NPC sets ship, all free to use with credit:
 
 - **DIEGO:** DiegoWT's Black/White-style trainers and townsfolk.
 - **TAIGA:** Taiga's ORAS-style trainers.
@@ -25,7 +39,7 @@ The trainers you battle get new pictures too: **DS** (Gen 4+ style, every traine
 
 ## Options
 
-Under the mod's options there's a heading per game family (FR/LG, R/S/E) with **SET**: each sprite set you have, or OFF for the game's own NPCs. Changes apply straight away.
+In the Gen 3 games, under the mod's options there's a heading per game family (FR/LG, R/S/E) with **SET**: each sprite set you have, or OFF for the game's own NPCs. Changes apply straight away.
 
 If the selected set doesn't have a sheet for someone, the other sets are tried in menu order, then the game's own sprite.
 
@@ -66,7 +80,7 @@ The mod options still have every row for both families.
 
 ## The GB filter
 
-Under **SCREEN**, four options give the game a Game Boy look (and three more give its windows and battle boxes Gen 2's, [below](#gbc-windows-and-hp-boxes)). They're also on their own **SCREEN** page in PRISM (as FILTER, SHADES, WHERE and DOTS; SHADES shows with the shade palettes), whose corner shows the picked look's shades.
+Under **SCREEN**, four options give the game a Game Boy look (and three more give its windows and battle boxes Gen 2's, [below](#gbc-windows-and-battle-ui)). They're also on their own **SCREEN** page in PRISM (as FILTER, SHADES, WHERE and DOTS; SHADES shows with the shade palettes), whose corner shows the picked look's shades.
 
 * **FILTER**: **GRAY** turns everything into the Game Boy Pocket's four greys, **GREEN** the original Game Boy's four greens, and **RUBY**, **SAPPHIRE** and **EMERALD** four shades of each gem, for the games themselves (EMERALD is bluer and deeper than GREEN). **GBC** keeps colour but cuts each channel down to four levels, for the flat, bright look of a Game Boy Color game. **OFF** (the default) leaves the game's own colours.
 * **SHADES**: how many shades GRAY, GREEN, RUBY, SAPPHIRE and EMERALD use: **4** (the default, like a Game Boy), **8** or **16** for smoother shading and more of the scene's detail. The extra shades are blended between the four palette colours.
@@ -373,6 +387,110 @@ Pick a set under SET: the one picked wins where several have a sheet, and the ot
 
 The recipe's `confidence` notes which matches are exact (named characters, trainer classes) and which are best guesses (generic townsfolk with no exact HGSS twin). In FR/LG the pack has no art for Agatha, Lorelei, Mr. Fuji, Celio, the Teachy TV host or the Trainer Tower and Gym guides; the shipped sets cover them. HGSS sheets have 9 frames, so the VS Seeker hand raise shows the standing frame. The nurse's sheet has her bow drawn in, and the recipe's `cells` list moves it to frame 9 so she still bows.
 
+## Gen 1 and 2
+
+Red, Blue, Yellow, Gold, Silver and Crystal have their own set of Facets' options, kept apart from the Gen 3 ones so each can have its own look. They're under the mod's options in the Mods manager, and on a **FACETS** page in the game.
+
+### The FACETS page
+
+**FACETS** is on the START menu (above MODS, or QUIT) and at the bottom of the game's OPTION menu, showing your NPC set. With Emerald Lens or Crystal Lens installed too, they share one **PRISM** item there, as in the Gen 3 games: a list drawn the Game Boy way, with each mod's gem, its current setting and a line on what it changes. Picking one opens its page, and B comes back to the list.
+
+The page is the game's own OPTION page with Facets' rows. Up and down pick a row, left and right (or A) change it, and B or START closes it. Changes apply straight away and are saved with the game's options, so they're still there after you quit. The last row, **CREDITS**, opens a page naming who made everything Facets can show on these games, from each set's meta.json, in the game's own font: up and down scroll a line, left and right a page, and A or B goes back.
+
+### People
+
+**NPCS** picks a set: **COMMUNITY**, **DIEGO**, **TAIGA** or **ZAFFRE**, the same sets as the Gen 3 games, cut from Gen 3's nine frames to the Game Boy's six and drawn in full colour. They walk on both of Gen 3's steps, so feet alternate and tails, caps and ponytails stay on their side. Gen 3 people are taller than the Game Boy's and stand into the tile above, as they do on the GBA.
+
+Everyone a set doesn't have comes from the others, then from the fill-in sets, which are never a choice of their own:
+
+- **JOHTO DS** (Jext, KyleDove and figyberries): Johto's gym leaders, Elite Four and story people (Elm, Kurt, the Elder, the Kimono Girls, Sages, Officers, the Pharmacist, the Teacher, the Fishing Guru and Mom in Crystal), and Kanto's Bike Shop Clerk, Silph President, Gambler, Guard, Safari Zone and Silph workers, Waiter and Warden.
+- **DIONYUS1** (Yellow): Jessie, James and Officer Jenny.
+- **KALARIE** (Yellow) and **HEART & SOUL** (Gold, Silver and Crystal): Gen 3-style versions of the same people, for the GBA look below.
+
+A person's own name is looked for in every set before any stand-in, so a fill-in's real Sage beats a set's Expert. Between them, the sets cover every person in all six games. Pokémon on the map, objects, the player and the rival stay the game's own; Crystal Lens and Emerald Lens draw the player and the rival. Changing the set redraws everyone on the map straight away.
+
+**PIKACHU** (Yellow only): **GAME** (Yellow's own, the default) or one of seven looks, which work whatever the NPC set: **HAT** (Ash's cap), **BELLE**, **ROCK STAR**, **PHD**, **POP STAR**, **LIBRE** and **COSPLAY**. With a look on, your partner Pikachu (the one with your trainer ID and name) wears it in battle, on its summary and in the Hall of Fame too.
+
+### Trainers
+
+**TRAINERS: DS** gives every trainer class a picture: the DS set's own, DS-style Johto leaders, Elite Four and Gen 2-only classes (Jext, KyleDove and figyberries), Young-Dante's Teacher and, in Yellow, L-mon's Jessie and James. Where a class changed in Gen 3, its Gen 3 version stands in: Jr. Trainers are Campers and Picnickers, Gamblers are Gamers. The rival stays the game's own (Crystal Lens's).
+
+### Pokémon
+
+- **POKEMON: DS**, with **YOUR SIDE** (BACK, MIRRORED or FRONT) as on Gen 3. With a set off, YOUR SIDE shows the game's own front, or another mod's. On Red, Blue and Yellow there's also **CRYSTAL**: Crystal's battle sprites, read from your own imported Crystal (or Gold, or Silver).
+- **ICONS**: **GAME**, **MINIDEX** (a different icon for every Pokémon, at the Game Boy's own size) or, on Red, Blue and Yellow, **CRYSTAL** (Crystal's icons, from your install).
+- **PICTURE SIZE**: **FIT** (the default) cuts each Pokémon or trainer picture to its edges and shrinks it only if it still doesn't fit the game's own box. **0.5X**, **0.75X** and **1X** scale it in battle instead, standing on the same ground line.
+
+Red, Blue and Yellow show pictures on some screens (summary, Hall of Fame, Pokédex, evolution, trades, party icons) by loading a file, so Facets writes those once to the engine's per-install cache and keeps them until Facets, the engine or an imported game changes.
+
+### The GBA look
+
+**FIRERED** and **EMERALD** under NPCS, TRAINERS and POKEMON read people, trainer pictures and Pokémon from your own imported FireRed (or LeafGreen) and Emerald while you play; nothing from either game is included. FIRERED looks in FireRed first, then LeafGreen, then Emerald; EMERALD in Emerald first. Johto's leaders and the Gen 2-only classes, which neither game has, come from HEART & SOUL's GBA-style art, and Yellow's Jessie, James and Jenny from KALARIE's. Some Game Boy people are stood in for by a FireRed or Emerald person of a different name: the Bike Shop Clerk is the Clerk, the Fishing Guru is the Fisher (Emerald's Fisherman in Johto), the Pharmacist is Emerald's Mart employee, the Silph President is the Gentleman, the Waiter is Emerald's Cook, and Mediums are Channelers. On Gold, Silver and Crystal a Pokémon from Emerald moves when it appears: Crystal's animation for it, played with Emerald's two frames.
+
+### Battle scenes and boxes
+
+- **BATTLE BG: SCENERY** paints a scene behind the battle, picked from where you are: gyms, caves, the Ice Path and Seafoam, forests, Mt. Silver, labs, towns, routes, the Elite Four's and champion's rooms, and surfing. It works with any of the engine's own BATTLE BG modes. On Red, Blue and Yellow it's for **wide battles** only (the engine's BATTLE LAYOUT on WIDE): their normal battle screen is coloured through the Super Game Boy's zones, which would shade a scene too.
+- **BATTLE UI**: a battle box set's boxes, in wide battles, where there's room for them; the normal screen keeps the game's own. Their text is FireRed's small font, so a GBA game has to be imported.
+
+### Windows
+
+**WINDOWS** puts every text box and menu in a Gen 3 frame: **FIRERED 1-10** (FireRed's OPTION frames, with FireRed's own text box at the bottom, read from your imported FireRed, LeafGreen or Emerald) or a **TITO** style (its text box, with FireRed's first frame round everything else). Boxes keep the game's sizes and the Game Boy's font, and ones under three tiles stay the game's. On the FACETS page the WINDOWS row itself is drawn in the style's text box, so you can see it while you pick.
+
+### Colours and the screen
+
+**COLORS**: **ADVANCED** on Red, Blue and Yellow, **GEN 2** on Gold, Silver and Crystal (the default), or **GAME**. Facets' art is drawn for the games' full-colour mode, and the DMG greys only half shade it, so while anything in Facets is on (the FILTER included), the game stays in full colour whatever its own COLORS says. The game's COLORS row then reads FACETS, and A on it opens the FACETS page. Your own COLORS is kept, and comes back when everything in Facets is off, or with COLORS on GAME. For a Game Boy look with Facets, use the FILTER.
+
+**FILTER**, **FILTER ON**, **DOTS** and **SHADES** work just as on Gen 3, and share their settings with it.
+
+### Adding art
+
+Art for anyone can be dropped into a set's folder under the Game Boy name: `assets/trainers/ds/gb/<CLASS>.png` for a trainer picture (the `gb/` folder is only read on the Game Boy games, so a name Gen 3 also uses, like RED, is safe), or `assets/npcs/<set>/gen3/johto/<SPRITE>.png` for an overworld sheet (nine 32x32 frames in Gen 3's order). `tools/import_rpgmaker.py` turns an RPG Maker sheet or a Gen 3 strip into one.
+
+### Known limits
+
+- On Red, Blue and Yellow, BATTLE BG and BATTLE UI are for wide battles only, and BATTLE BG doesn't show in the Game Boy greys (CLASSIC, OG).
+- Gen 1 battles have no animations, so CRYSTAL sprites stand still there; DS and FIRERED art plays one frame on Gold, Silver and Crystal.
+- Facets' people keep their daytime colours at night in Gold, Silver and Crystal.
+- The DS Pokémon resource has no Unown, so Unown stays the game's own, and so does Spinda's front, to keep each Spinda's spots.
+
+## Achievements
+
+With [Recomp Achievements](https://github.com/ElvieBlooms/recomp_achievements) installed, Facets adds its own tab, **FACETS**, to the TROPHIES menu. Each one is earned by winning a battle in a look, judged by your settings when the battle started. They count on Recomp Achievements' Extra Credit board, not the main one. Without it, Facets carries on as before.
+
+| | | |
+|---|---|---|
+| **We have to go Back...** | 25 | Win a trainer battle in full Game Boy Color: GBC or GBC 2X NPCs, GBC-ISH trainers, GBC-ISH or GBC ANIM Pokémon, a GBC window frame, GBC battle boxes and a WHITE battle background (with a Gen 2 game imported to draw them). |
+| **To the Future!** | 25 | Win a trainer battle in a Gen 4+ look: DIEGO, TAIGA, ZAFFRE or COMMUNITY NPCs, DS trainers and Pokémon, and DP, PLATINUM, HGSS, BW, B2W2 or XY battle boxes. |
+| **Time Traveler** (hidden) | 10 | Earn both of those. |
+| **Original Recipe** | 10 | Win a battle with the whole screen in GREEN, 4 shades, with DOTS on. |
+| **Pocket Monsters** | 5 | Win a battle with the whole screen in GRAY, 4 shades. |
+| **Gem Collector** | 15 | Win a battle under each of the RUBY, SAPPHIRE and EMERALD filters. |
+| **Face to Face** | 10 | Win 10 battles with YOUR SIDE on FRONT or MIRRORED. |
+| **Scenic Route** | 15 | Win battles in 8 different SCENERY backgrounds. |
+| **Built to Last** | 5 | Let PREBUILD build and keep everything your settings need. |
+| **Advanced Class** | 10 | Win a trainer battle in Red, Blue, Yellow, Gold, Silver or Crystal with FIRERED or EMERALD people, trainers and Pokémon. |
+
+On the Game Boy games, To the Future! needs DS-era people, DS trainers and DS Pokémon (there are no battle boxes to change outside wide battles), and the filters, YOUR SIDE and SCENERY count there too. Catching a wild Pokémon counts as a win. The scenes and filters you've won in are kept with your save, so Gem Collector and Scenic Route carry on where they left off.
+
+## Tools
+
+Everything Facets ships was built with the scripts in `tools/` (Python 3 with Pillow), most from a recipe in `tools/recipes/`. Each script's own help says how to run it.
+
+| Script | What it does |
+| --- | --- |
+| `npc_convert.py` | Pokémon Essentials and other 4x4 charsets into a Gen 3 NPC set (COMMUNITY, DIEGO, TAIGA, ZAFFRE, HGSS) |
+| `mon_convert.py` | A 64x64 Pokémon sprite resource into a Pokémon set (DS) |
+| `make_trainer_set.py` | DS-style trainer sprites into a trainer set |
+| `make_gbc_strips.py`, `make_gbc_icons.py`, `make_gbc_anim.py` | The Game Boy-style sets: GBC strips, GBC-ISH icons, GBC ANIM |
+| `make_window_set.py`, `make_battle_ui_set.py`, `make_battle_bg_set.py` | Window, battle box and battle background sets |
+| `ips_extract.py` | Pulls everything a FireRed IPS patch changes out of your own ROM, sorted by kind |
+| `make_sprite_swapper_pack.py` | A Facets Pokémon set as a SPRITE SWAPPER pack |
+| `import_rpgmaker.py` | An RPG Maker sheet or a Gen 3 strip as a Game Boy overworld sheet (JOHTO DS, DIONYUS1, KALARIE) |
+| `import_hns.py` | Pokémon Heart & Soul's Johto people, from a pokehns-expansion checkout |
+| `make_pikachu.py` | Yellow's Pikachu looks, from the artists' sheets |
+| `make_gba_ids.py` | `gba_ids.lua`, FireRed's and Emerald's sprite ids for the GBA look |
+| `make_test_set.py` | The numbered TEST FRAMES set |
+
 ## Testing
 
 `tools/make_test_set.py .` rebuilds the TEST FRAMES set. Each frame shows its number, and an arrow on the head shows which way it faces. Its meta.json has `"test": true`, so it's listed last under SET, is never the default, and only shows when picked.
@@ -394,78 +512,62 @@ GEN1RECOMP_SRC=<unzipped .love> GEN1RECOMP_DATA=<install folder> texlua tests/ru
 
 (`texlua` comes with TeX Live and has `lfs` built in; plain Lua 5.1–5.4 or LuaJIT with luafilesystem works too.)
 
-## Gen 1 and 2
-
-Red, Blue, Yellow, Gold, Silver and Crystal get their own set of Facets' options, under the mod's options in the Mods manager and on a **FACETS** page, reached from **FACETS** on the START menu (above MODS, or QUIT) and at the bottom of the game's OPTION menu. With Emerald Lens installed too, the two share one **PRISM** item there as they do in Gen 3: a list drawn the Game Boy way, with each mod's gem, its current setting and a line on what it changes. Picking one opens its page; B there comes back to the list. They're kept apart from the Gen 3 ones, so each can have its own look.
-
-- **NPCS:** COMMUNITY, DIEGO, TAIGA or ZAFFRE, cut down from Gen 3's nine frames to the Game Boy's six and drawn in full colour. Someone a set doesn't have is looked for in the other sets, then in the fill-in sets: JOHTO DS (Johto's leaders, Elite Four and story people, and Kanto's Bike Shop Clerk, Silph President, workers, Gambler, Guard, Waiter and Warden, DS-style), DIONYUS1 (Yellow's Jessie, James and Officer Jenny), and the Gen 3-style KALARIE and HEART & SOUL, then left as the game draws them. Someone's own name is looked for in every set before any stand-in, so a fill-in's real Sage or Teacher beats a set's Expert or Teala.
-- **PIKACHU** (Yellow): GAME (Yellow's own), or one of seven looks that work whatever the NPC set: HAT (Ash's cap), BELLE, ROCK STAR, PHD, POP STAR, LIBRE and COSPLAY. With any look, your partner Pikachu (the one with your trainer ID and name) wears it in battle, on its summary and in the Hall of Fame too, whatever POKEMON's set is. Gen 3 people are taller than the Game Boy's and stand into the tile above, as they do on the GBA. The player and the rival are left to Crystal Lens.
-- **TRAINERS:** DS, with DS-style Johto leaders, Elite Four and Gen 2-only classes (Jext, KyleDove and figyberries), and Gen 3 stand-ins where a class changed (Jr. Trainers as Campers and Picnickers, Mediums as Channelers).
-- **POKEMON:** DS, with **YOUR SIDE** (BACK, MIRRORED or FRONT) as on Gen 3. With a set off, YOUR SIDE shows the game's own front, or another mod's. On Red, Blue and Yellow there's also **CRYSTAL**: Crystal's battle sprites, read from your own imported Crystal (or Gold, or Silver). They're four greys like Gen 1's own, so the game tints them as it does its own, or they show in Crystal's colours with COLORS on RED++.
-- **ICONS:** GAME, **MINIDEX** (one icon per Pokémon, the Game Boy's own size), or on Red, Blue and Yellow **CRYSTAL** (Crystal's icons, from your install).
-- **FIRERED** and **EMERALD** under all three are the GBA look: people, trainer pictures and Pokémon read from your own imported FireRed (or LeafGreen) and Emerald while you play. FIRERED looks in FireRed first, then LeafGreen, then Emerald; EMERALD in Emerald first. Nothing from either game is included. Johto's leaders, Elite Four, Elm, Kurt and the Gen 2-only classes, which neither game has, come from Heart & Soul's GBA-style art instead (then JOHTO DS for anyone Heart & Soul doesn't have). On Gold, Silver and Crystal a Pokémon from Emerald moves when it appears: Crystal's animation for it, played with Emerald's two frames.
-- **PICTURE SIZE:** FIT (the default) cuts each picture to the Pokémon or trainer and shrinks it only if it still doesn't fit the game's own box. 0.5X, 0.75X and 1X scale it in battle instead, standing on the same ground line.
-- **BATTLE BG:** SCENERY behind the battle, picked from where you are: gyms, caves, the Ice Path and Seafoam, forests, Mt. Silver, labs, towns, routes, the Elite Four and champion's rooms and surfing. On Red, Blue and Yellow it's in **wide battles** only (see below).
-- **BATTLE UI:** a set's battle boxes in **wide battles**, where there's room for them; the normal screen keeps the game's own. Their text is FireRed's small font, so a GBA game has to be imported.
-- **WINDOWS:** every text box and menu in a Gen 3 frame: **FIRERED 1-10** (FireRed's OPTION frames, with FireRed's own text box at the bottom, read from your imported FireRed, LeafGreen or Emerald), or a **TITO** style (its text box, with FireRed's first frame round everything else). Boxes keep the game's sizes and the Game Boy's font; ones under three tiles stay the game's. On Red, Blue and Yellow they keep their colours with COLORS on RED++. On the FACETS page the WINDOWS row itself is drawn in the style's text box, so you can see it while you pick.
-- **COLORS:** **ADVANCED** on Red, Blue and Yellow, **GEN 2** on Gold, Silver and Crystal (the default), or **GAME**. Facets' art is drawn for the games' full-colour mode, and the DMG greys only half shade it, so while anything in Facets is on (the FILTER included), the game stays in full colour whatever its own COLORS says, and that row reads FACETS (A on it opens the FACETS page). Your own COLORS is kept, and comes back when everything in Facets is off, or with COLORS on GAME. For the Game Boy look with Facets, use FILTER.
-- **FILTER**, **FILTER ON**, **DOTS** and **SHADES** work just as on Gen 3, and share their settings with it.
-- **CREDITS** (the last row on the FACETS page): who made everything Facets can show on these games, from each set's meta.json, in the game's own font. Up and down scroll a line, left and right a page, A or B goes back.
-
-On Gen 1, Pokémon and trainers show in full colour with COLORS on RED++; in the other modes the game shades them to its own four colours. NPCs are full colour in every mode. The normal Gen 1 battle screen is coloured through the Super Game Boy's zones, which would shade a scene too, so BATTLE BG there is for wide battles, and not in the Game Boy greys (CLASSIC, OG). Pictures for screens that load from a file (summary, Hall of Fame, Pokédex, evolution, trades, party icons) are written once to the engine's cache and kept until Facets, the engine or an imported game changes.
-
-Art for anyone still missing can be dropped into a set's folder under the Game Boy name: `assets/trainers/ds/gb/TEACHER.png` for a trainer class (the `gb/` folder is only read on the Game Boy games, so a name Gen 3 also uses, like RED, is safe), `assets/npcs/<set>/gen3/johto/PHARMACIST.png` for an overworld sheet. Some people stand in for others under their Gen 3 names: the Bike Shop Clerk as the Clerk, Safari Zone and Silph workers as FireRed's workers and Emerald's Devon employee, the Silph President as the Gentleman, the Waiter as Emerald's Cook, the Warden as an old man, Kanto's Fishing Guru as the Fisher and Johto's as Emerald's Fisherman, and the Pharmacist as Emerald's Mart employee. Yellow's Jessie, James and Officer Jenny come from the DIONYUS1 fill-in set (KALARIE's Gen 3-style ones on FIRERED and EMERALD), and Jessie and James's battle picture from the DS set's gb/ folder (L-mon's), whatever the set. Nobody is missing on the DS side. On FIRERED and EMERALD, Mediums show FireRed's Channeler.
-
-## Achievements
-
-With [Recomp Achievements](https://github.com/ElvieBlooms/recomp_achievements) installed, Facets adds its own tab, **FACETS**, to the TROPHIES menu. Each one is earned by winning a battle in a look, judged by your settings when the battle started. They count on Recomp Achievements' Extra Credit board, not the main one. Without it, Facets carries on as before.
-
-| | | |
-|---|---|---|
-| **We have to go Back...** | 25 | Win a trainer battle in full Game Boy Color: GBC or GBC 2X NPCs, GBC-ISH trainers, GBC-ISH or GBC ANIM Pokémon, a GBC window frame, GBC battle boxes and a WHITE battle background (with a Gen 2 game imported to draw them). |
-| **To the Future!** | 25 | Win a trainer battle in a Gen 4+ look: DIEGO, TAIGA, ZAFFRE or COMMUNITY NPCs, DS trainers and Pokémon, and DP, PLATINUM, HGSS, BW, B2W2 or XY battle boxes. |
-| **Time Traveler** (hidden) | 10 | Earn both of those. |
-| **Original Recipe** | 10 | Win a battle with the whole screen in GREEN, 4 shades, with DOTS on. |
-| **Pocket Monsters** | 5 | Win a battle with the whole screen in GRAY, 4 shades. |
-| **Gem Collector** | 15 | Win a battle under each of the RUBY, SAPPHIRE and EMERALD filters. |
-| **Face to Face** | 10 | Win 10 battles with YOUR SIDE on FRONT or MIRRORED. |
-| **Scenic Route** | 15 | Win battles in 8 different SCENERY backgrounds. |
-| **Built to Last** | 5 | Let PREBUILD build and keep everything your settings need. |
-| **Advanced Class** | 10 | Win a trainer battle in Red, Blue, Yellow, Gold, Silver or Crystal with FIRERED or EMERALD people, trainers and Pokémon. |
-
-On the Game Boy games, To the Future! needs DS-era people, DS trainers and DS Pokémon (there are no battle boxes to change outside wide battles), and the filters, YOUR SIDE and SCENERY count there too. Catching a wild Pokémon counts as a win. The scenes and filters you've won in are kept with your save, so Gem Collector and Scenic Route carry on where they left off.
-
 ## Credits
 
 Code by Elvie, MIT licensed. Built on the approach of Emerald Lens and Crystal Lens (dburton95).
 
-DIEGO, TAIGA, ZAFFRE and COMMUNITY are included, used with credit. HGSS is Nintendo's art, so it's for you to convert yourself and isn't in this repo:
+### Art included with Facets
 
-- **HGSS:** overworld sprites by Nintendo / Game Freak, from Neo-Spriteman's Resource Pack.
-- **TAIGA (included):** overworld sprites by Taiga (Taiga Collection), free to use with credit. Taiga's sprites use assets, colours or inspiration from DiegoWT, Neo-Spriteman, Vanilla Sunshine, AtomicReactor, PurpleZaffre, izzyvivious and Tebited.
-- **DIEGO (included):** overworld sprites by DiegoWT (OW PACK v2), free to use with credit.
-- **ZAFFRE (included):** overworld sprites by PurpleZaffre (Zaffre's Overworlds, from the Ultimate Gen 4 Overworlds Pack), used with credit. Get the full pack from PurpleZaffre's own release, not from this repo.
-- **COMMUNITY (included):** overworld sprites by KyleDove, Jext and Hyo, with some by DiegoWT and Aqua, all free to use with credit.
-- **GBC and GBC 2X:** Gen 1/2 overworld sprites by Nintendo / Game Freak, read from your own imported games; none of it is included. The strips for everyone else (included) are by Catwithnojob (Gen 2 Additional NPCs Pack), free to use with credit.
-- **DS (included):** the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush, with sprites by Wizznats, jhajjar, Vapper3, atif, redriders180, cmbeke, Tailes, SneakerTheOtter, karatekid522, dreamengine, Rizon, Spark, MrDollSteak, PJBottomz, Archeops, dragonflye and Anvils Alive; free to use with credit.
-- **GBC-ISH:** Gen 2 battle sprites, palettes and animations by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; Hoenn made from your own imported Emerald's pictures; none of it is included. Party icons (included): Kanto and Johto from the Minidex 001-251, by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25; Hoenn by eeveeee1999.
-- **GB EMERALD:** made from your own imported Emerald's pictures (Nintendo / Game Freak); none of it is included.
-- **TRAINERS: DS (included):** trainer sprites by KyleDove (XY, ORAS, USUM, SWSH and Ga-Olé trainer classes), by Mr. Gela/theo#7722, and by KyleDove, Jext and figyberries (leaders, Elite Four, Aqua and Magma, the Frontier and more), used with credit.
-- **HEART & SOUL (included, Gold, Silver and Crystal):** GBA-style Johto people for FIRERED and EMERALD (and for the sets, after JOHTO DS): Johto's gym leaders, Elite Four, Elm, Kurt, the Kimono Girls, the Elder, Sages and Officers on the map, and Johto trainer pictures (the leaders, Will, Karen, Janine, Lance as champion, Red, Blue, Eusine, the Rocket executives, Kimono Girls, Sages, Officers, Skiers, Boarders and Firebreathers), from **Pokémon Heart & Soul** (pokemonHnS-expansion 2.0, by Lil Dill and team, built on RHH's pokeemerald-expansion, Resetes12's Modern Emerald and pret's pokeemerald). Sprites by AveonTrainer, PurpleZaffre, Cesare CBass, BatimaTheBat, ShinyDragonHunter, Tamamushi Erika, Beliot419, shiningstar5022 and Nettorizo, used with credit. `tools/import_hns.py` copies them from a pokehns-expansion checkout.
-- **JOHTO DS (included):** DS-style overworlds and trainer pictures for Johto's leaders, Elite Four, Lance, Red, Blue, Eusine, the Rocket Executives (Proton and Ariana), Kimono Girls, Mediums, Sages, Officers, Skiers, Boarders, Firebreathers, Elm, Kurt, the Elder, the Pharmacist, the Teacher and the Fishing Guru, and Kanto's Bike Shop Clerk, Silph President, Gambler, Guard, Safari Zone and Silph workers, Waiter and Warden, by **Jext**, **KyleDove** and **figyberries**, used with credit. Converted with `tools/import_rpgmaker.py`; the pictures are in the DS set's gb/ folder, Heart & Soul's in gb_hns/.
-- **DIONYUS1 (included, Yellow):** DS-style Jessie, James and Officer Jenny on the map by **Dionyus1** (DeviantArt), used with credit.
-- **KALARIE (included, Yellow):** Gen 3-style Jessie, James and Officer Jenny on the map by **kalarie**, used with credit, for FIRERED and EMERALD. `tools/import_rpgmaker.py` turns an RPG Maker sheet or a Gen 3 strip like kalarie's into a Facets sheet.
-- **Jessie and James's battle picture (included, Yellow):** by **L-mon**, used with credit, in the DS set's gb/ folder.
-- **Teacher's battle picture (included, Gold, Silver and Crystal):** by **Young-Dante** (DeviantArt), used with credit, in the DS set's gb/ folder.
-- **PIKACHU (included, Yellow):** HAT by vitorluiscolnago; BELLE, ROCK STAR, PHD, POP STAR, LIBRE and COSPLAY by piphybuilder88; all from DeviantArt, free to use with credit. `tools/make_pikachu.py` turns their sheets into Facets' layout. The matching battle front and back sprites are by leParagon (Smogon), used with credit.
-- **TRAINERS: GBC-ISH and GAME BOY:** Gen 1/2 trainer pictures and Crystal's colours by Nintendo / Game Freak, read from your own imported games, and the game's own trainer pictures made Game Boy while you play; none of it is included.
-- **WINDOWS: TITO (included):** text boxes by Tito Seich / Sage, used with credit. On the Game Boy games too.
-- **WINDOWS: FIRERED (Game Boy games):** FireRed's window frames and text box by Nintendo / Game Freak, read from your own imported game; none of it is included.
-- **BATTLE BG: SCENERY (included):** battle backgrounds by LibertyTwins, princess-phoenix, carchagui, aveontrainer, WesleyFG, kWharever, worldslayer608 and knizz (Battle Backgrounds Patch FR), used with credit.
-- **BATTLE UI (included):** XY and B2W2 by Verloren 5; DP by Dinisk, Prof. Leon Dias, Neon Skylar and Verloren 5; PLATINUM by Omega Zero and Verloren 5; HGSS by YoY-X, Neon Skylar, Jaizu and Verloren 5; BW by Vytron and Verloren 5; B2W2 BLACK and WHITE by Verloren 5; GAIA by YoY-X and Spherical Ice; TEX BOX by Cesar Alarcon; PLAIN by Neon Skylar; the ZEKE recolours by Zeke; all used with credit.
-- **WINDOWS and BATTLE UI: GBC:** Crystal's window frames, HP and EXP bars, HUD brackets and bar colours by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included.
-- **GBC NPCs, Frontier Brains (included):** overworld sprites by sirwhibbles, used with credit.
-- **TRAINERS: GBC-ISH (included):** Gen 2-style Hoenn gym leaders, Elite Four, Wallace and Steven by jphyper; Battle Frontier Brains by sirwhibbles; Archie, Maxie and the Aqua and Magma grunts by eli76; trainer classes by SkidMarc25; all used with credit.
-- **GBC ANIM:** Gen 2 battle sprites and palettes by Nintendo / Game Freak, read from your own imported Crystal, Gold or Silver; none of it is included. Hoenn sprites and animations (included) by Nuuk (Crystal-style sprites), free to use with credit, not for profit; the rest from GBC-ISH.
-- **SPRITE SWAPPER** is artyrambles' mod; Facets works alongside it and can make packs for it, but includes none of its code.
+All of it is used with credit, under each artist's own terms.
+
+People on the map:
+
+- **COMMUNITY:** overworld sprites by KyleDove, Jext and Hyo, with some by DiegoWT and Aqua, all free to use with credit.
+- **DIEGO:** overworld sprites by DiegoWT (OW PACK v2), free to use with credit.
+- **TAIGA:** overworld sprites by Taiga (Taiga Collection), free to use with credit. Taiga's sprites use assets, colours or inspiration from DiegoWT, Neo-Spriteman, Vanilla Sunshine, AtomicReactor, PurpleZaffre, izzyvivious and Tebited.
+- **ZAFFRE:** overworld sprites by PurpleZaffre (Zaffre's Overworlds, from the Ultimate Gen 4 Overworlds Pack), used with credit. Get the full pack from PurpleZaffre's own release, not from this repo.
+- **JOHTO DS (Game Boy games):** DS-style overworlds and trainer pictures for Johto's leaders, Elite Four, Lance, Red, Blue, Eusine, the Rocket Executives (Proton and Ariana), Kimono Girls, Mediums, Sages, Officers, Skiers, Boarders, Firebreathers, Elm, Kurt, the Elder, Mom, the Pharmacist, the Teacher and the Fishing Guru, and Kanto's Bike Shop Clerk, Silph President, Gambler, Guard, Safari Zone and Silph workers, Waiter and Warden, by **Jext**, **KyleDove** and **figyberries**. The pictures are in the DS set's gb/ folder.
+- **DIONYUS1 (Yellow):** DS-style Jessie, James and Officer Jenny on the map by **Dionyus1** (DeviantArt).
+- **KALARIE (Yellow):** Gen 3-style Jessie, James and Officer Jenny on the map by **kalarie**, for FIRERED and EMERALD.
+- **HEART & SOUL (Gold, Silver and Crystal):** GBA-style Johto people for FIRERED and EMERALD (and for the sets, after JOHTO DS): Johto's gym leaders, Elite Four, Elm, Kurt, the Kimono Girls, the Elder, Sages and Officers on the map, and Johto trainer pictures (the leaders, Will, Karen, Janine, Lance as champion, Red, Blue, Eusine, the Rocket executives, Kimono Girls, Sages, Officers, Skiers, Boarders and Firebreathers, in the DS set's gb_hns/ folder), from **Pokémon Heart & Soul** (pokemonHnS-expansion 2.0, by Lil Dill and team, built on RHH's pokeemerald-expansion, Resetes12's Modern Emerald and pret's pokeemerald). Sprites by AveonTrainer, PurpleZaffre, Cesare CBass, BatimaTheBat, ShinyDragonHunter, Tamamushi Erika, Beliot419, shiningstar5022 and Nettorizo.
+- **PIKACHU (Yellow):** HAT by vitorluiscolnago; BELLE, ROCK STAR, PHD, POP STAR, LIBRE and COSPLAY by piphybuilder88; all from DeviantArt, free to use with credit. The matching battle front and back sprites are by leParagon (Smogon).
+- **GBC strips:** the Gen 2-style sprites for everyone the Game Boy games never had, by Catwithnojob (Gen 2 Additional NPCs Pack), free to use with credit; the Frontier Brains by sirwhibbles.
+
+Trainer pictures:
+
+- **TRAINERS: DS:** trainer sprites by KyleDove (XY, ORAS, USUM, SWSH and Ga-Olé trainer classes), by Mr. Gela/theo#7722, and by KyleDove, Jext and figyberries (leaders, Elite Four, Aqua and Magma, the Frontier and more). Johto's are JOHTO DS's, above.
+- **Teacher (Gold, Silver and Crystal):** by **Young-Dante** (DeviantArt).
+- **Jessie and James (Yellow):** by **L-mon**, set back to back for Facets.
+- **TRAINERS: GBC-ISH:** Gen 2-style Hoenn gym leaders, Elite Four, Wallace and Steven by jphyper; Battle Frontier Brains by sirwhibbles; Archie, Maxie and the Aqua and Magma grunts by eli76; trainer classes by SkidMarc25.
+
+Pokémon:
+
+- **DS:** the DS-style 64x64 Pokémon Sprite Resource by Chaos Rush, with sprites by Wizznats, jhajjar, Vapper3, atif, redriders180, cmbeke, Tailes, SneakerTheOtter, karatekid522, dreamengine, Rizon, Spark, MrDollSteak, PJBottomz, Archeops, dragonflye and Anvils Alive; free to use with credit.
+- **Party icons (GBC-ISH, and MINIDEX on the Game Boy games):** Kanto and Johto from the Minidex 001-251, by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25; Hoenn by eeveeee1999.
+- **GBC ANIM:** Hoenn sprites and animations by Nuuk (Crystal-style sprites), free to use with credit, not for profit.
+
+Battle and windows:
+
+- **BATTLE BG: SCENERY:** battle backgrounds by LibertyTwins, princess-phoenix, carchagui, aveontrainer, WesleyFG, kWharever, worldslayer608 and knizz (Battle Backgrounds Patch FR).
+- **BATTLE UI:** XY and B2W2 by Verloren 5; DP by Dinisk, Prof. Leon Dias, Neon Skylar and Verloren 5; PLATINUM by Omega Zero and Verloren 5; HGSS by YoY-X, Neon Skylar, Jaizu and Verloren 5; BW by Vytron and Verloren 5; B2W2 BLACK and WHITE by Verloren 5; GAIA by YoY-X and Spherical Ice; TEX BOX by Cesar Alarcon; PLAIN by Neon Skylar; the ZEKE recolours by Zeke.
+- **WINDOWS: TITO:** text boxes by Tito Seich / Sage, on the Game Boy games too.
+
+### Read from your own games
+
+None of this is included: Facets reads it while you play from the games you imported yourself (Nintendo / Game Freak).
+
+- **HGSS:** overworld sprites from Neo-Spriteman's Resource Pack; Nintendo's art, so it's for you to convert yourself and isn't in this repo.
+- **GBC and GBC 2X:** Gen 1/2 overworld sprites, from your imported Crystal, Gold, Silver, Yellow, Red or Blue.
+- **GBC-ISH:** Gen 2 battle sprites, palettes and animations from your imported Crystal, Gold or Silver; Hoenn made from your imported Emerald's pictures.
+- **GB EMERALD:** made from your imported Emerald's pictures.
+- **GBC ANIM:** Kanto and Johto's Gen 2 battle sprites and palettes from your imported Crystal, Gold or Silver; the rest from GBC-ISH.
+- **CRYSTAL (Red, Blue and Yellow):** Crystal's battle sprites, palettes and party icons from your imported Crystal, Gold or Silver.
+- **TRAINERS: GBC-ISH and GAME BOY:** Gen 1/2 trainer pictures and Crystal's colours from your imported games, and the game's own trainer pictures made Game Boy while you play.
+- **FIRERED and EMERALD (Game Boy games):** people, trainer pictures and Pokémon from your imported FireRed, LeafGreen and Emerald; **FR/LG ANIMS** reads Emerald's animations the same way.
+- **WINDOWS: FIRERED (Game Boy games):** FireRed's window frames and text box from your imported game.
+- **WINDOWS and BATTLE UI: GBC:** Crystal's window frames, HP and EXP bars, HUD brackets and bar colours from your imported Crystal, Gold or Silver.
+
+### Code and data
+
 - **Sprite data:** which sprite each trainer class uses, and the HGSS overworld model names, come from pret's pokeemerald, pokefirered and pokeheartgold decompilations.
+- **SPRITE SWAPPER** is artyrambles' mod; Facets works alongside it and can make packs for it, but includes none of its code.
