@@ -2221,6 +2221,31 @@ do
   eq(foes.choose(opts, "JR_TRAINER_M").rel, "assets/trainers/ds/CAMPER.png", "foes: stand-ins still work")
 end
 
+-- WINDOWS on the Game Boy games: which art a box gets, and where the
+-- text box's tiles go -Elvie
+do
+  local w = require("mods.facets.classic_windows")
+  eq(w.kind(20, 6), "dialogue", "windows: the six-row box is the text box")
+  eq(w.kind(11, 5), "frame", "windows: other boxes get the frame")
+  eq(w.kind(20, 2), nil, "windows: a box under 3 tiles stays the game's")
+  local k, key, n = w.parse("fr:4")
+  eq(k .. key .. n, "frfr4", "windows: FireRed frame 4")
+  eq(w.parse("fr:11"), nil, "windows: FireRed has ten frames")
+  k, key, n = w.parse("tito:2")
+  eq(k .. key .. n, "settito2", "windows: a set's style")
+  local cells, minX, maxX, minY, maxY = 0, 99, -1, 99, -1
+  w.dialogueCells(0, 12, 20, 6, function(_, cx, cy)
+    cells = cells + 1
+    minX, maxX = math.min(minX, cx), math.max(maxX, cx)
+    minY, maxY = math.min(minY, cy), math.max(maxY, cy)
+  end)
+  eq(table.concat({ minX, maxX, minY, maxY }, ","), "0,19,12,17", "windows: the text box's border fills the box's edge")
+  eq(cells, 2 * 20 + 4 * 4, "windows: two rows of 20, four rows of 4 side tiles")
+  local ring = 0
+  w.frameCells(11, 0, 9, 3, function() ring = ring + 1 end)
+  eq(ring, 2 * 9 + 2 * 1, "windows: a frame round its box's border ring")
+end
+
 -- Gen 2 BATTLE UI in wide battles: FireRed's text, HP bar and colours -Elvie
 do
   local hud = require("mods.facets.classic_hud")
