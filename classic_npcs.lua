@@ -48,23 +48,8 @@ classic.SKIP = { CHRIS = true, CHRIS_BIKE = true, KRIS = true, KRIS_BIKE = true,
 -- since no set has them -Elvie
 classic.POKEMON = { PIKACHU = true }
 
--- A full-colour sheet as the Game Boy's four greys, by brightness (the
--- see-through kept), for Gen 1 to tint with its own palette -Elvie
-function classic.greys(src)
-  local w, h = src:getDimensions()
-  local out = love.image.newImageData(w, h)
-  for y = 0, h - 1 do
-    for x = 0, w - 1 do
-      local r, g, b, a = src:getPixel(x, y)
-      if a > 0 then
-        local l = 0.299 * r + 0.587 * g + 0.114 * b
-        local v = l > 0.9 and 1 or l > 0.55 and 2 / 3 or l > 0.25 and 1 / 3 or 0
-        out:setPixel(x, y, v, v, v, 1)
-      end
-    end
-  end
-  return out
-end
+-- A full-colour sheet as the Game Boy's four greys (classic.lua) -Elvie
+classic.greys = require("mods.facets.classic").greys
 
 -- Gen 2 sprite name -> Gen 3 names, from gb.json ({ family = { NAME = {
 -- sprite = "youngster" } } }): the one that's the same name first, then the
