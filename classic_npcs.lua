@@ -43,6 +43,23 @@ classic.STAND_INS = {
   STANDING_YOUNGSTER = { "YOUNGSTER" },
   OLD_LINK_RECEPTIONIST = { "LINK_RECEPTIONIST" },
   GUARD = { "POLICEMAN" },
+  -- Kanto's people FireRed and Emerald have under other names -Elvie
+  BIKE_SHOP_CLERK = { "CLERK" },
+  SAFARI_ZONE_WORKER = { "WORKER_M" },
+  SILPH_PRESIDENT = { "GENTLEMAN" },
+  SILPH_WORKER_M = { "DEVON_EMPLOYEE" },
+  SILPH_WORKER_F = { "WORKER_F" },
+  SWIMMER = { "SWIMMER_M_WATER" },
+  WAITER = { "COOK" },
+  WARDEN = { "OLD_MAN_2" },
+  -- Johto's -Elvie
+  PHARMACIST = { "MART_EMPLOYEE" },
+}
+
+-- The same sprite name, a different person in each generation -Elvie
+classic.STAND_INS_BY_GEN = {
+  [1] = { FISHING_GURU = { "FISHER" } },
+  [2] = { FISHING_GURU = { "FISHERMAN" } },
 }
 
 -- The player and the rival are Crystal Lens's -Elvie
@@ -80,7 +97,7 @@ end
 
 -- The names to look for, in order, for a sprite id (SPRITE_YOUNGSTER),
 -- or nil for one Facets leaves alone -Elvie
-function classic.candidates(id, names)
+function classic.candidates(id, names, gen)
   if type(id) ~= "string" then return nil end
   local short = id:match("^SPRITE_(.+)$")
   if not short or classic.SKIP[short] then return nil end
@@ -89,6 +106,8 @@ function classic.candidates(id, names)
   add(short)
   for _, name in ipairs(names[short] or {}) do add(name) end
   for _, name in ipairs(classic.STAND_INS[short] or {}) do add(name) end
+  local byGen = classic.STAND_INS_BY_GEN[gen or 0]
+  for _, name in ipairs(byGen and byGen[short] or {}) do add(name) end
   return out
 end
 
@@ -252,7 +271,7 @@ function classic.init(mod, rows)
       local hit = defs[key]
       if hit ~= nil then return hit or nil end
       defs[key] = false
-      local want = classic.candidates(def.id, names)
+      local want = classic.candidates(def.id, names, require("mods.facets.classic").generation())
       if not want then return nil end
       local path, fw, fh, read, rel
       local grey = false
