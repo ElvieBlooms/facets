@@ -22,8 +22,10 @@ local classic = require("mods.facets.classic")
 -- FireRed's healthbox geometry, from the box's top left -Elvie
 hud.GEO = {
   enemy = { name = { 8, 3 }, level = 64, bar = { 24, 16 } },
+  -- hpWindow: the cream under the HP numbers, from just below the bar
+  -- (rows 16-23) down past the digits (rows 25-31) -Elvie
   player = { name = { 16, 3 }, level = 72, bar = { 32, 16 }, hpText = { 60, 80, 21 },
-    hpWindow = { 56, 21, 40, 11 }, exp = { 32, 32 } },
+    hpWindow = { 56, 24, 40, 8 }, exp = { 32, 32 } },
 }
 -- the "Lv" baked into the sheets, painted over before the real one -Elvie
 hud.INK = {
