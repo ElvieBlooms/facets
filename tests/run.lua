@@ -2252,6 +2252,32 @@ do
   eq(w.boxKind(12, 20, 4), "frame", "windows: only while the page marks it")
 end
 
+-- CREDITS on the Game Boy games -Elvie
+do
+  local cr = require("mods.facets.classic_credits")
+  eq(cr.plain("HEART & SOUL theo#7722"), "HEART and SOUL theo-7722", "credits: letters the Game Boy font hasn't got")
+  local lines = cr.wrap("Overworld sprites by PurpleZaffre (Zaffre's Overworlds)", 17)
+  local long = 0
+  for _, l in ipairs(lines) do long = math.max(long, #l) end
+  eq(long <= 17, true, "credits: no line past the box")
+  eq(#cr.wrap(string.rep("x", 40), 17), 3, "credits: a word longer than a line is cut")
+  local metas = {
+    ["assets/npcs/community/meta.json"] = { label = "COMMUNITY", credit = { "By KyleDove" } },
+    ["assets/npcs/hns/meta.json"] = { label = "HEART & SOUL", credit = "Heart & Soul team" },
+    ["assets/windows/tito/meta.json"] = { label = "TITO", credit = { "By Tito" } },
+  }
+  local rows = {
+    { key = "classicNpcs", choices = { { "OFF", "__off" }, { "COMMUNITY", "community" }, { "FIRERED", "firered" } } },
+    { key = "classicWindows", choices = { { "GAME", "game" }, { "FIRERED 1", "fr:1" }, { "TITO 1", "tito:1" }, { "TITO 2", "tito:2" } } },
+  }
+  local got = {}
+  for _, e in ipairs(cr.entries(rows, function(rel) return metas[rel] end)) do
+    if e.heading then got[#got + 1] = e.text end
+  end
+  eq(table.concat(got, "|"), "FACETS|NPCS: COMMUNITY|NPCS: HEART & SOUL|WINDOWS: TITO|YOUR OWN GAMES",
+    "credits: each set once, Heart & Soul with the NPCs, own games last")
+end
+
 -- COLORS on the Game Boy games: when Facets holds the full-colour mode -Elvie
 do
   local c = require("mods.facets.classic_colors")

@@ -80,6 +80,14 @@ function cmenu.start(mod, rows)
           return true
         end }
     end
+    -- CREDITS last: A opens who made it all -Elvie
+    out[#out + 1] = { id = "facets.credits", label = "CREDITS", port = true,
+      activate = function(g)
+        local ok, page = pcall(function() return require("mods.facets.classic_credits").screen(mod, g, rows) end)
+        if ok and page then g.stack:push(page)
+        else mod.log:warn("CREDITS couldn't open: %s", tostring(page)) end
+      end,
+      step = function() return false end }
     return out
   end
 
