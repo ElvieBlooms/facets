@@ -396,7 +396,7 @@ GEN1RECOMP_SRC=<unzipped .love> GEN1RECOMP_DATA=<install folder> texlua tests/ru
 
 ## Gen 1 and 2
 
-Red, Blue, Yellow, Gold, Silver and Crystal get their own set of Facets' options, under the mod's options in the Mods manager and on a **FACETS** page at the bottom of the game's OPTION menu. They're kept apart from the Gen 3 ones, so each can have its own look.
+Red, Blue, Yellow, Gold, Silver and Crystal get their own set of Facets' options, under the mod's options in the Mods manager and on a **FACETS** page, reached from **FACETS** on the START menu (above MODS, or QUIT) and at the bottom of the game's OPTION menu. With Emerald Lens installed too, the two share one **PRISM** item there as they do in Gen 3: a list drawn the Game Boy way, with each mod's gem, its current setting and a line on what it changes. Picking one opens its page; B there comes back to the list. They're kept apart from the Gen 3 ones, so each can have its own look.
 
 - **NPCS:** COMMUNITY, DIEGO, TAIGA or ZAFFRE, cut down from Gen 3's nine frames to the Game Boy's six and drawn in full colour. Someone a set doesn't have is looked for in the other sets, then left as the game draws them. Gen 3 people are taller than the Game Boy's and stand into the tile above, as they do on the GBA. The player and the rival are left to Crystal Lens.
 - **TRAINERS:** DS, with Gen 3 stand-ins where a class changed (Jr. Trainers as Campers and Picnickers, Firebreathers as Kindlers).

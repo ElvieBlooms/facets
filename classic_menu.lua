@@ -1,7 +1,7 @@
--- FACETS on the OPTION menu of the Game Boy games
--- One FACETS row on the OPTION screen (the ui.options.rows hook) opens a
--- page of the same settings as the Mods manager, set the same way, so
--- everything listening reacts as it would there. -Elvie
+-- FACETS on the START and OPTION menus of the Game Boy games
+-- FACETS (or PRISM, shared with Emerald Lens) opens a page of the same
+-- settings as the Mods manager, set the same way, so everything listening
+-- reacts as it would there. -Elvie
 -- --------------------------------------------------
 
 local cmenu = {}
@@ -76,29 +76,53 @@ function cmenu.start(mod, rows)
     return out
   end
 
+  -- Gen 1's own page for a list of rows; Gen 2's built the way its
+  -- OPTION screen builds a group's page
+  local function open(g)
+    if gen1 then
+      g.stack:push(OptionsMenu.new(g, { rows = members() }))
+      return
+    end
+    local page = setmetatable({}, OptionsMenu)
+    local view = members()
+    page.game, page.rows = g, view
+    page.options = g.options
+    page.index, page.scroll, page.sub = 1, 0, true
+    page.view = {}
+    for i, r in ipairs(view) do page.view[i] = r end
+    page.view[#page.view + 1] = { label = "BACK", cancel = true, id = "cancel" }
+    g.stack:push(page)
+  end
+
+  -- START and OPTION menus through prism.lua, as in the Gen 3 games: on
+  -- its own it's FACETS on both; with Emerald Lens (or another visuals
+  -- mod) they share one PRISM item. The OPTION row shows the first
+  -- setting, the NPC set.
+  local prism = require("mods.facets.prism")
+  local prismScreen = prism.registerGb(mod)
+  local entry = { id = "facets", label = "FACETS", short = "FACETS",
+    about = "The look of everything else.",
+    colour = { 130, 60, 170 }, -- amethyst
+    value = function()
+      local first = members()[1]
+      return first and tostring(first.value()) or "OFF"
+    end,
+    open = function(g) open(g) end,
+  }
+  local function liveGame(game)
+    if type(game) == "table" then return game end
+    local ok, g = pcall(function() return mod.game end)
+    return ok and type(g) == "table" and g or nil
+  end
+  mod.hooks:wrap("ui.start_menu.items", function(nextFn, game, items)
+    local got = nextFn(game, items)
+    if type(got) ~= "table" then return got end
+    return prism.addStartGb(mod, got, entry, liveGame(game), prismScreen)
+  end)
   mod.hooks:wrap("ui.options.rows", function(nextFn, game, list)
     local got = nextFn(game, list)
     if type(got) ~= "table" then return got end
-    local row = { id = "facets", label = "FACETS", port = true,
-      activate = gen1 and function(g)
-        -- Gen 1's own page for a list of rows -Elvie
-        g.stack:push(OptionsMenu.new(g, { rows = members() }))
-      end or function(g)
-        local page = setmetatable({}, OptionsMenu)
-        local view = members()
-        page.game, page.rows = g, view
-        page.options = g.options
-        page.index, page.scroll, page.sub = 1, 0, true
-        page.view = {}
-        for i, r in ipairs(view) do page.view[i] = r end
-        page.view[#page.view + 1] = { label = "BACK", cancel = true, id = "cancel" }
-        g.stack:push(page)
-      end }
-    -- just before BACK, where a mod's rows go -Elvie
-    local at = #got + 1
-    for i, r in ipairs(got) do if r.cancel then at = i break end end
-    table.insert(got, at, row)
-    return got
+    return prism.addOptionGb(mod, got, entry, liveGame(game), prismScreen)
   end)
 end
 
