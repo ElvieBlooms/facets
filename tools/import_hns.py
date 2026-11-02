@@ -2,7 +2,7 @@
 """Pokémon Heart & Soul's Johto people, for the Game Boy games.
 
 Copies the HnS sprites Facets uses from a pokehns-expansion checkout:
-trainer pictures into the DS set's gb/ folder under Gen 2's class names, and overworld
+trainer pictures into the DS set's gb_hns/ folder under Gen 2's class names, and overworld
 sheets into the HEART & SOUL fill-in set (assets/npcs/hns), laid out as
 Facets' Gen 3 sheets (nine 32x32 frames, top to bottom). The GBA palette's
 colour 0 becomes see-through. -Elvie
@@ -76,9 +76,9 @@ def main():
     hns = sys.argv[1]
     facets = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.path.dirname(__file__), "..")
     gfx = os.path.join(hns, "graphics")
-    # gb/: only the Game Boy games look there, so Gen 3's RED and BLUE
+    # gb_hns/: only the Game Boy games look there, so Gen 3's RED and BLUE
     # (FR/LG's own player pictures) aren't touched -Elvie
-    trainers = os.path.join(facets, "assets", "trainers", "ds", "gb")
+    trainers = os.path.join(facets, "assets", "trainers", "ds", "gb_hns")
     os.makedirs(trainers, exist_ok=True)
     for name, stem in TRAINERS.items():
         clear(os.path.join(gfx, "trainers", "front_pics", stem + ".png")).save(

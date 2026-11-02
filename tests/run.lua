@@ -2088,6 +2088,11 @@ do
   eq(table.concat(npcs2.candidates("SPRITE_GIRL", names), ","), "GIRL,WOMAN_1", "classic npcs: its own name, then Gen 3's")
   eq(table.concat(npcs2.candidates("SPRITE_OFFICER", names), ","), "OFFICER,POLICEMAN", "classic npcs: a stand-in last")
   eq(npcs2.candidates("SPRITE_CHRIS", names), nil, "classic npcs: the player is Crystal Lens's")
+  local have = { ["assets/npcs/diego/gen3/rse/TEALA.png"] = true, ["assets/npcs/johto_ds/gen3/johto/TEACHER.png"] = true }
+  eq(npcs2.find({ "diego", "johto_ds" }, { "TEACHER", "TEALA" }, function(rel) return have[rel] end),
+    "assets/npcs/johto_ds/gen3/johto/TEACHER.png", "classic npcs: the person's own name in any set beats a stand-in")
+  eq(npcs2.find({ "diego", "johto_ds" }, { "LASS", "TEALA" }, function(rel) return have[rel] end),
+    "assets/npcs/diego/gen3/rse/TEALA.png", "classic npcs: then the stand-ins, chosen set first")
   eq(table.concat(npcs2.candidates("SPRITE_FISHING_GURU", names, 1), ","), "FISHING_GURU,FISHER", "classic npcs: Kanto's Fishing Guru is FireRed's Fisher")
   eq(table.concat(npcs2.candidates("SPRITE_FISHING_GURU", names, 2), ","), "FISHING_GURU,FISHERMAN", "classic npcs: Johto's is Emerald's Fisherman")
   eq(table.concat(npcs2.candidates("SPRITE_WAITER", names), ","), "WAITER,COOK", "classic npcs: the Waiter is Emerald's Cook")
@@ -2224,7 +2229,12 @@ do
   eq(foes.choose(opts, "JR_TRAINER_M").rel, "assets/trainers/ds/CAMPER.png", "foes: stand-ins still work")
   eq(foes.gen1Class({ picJessieJames = "x" }, "OPP_ROCKET", 42), "JESSIE_JAMES", "foes: Yellow's Jessie and James aren't Grunts")
   local gopts = { set = "gba_firered", size = "fit", has = opts.has, gbaFind = function() return nil end }
-  eq(foes.choose(gopts, "FALKNER").rel, "assets/trainers/ds/gb/FALKNER.png", "foes: FIRERED falls back to Heart & Soul")
+  eq(foes.choose(gopts, "FALKNER").rel, "assets/trainers/ds/gb/FALKNER.png", "foes: FIRERED falls back to the DS set's gb/")
+  files["assets/trainers/ds/gb_hns/FALKNER.png"] = true
+  files["assets/trainers/ds/gb_hns/SKIER.png"] = true
+  eq(foes.choose(gopts, "FALKNER").rel, "assets/trainers/ds/gb_hns/FALKNER.png", "foes: ...Heart & Soul's GBA-style one first")
+  eq(foes.choose(opts, "FALKNER").rel, "assets/trainers/ds/gb/FALKNER.png", "foes: DS keeps its own")
+  eq(foes.choose(opts, "SKIER").rel, "assets/trainers/ds/gb_hns/SKIER.png", "foes: DS falls back to Heart & Soul")
   eq(foes.choose(gopts, "NOBODY"), nil, "foes: a class with no picture anywhere stays the game's")
   eq(foes.gen1Class({ picJessieJames = "x" }, "OPP_ROCKET", 3), "ROCKET", "foes: an ordinary Rocket is")
   eq(foes.choose(opts, "JESSIE_JAMES"), nil, "foes: no picture of them, so the game's own")

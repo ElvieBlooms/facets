@@ -46,8 +46,10 @@ foes.NAMES = {
   LORELEI = "ELITE_FOUR_LORELEI", AGATHA = "ELITE_FOUR_AGATHA", LANCE = "ELITE_FOUR_LANCE",
 }
 
--- Where the GBA look finds Heart & Soul's pictures -Elvie
+-- Where the GBA look finds its fill-ins: Heart & Soul's GBA-style
+-- pictures (gb_hns/) first, then the DS set's own Game Boy classes -Elvie
 foes.FILL = "ds"
+foes.FILL_DIRS = { "gb_hns", "gb" }
 
 -- Crystal Lens's -Elvie
 foes.SKIP = { RIVAL1 = true, RIVAL2 = true, RIVAL3 = true, CAL = true }
@@ -66,16 +68,20 @@ function foes.choose(opts, classId)
     else
       -- a class neither game has: Heart & Soul's picture, GBA-style
       -- already, from the DS set's gb/ folder -Elvie
-      local try = DIR .. "/" .. foes.FILL .. "/gb/" .. classId .. ".png"
-      if opts.has(try) then rel = try end
+      for _, sub in ipairs(foes.FILL_DIRS) do
+        local try = DIR .. "/" .. foes.FILL .. "/" .. sub .. "/" .. classId .. ".png"
+        if not rel and opts.has(try) then rel = try end
+      end
     end
   else
     -- the set's gb/ folder first: art under the Game Boy class's own name,
     -- kept apart so Gen 3 never picks it up (RED, BLUE) -Elvie
+    -- then gb_hns/ (Heart & Soul's) for anyone the set has no picture of -Elvie
     local tries = { DIR .. "/" .. opts.set .. "/gb/" .. classId .. ".png" }
     for _, name in ipairs({ classId, foes.NAMES[classId] }) do
       tries[#tries + 1] = DIR .. "/" .. opts.set .. "/" .. name .. ".png"
     end
+    tries[#tries + 1] = DIR .. "/" .. opts.set .. "/gb_hns/" .. classId .. ".png"
     for _, try in ipairs(tries) do
       if opts.has(try) then rel = try break end
     end

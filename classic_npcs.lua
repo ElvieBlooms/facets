@@ -111,10 +111,17 @@ function classic.candidates(id, names, gen)
   return out
 end
 
--- The sheet for a sprite: the first set (in order) with any of the
--- names, in either family folder. has(rel) says whether a file is
--- there. Returns rel or nil -Elvie
+-- The sheet for a sprite: the person's own name in any set first (in
+-- order), so a fill-in's real Sage beats a set's Expert; then the first
+-- set with any of the other names, in any family folder. has(rel) says
+-- whether a file is there. Returns rel or nil -Elvie
 function classic.find(sets, names, has)
+  for _, set in ipairs(sets) do
+    for _, family in ipairs(FAMILIES) do
+      local rel = NPCS_DIR .. "/" .. set .. "/gen3/" .. family .. "/" .. tostring(names[1]) .. ".png"
+      if names[1] and has(rel) then return rel end
+    end
+  end
   for _, set in ipairs(sets) do
     for _, name in ipairs(names) do
       for _, family in ipairs(FAMILIES) do
@@ -170,7 +177,9 @@ local function findSets(mod)
       end
       -- "fill": true: only for people the chosen set doesn't have, never
       -- a choice of its own -Elvie
-      sets[#sets + 1] = { key = key, fill = meta.fill == true,
+      -- "style": "gba" for GBA-style art (Heart & Soul): first for the GBA
+      -- look's fill-ins, last for the sets' -Elvie
+      sets[#sets + 1] = { key = key, fill = meta.fill == true, gba = meta.style == "gba",
         label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper() }
     end
   end
@@ -251,7 +260,8 @@ function classic.init(mod, rows)
       if gba.isChoice(chosen) then gba.reset() return end
       order[1] = chosen
       for _, set in ipairs(sets) do if set.key ~= chosen and not set.fill then order[#order + 1] = set.key end end
-      for _, set in ipairs(sets) do if set.fill then order[#order + 1] = set.key end end
+      for _, set in ipairs(sets) do if set.fill and not set.gba then order[#order + 1] = set.key end end
+      for _, set in ipairs(sets) do if set.fill and set.gba then order[#order + 1] = set.key end end
     end
     configure()
 
@@ -315,7 +325,8 @@ function classic.init(mod, rows)
             read = function() return gba.load(found) end
           else
             local fills = {}
-            for _, set in ipairs(sets) do if set.fill then fills[#fills + 1] = set.key end end
+            for _, set in ipairs(sets) do if set.fill and set.gba then fills[#fills + 1] = set.key end end
+            for _, set in ipairs(sets) do if set.fill and not set.gba then fills[#fills + 1] = set.key end end
             rel = classic.find(fills, want, pics.has)
             if not rel then return nil end
           end
