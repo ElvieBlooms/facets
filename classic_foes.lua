@@ -79,6 +79,18 @@ function foes.choose(opts, classId)
     path = PREFIX .. stem:gsub("%.png$", "") .. (box and ("@" .. box) or "@cut") .. ".png" }
 end
 
+-- Gen 1's class for a trainer: OPP_ without the prefix, and Yellow's
+-- Jessie and James (Rocket's parties from 42 on) as JESSIE_JAMES, so
+-- they never get a Grunt's picture -Elvie
+function foes.gen1Class(trainer, oppClass, partyIndex)
+  if type(oppClass) ~= "string" then return nil end
+  if oppClass == "OPP_ROCKET" and (partyIndex or 1) >= 42
+      and type(trainer) == "table" and trainer.picJessieJames then
+    return "JESSIE_JAMES"
+  end
+  return (oppClass:gsub("^OPP_", ""))
+end
+
 -- Full-colour sets; the Game Boy ones are these games' own look -Elvie
 local function findSets(mod)
   local sets = {}
@@ -140,7 +152,7 @@ function foes.init(mod, rows)
       local ours = setmetatable({}, { __mode = "k" })
       local ownPath, ownColour = Battle1.trainerPicPath, Battle1.trainerTrueColor
       Battle1.trainerPicPath = function(data, trainer, oppClass, partyIndex)
-        local class = type(oppClass) == "string" and oppClass:gsub("^OPP_", "") or nil
+        local class = foes.gen1Class(trainer, oppClass, partyIndex)
         local p = class and pick(class)
         if type(trainer) == "table" then ours[trainer] = p and true or nil end
         if p then return pics.picture(p) end

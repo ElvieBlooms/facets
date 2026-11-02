@@ -2219,6 +2219,9 @@ do
   eq(foes.choose(opts, "FALKNER").rel, "assets/trainers/ds/gb/FALKNER.png", "foes: a Johto leader from gb/")
   eq(foes.choose(opts, "FIREBREATHER").rel, "assets/trainers/ds/gb/FIREBREATHER.png", "foes: gb/ art beats a stand-in")
   eq(foes.choose(opts, "JR_TRAINER_M").rel, "assets/trainers/ds/CAMPER.png", "foes: stand-ins still work")
+  eq(foes.gen1Class({ picJessieJames = "x" }, "OPP_ROCKET", 42), "JESSIE_JAMES", "foes: Yellow's Jessie and James aren't Grunts")
+  eq(foes.gen1Class({ picJessieJames = "x" }, "OPP_ROCKET", 3), "ROCKET", "foes: an ordinary Rocket is")
+  eq(foes.choose(opts, "JESSIE_JAMES"), nil, "foes: no picture of them, so the game's own")
 end
 
 -- WINDOWS on the Game Boy games: which art a box gets, and where the
