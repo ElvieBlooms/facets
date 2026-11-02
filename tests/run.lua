@@ -2060,6 +2060,44 @@ do
 end
 
 
+-- Gen 2 NPCs: which sheet, and the 9 frames cut to 6 -Elvie
+do
+  local npcs2 = require("mods.facets.classic_npcs")
+  local names = npcs2.namesFrom({
+    frlg = { YOUNGSTER = { sprite = "youngster" }, BOY = { sprite = "youngster" }, WOMAN_1 = { sprite = "girl" } },
+    rse = { EXPERT_M = { sprite = "sage" }, TEALA = "teacher", CAMPER = { sprite = "youngster" } } })
+  eq(table.concat(names.YOUNGSTER, ","), "YOUNGSTER,BOY,CAMPER", "classic npcs: the same name first, then the rest")
+  eq(table.concat(names.SAGE, ","), "EXPERT_M", "classic npcs: R/S/E names too")
+  eq(table.concat(names.TEACHER, ","), "TEALA", "classic npcs: a plain string entry")
+  eq(table.concat(npcs2.candidates("SPRITE_GIRL", names), ","), "GIRL,WOMAN_1", "classic npcs: its own name, then Gen 3's")
+  eq(table.concat(npcs2.candidates("SPRITE_OFFICER", names), ","), "OFFICER,POLICEMAN", "classic npcs: a stand-in last")
+  eq(npcs2.candidates("SPRITE_CHRIS", names), nil, "classic npcs: the player is Crystal Lens's")
+  eq(npcs2.candidates("SPRITE_RIVAL", names), nil, "classic npcs: so is the rival")
+  eq(npcs2.candidates("YOUNGSTER", names), nil, "classic npcs: not a sprite id")
+  local files = { ["assets/npcs/taiga/gen3/rse/TEALA.png"] = true, ["assets/npcs/diego/gen3/frlg/WOMAN_1.png"] = true,
+    ["assets/npcs/taiga/gen3/frlg/WOMAN_1.png"] = true }
+  local has = function(rel) return files[rel] end
+  eq(npcs2.find({ "diego", "taiga" }, { "GIRL", "WOMAN_1" }, has), "assets/npcs/diego/gen3/frlg/WOMAN_1.png", "classic npcs: the chosen set first")
+  eq(npcs2.find({ "diego", "taiga" }, { "TEACHER", "TEALA" }, has), "assets/npcs/taiga/gen3/rse/TEALA.png", "classic npcs: then the next set, either family")
+  eq(npcs2.find({ "diego" }, { "KURT" }, has), nil, "classic npcs: no sheet, the game's own")
+  local fw, fh = npcs2.frameSize(32, 288)
+  eq(fw .. "x" .. fh, "32x32", "classic npcs: 32x32 frames")
+  fw, fh = npcs2.frameSize(16, 320)
+  eq(fw .. "x" .. fh, "16x32", "classic npcs: an extra frame still 32 tall")
+  local src = love.image.newImageData(16, 288)
+  for f = 0, 8 do src:setPixel(f, f * 32 + 31, 1, 0, 0, 1) end
+  local out = npcs2.sheet(src)
+  eq(select(2, out:getDimensions()), 192, "classic npcs: 6 frames")
+  local marks = {}
+  for i = 0, 5 do
+    for x = 0, 15 do
+      local _, _, _, a = out:getPixel(x, i * 32 + 31)
+      if a > 0 then marks[#marks + 1] = x end
+    end
+  end
+  eq(table.concat(marks, ","), "0,1,2,3,5,7", "classic npcs: stand, then one step each way")
+end
+
 -- Fixes from Emerald Lens: meta.json with a BOM or \u escapes, and the red
 -- info line kept when room is short -Elvie
 do

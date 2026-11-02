@@ -1,0 +1,231 @@
+-- NPC overworld sprites on the Game Boy games (Gold, Silver, Crystal)
+-- Every person on a map is drawn by a SpriteRenderer made from the game's
+-- sprite record (SPRITE_YOUNGSTER and so on), so one wrap on
+-- SpriteRenderer.new covers them all, including someone who changes
+-- sprite mid-script. -Elvie
+--
+-- The sets are the Gen 3 ones: 9-frame sheets cut down to the game's 6
+-- (stand down, up, left; step down, up, left), in full colour. Gen 3
+-- people are taller than Gen 2's and stand into the tile above, as they
+-- do on the GBA. -Elvie
+--
+-- A sheet is found by the Gen 2 name first (FALKNER.png in either family
+-- folder), then by the Gen 3 names gbc/gb.json pairs with that sprite,
+-- then by STAND_INS. The selected set is tried first, then the others in
+-- menu order. Anyone without a sheet stays the game's own, and so do the
+-- player and the rival (Crystal Lens's) and anything that isn't a person. -Elvie
+-- --------------------------------------------------
+
+local classic = {}
+
+local NPCS_DIR = "assets/npcs"
+local OFF = "__off"
+local PREFIX = "facets/classic/npcs/"
+local FAMILIES = { "frlg", "rse" }
+
+-- the Gen 3 frames for the game's 6: stand down, up, left, step down, up, left -Elvie
+classic.FRAMES = { 0, 1, 2, 3, 5, 7 }
+
+-- Gen 2 sprites with no Gen 3 name of their own in gb.json, and the Gen 3
+-- person who stands in until there's art of them -Elvie
+classic.STAND_INS = {
+  OFFICER = { "POLICEMAN" },
+  STANDING_YOUNGSTER = { "YOUNGSTER" },
+  OLD_LINK_RECEPTIONIST = { "LINK_RECEPTIONIST" },
+}
+
+-- The player and the rival are Crystal Lens's -Elvie
+classic.SKIP = { CHRIS = true, CHRIS_BIKE = true, KRIS = true, KRIS_BIKE = true, RIVAL = true,
+  CAL = true, RED = true, BLUE = true }
+
+-- Gen 2 sprite name -> Gen 3 names, from gb.json ({ family = { NAME = {
+-- sprite = "youngster" } } }): the one that's the same name first, then the
+-- rest in order -Elvie
+function classic.namesFrom(map)
+  local out = {}
+  for _, family in ipairs(FAMILIES) do
+    local names = {}
+    for name, entry in pairs(type(map) == "table" and map[family] or {}) do
+      local sprite = type(entry) == "table" and entry.sprite or entry
+      if type(sprite) == "string" then names[#names + 1] = { name, sprite:upper() } end
+    end
+    table.sort(names, function(a, b) return a[1] < b[1] end)
+    for _, pair in ipairs(names) do
+      local name, sprite = pair[1], pair[2]
+      local list = out[sprite]
+      if not list then list = {}; out[sprite] = list end
+      local seen = false
+      for _, have in ipairs(list) do if have == name then seen = true end end
+      if not seen then
+        if name == sprite then table.insert(list, 1, name) else list[#list + 1] = name end
+      end
+    end
+  end
+  return out
+end
+
+-- The names to look for, in order, for a sprite id (SPRITE_YOUNGSTER),
+-- or nil for one Facets leaves alone -Elvie
+function classic.candidates(id, names)
+  if type(id) ~= "string" then return nil end
+  local short = id:match("^SPRITE_(.+)$")
+  if not short or classic.SKIP[short] then return nil end
+  local out, seen = {}, {}
+  local function add(name) if not seen[name] then seen[name] = true; out[#out + 1] = name end end
+  add(short)
+  for _, name in ipairs(names[short] or {}) do add(name) end
+  for _, name in ipairs(classic.STAND_INS[short] or {}) do add(name) end
+  return out
+end
+
+-- The sheet for a sprite: the first set (in order) with any of the
+-- names, in either family folder. has(rel) says whether a file is
+-- there. Returns rel or nil -Elvie
+function classic.find(sets, names, has)
+  for _, set in ipairs(sets) do
+    for _, name in ipairs(names) do
+      for _, family in ipairs(FAMILIES) do
+        local rel = NPCS_DIR .. "/" .. set .. "/gen3/" .. family .. "/" .. name .. ".png"
+        if has(rel) then return rel end
+      end
+    end
+  end
+  return nil
+end
+
+-- A Gen 3 sheet's frame size: as wide as the sheet, 32 tall (a sheet
+-- with an extra frame is 320) -Elvie
+function classic.frameSize(w, h)
+  if h % 32 == 0 and h >= 32 * 9 then return w, 32 end
+  return w, math.floor(h / 9)
+end
+
+-- The 6-frame sheet, from a Gen 3 one: ImageData, frame w, frame h -Elvie
+function classic.sheet(src)
+  local w, h = src:getDimensions()
+  local fw, fh = classic.frameSize(w, h)
+  local out = love.image.newImageData(fw, fh * #classic.FRAMES)
+  for i, from in ipairs(classic.FRAMES) do
+    for y = 0, fh - 1 do
+      local sy = from * fh + y
+      if sy < h then
+        for x = 0, fw - 1 do
+          local r, g, b, a = src:getPixel(x, sy)
+          if a > 0 then out:setPixel(x, (i - 1) * fh + y, r, g, b, a) end
+        end
+      end
+    end
+  end
+  return out, fw, fh
+end
+
+-- Sets in label order, like the Gen 3 menu. The Game Boy ones and the
+-- numbered test set are left out: the first is these games' own look -Elvie
+local function findSets(mod)
+  local sets = {}
+  local okD, decode = pcall(function() return require("mods.facets.npcs").decodeJson end)
+  for _, key in ipairs(mod.assets:list(NPCS_DIR) or {}) do
+    local dir = NPCS_DIR .. "/" .. key
+    local info = mod.assets:info(dir .. "/gen3")
+    if info and info.type == "directory" and key ~= "test_frames" then
+      local meta = {}
+      if okD and mod.assets:info(dir .. "/meta.json") then
+        local ok, got = pcall(decode, mod:read(dir .. "/meta.json"))
+        if ok and type(got) == "table" then meta = got end
+      end
+      sets[#sets + 1] = { key = key, label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper() }
+    end
+  end
+  table.sort(sets, function(a, b) return a.label < b.label end)
+  return sets
+end
+
+function classic.init(mod, rows)
+  local sets = findSets(mod)
+  if #sets == 0 then return nil end
+  local choices = {}
+  for _, set in ipairs(sets) do choices[#choices + 1] = { set.label, set.key } end
+  choices[#choices + 1] = { "OFF", OFF }
+  rows[#rows + 1] = { key = "sectionClassicNpcs", type = "choice", label = "NPCS",
+    choices = { { "", "_" } }, default = "_" }
+  rows[#rows + 1] = { key = "classicNpcs", type = "choice", label = "  SET", choices = choices, default = OFF }
+
+  return function()
+    local okS, SpriteRenderer = pcall(require, "src.render.SpriteRenderer")
+    local okA, Assets = pcall(require, "src.render.Assets")
+    if not (okS and type(SpriteRenderer) == "table" and type(SpriteRenderer.new) == "function"
+        and okA and type(Assets) == "table" and type(Assets.compose) == "function") then
+      mod.log:warn("SpriteRenderer.new not found; NPCs are off")
+      return
+    end
+    local names = {}
+    if mod.assets:info(NPCS_DIR .. "/gbc/gb.json") then
+      local okJ, map = pcall(require("mods.facets.npcs").decodeJson, mod:read(NPCS_DIR .. "/gbc/gb.json"))
+      if okJ then names = classic.namesFrom(map) end
+    end
+    local pics = require("mods.facets.classic").setup(mod)
+    if not pics then return end
+
+    -- the chosen set first, then the rest in menu order -Elvie
+    local order, chosen
+    local function configure()
+      chosen = mod.options:get("classicNpcs")
+      order = {}
+      if chosen == OFF then return end
+      order[1] = chosen
+      for _, set in ipairs(sets) do if set.key ~= chosen then order[#order + 1] = set.key end end
+    end
+    configure()
+
+    local defs = {} -- [set .. id] = our record, or false -Elvie
+    local function ours(def)
+      local key = chosen .. ":" .. def.id
+      local hit = defs[key]
+      if hit ~= nil then return hit or nil end
+      defs[key] = false
+      local want = classic.candidates(def.id, names)
+      local rel = want and classic.find(order, want, pics.has)
+      if not rel then return nil end
+      local okI, src = pcall(love.image.newImageData, mod.assets:path(rel))
+      if not okI then
+        mod.log:warn("%s couldn't be read", rel)
+        return nil
+      end
+      local fw, fh = classic.frameSize(src:getDimensions())
+      local path = PREFIX .. rel:sub(#NPCS_DIR + 2)
+      Assets.compose(path, function()
+        local ok, again = pcall(love.image.newImageData, mod.assets:path(rel))
+        return ok and (classic.sheet(again)) or love.image.newImageData(1, 1)
+      end)
+      local record = {}
+      for k, v in pairs(def) do record[k] = v end
+      record.image = path
+      record.frames = #classic.FRAMES
+      record.frameWidth, record.frameHeight = fw, fh
+      record.frameColumns, record.frameOffset, record.cells = nil, nil, nil
+      record.anchorX, record.anchorY = nil, nil
+      record.gbaArt = true
+      defs[key] = record
+      return record
+    end
+
+    local own = SpriteRenderer.new
+    SpriteRenderer.new = function(def, seed, ...)
+      if chosen ~= OFF and seed ~= "player" and type(def) == "table" and type(def.id) == "string" then
+        local record = ours(def)
+        if record then return own(record, seed, ...) end
+      end
+      return own(def, seed, ...)
+    end
+
+    if mod.events and type(mod.events.on) == "function" then
+      mod.events:on("mod.options_changed", function(change)
+        if type(change) == "table" and change.mod == mod.id and change.key == "classicNpcs" then
+          configure()
+        end
+      end)
+    end
+  end
+end
+
+return classic
