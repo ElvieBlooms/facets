@@ -57,6 +57,10 @@ local function startClassic(mod)
     mod.options:define(rows)
   end
   for _, start in ipairs(starts) do start() end
+  -- Facets' achievements, judged by these settings -Elvie
+  local okA, ach = pcall(require, "mods.facets.achievements")
+  local startAch = okA and ach.init(mod, nil, nil, true)
+  if startAch then pcall(startAch) end
   -- the same settings on the game's own OPTION menu -Elvie
   local ok, err = pcall(function() require("mods.facets.classic_menu").start(mod, rows) end)
   if not ok then mod.log:warn("FACETS isn't on the OPTION menu: %s", tostring(err)) end

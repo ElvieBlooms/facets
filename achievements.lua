@@ -43,7 +43,13 @@ achievements.LIST = {
     description = "Win battles in 8 different SCENERY battle backgrounds." },
   { id = "built_to_last", title = "Built to Last", points = 5, category = "SPEED",
     description = "Let PREBUILD build and keep everything your settings need." },
+  { id = "advanced_class", title = "Advanced Class", points = 10, category = "LOOKS",
+    description = "Win a trainer battle in Red, Blue, Yellow, Gold, Silver or Crystal with FIRERED "
+      .. "or EMERALD people, trainers and Pokemon." },
 }
+
+-- the GBA look's choices on the Game Boy games -Elvie
+achievements.GBA = { gba_firered = true, gba_emerald = true }
 
 -- The settings that matter, read once: { npcs, trainers, mons, side,
 -- frame, hud, bg, look, where, dots, shades, gen2 } -Elvie
@@ -65,6 +71,24 @@ function achievements.read(get, family, gen2)
   }
 end
 
+-- The same settings on the Game Boy games, from their own rows. BATTLE
+-- UI there is the wide battles' set, or "game" -Elvie
+function achievements.readClassic(get)
+  local look, where, dots, shades = "off", "screen", "off", "4"
+  local okF, filter = pcall(require, "mods.facets.filter")
+  if okF then look, where, dots, shades = filter.settings(get) end
+  local side = get("classicSide")
+  return {
+    npcs = get("classicNpcs") or OFF,
+    trainers = get("classicTrainers") or OFF,
+    mons = get("classicMons") or OFF,
+    side = (side == "front" or side == "mirrored") and "front" or "back",
+    frame = "game", hud = get("classicBattleUi") or "game", bg = get("classicBattleBg") or "game",
+    look = look, where = where, dots = dots, shades = tostring(shades),
+    gen2 = false, classic = true,
+  }
+end
+
 -- The full Game Boy Color look, with a Gen 2 game there to draw it. -Elvie
 function achievements.isGbc(s)
   return s.gen2 and achievements.GBC_NPCS[s.npcs] and s.trainers == "gbcish"
@@ -72,9 +96,16 @@ function achievements.isGbc(s)
     and s.hud == "gbc" and s.bg == "white" or false
 end
 
+-- On the Game Boy games there's no battle box to change outside wide
+-- battles, so people, trainers and Pokémon are enough -Elvie
 function achievements.isModern(s)
   return achievements.MODERN_NPCS[s.npcs] and s.trainers == "ds" and s.mons == "ds"
-    and achievements.MODERN_UI[s.hud] or false
+    and (s.classic or achievements.MODERN_UI[s.hud]) or false
+end
+
+function achievements.isGba(s)
+  return s.classic and achievements.GBA[s.npcs] and achievements.GBA[s.trainers]
+    and achievements.GBA[s.mons] and true or false
 end
 
 -- What a won battle earns: { ids = { id = true }, gem = name, scene = name } -Elvie
@@ -83,6 +114,7 @@ function achievements.earned(s, kind, scene)
   if kind == "trainer" then
     if achievements.isGbc(s) then out.ids.go_back = true end
     if achievements.isModern(s) then out.ids.to_the_future = true end
+    if achievements.isGba(s) then out.ids.advanced_class = true end
   end
   if s.where == "screen" and s.shades == "4" then
     if s.look == "green" and s.dots == "on" then out.ids.original_recipe = true end
@@ -94,7 +126,7 @@ function achievements.earned(s, kind, scene)
   return out
 end
 
-function achievements.init(mod)
+function achievements.init(mod, _, _, classic)
   return function()
     if type(mod.find) ~= "function" then return end
     local okFind, found = pcall(mod.find, "recomp_achievements")
@@ -170,9 +202,15 @@ function achievements.init(mod)
     mod.events:on("save.loaded", function() atStart = nil; fresh() end)
     mod.events:on("save.created", function() atStart = nil; fresh() end)
     mod.events:on("battle.started", function(ev)
+      kind = type(ev) == "table" and ev.kind or nil
+      if classic then
+        atStart = achievements.readClassic(get)
+        local okS, scenes = pcall(require, "mods.facets.classic_scenes")
+        if okS then scenes.last = nil end
+        return
+      end
       local okM, menu = pcall(require, "mods.facets.menu")
       atStart = achievements.read(get, okM and menu.family() or nil, gen2())
-      kind = type(ev) == "table" and ev.kind or nil
       local okG, gbui = pcall(require, "mods.facets.gbui")
       if okG then gbui.lastTerrain = nil end
     end)
@@ -182,8 +220,13 @@ function achievements.init(mod)
       local result = type(ev) == "table" and ev.result or nil
       if not s or not (result == "win" or result == "caught") then return end
       local scene
-      local okG, gbui = pcall(require, "mods.facets.gbui")
-      if okG and gbui.BG_SETS[s.bg] and gbui.lastTerrain then scene = gbui.sceneName(s.bg, gbui.lastTerrain) end
+      if s.classic then
+        local okS, scenes = pcall(require, "mods.facets.classic_scenes")
+        scene = okS and scenes.last or nil
+      else
+        local okG, gbui = pcall(require, "mods.facets.gbui")
+        if okG and gbui.BG_SETS[s.bg] and gbui.lastTerrain then scene = gbui.sceneName(s.bg, gbui.lastTerrain) end
+      end
       local e = achievements.earned(s, kind, scene)
       for id in pairs(e.ids) do handle:unlock(id) end
       if e.side then handle:addProgress("face_to_face", 1) end
@@ -196,9 +239,9 @@ function achievements.init(mod)
         raise("scenic_route", count(seen.scenes))
       end
       checkBoth()
-      checkPrebuild()
+      if not classic then checkPrebuild() end
     end)
-    mod.events:on("map.entered", function() checkPrebuild() end)
+    if not classic then mod.events:on("map.entered", function() checkPrebuild() end) end
     mod.log:info("achievements: %d registered", okCount or 0)
   end
 end

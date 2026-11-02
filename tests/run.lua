@@ -2195,6 +2195,26 @@ do
   eq(math.floor(c.cream[3] * 31 + 0.5), 27, "battle ui: FireRed's own cream without one")
 end
 
+-- Achievements on the Game Boy games -Elvie
+do
+  local a = require("mods.facets.achievements")
+  local opts = { classicNpcs = "community", classicTrainers = "ds", classicMons = "ds", classicSide = "mirrored",
+    filter = "off" }
+  local s = a.readClassic(function(k) return opts[k] end)
+  check(s.classic and s.side == "front", "achievements: Gen 1/2 settings, MIRRORED counts as front")
+  local e = a.earned(s, "trainer", nil)
+  check(e.ids.to_the_future and not e.ids.advanced_class, "achievements: To the Future! without battle boxes on Gen 1/2")
+  opts.classicNpcs, opts.classicTrainers, opts.classicMons = "gba_firered", "gba_emerald", "gba_firered"
+  s = a.readClassic(function(k) return opts[k] end)
+  e = a.earned(s, "trainer", "grass")
+  check(e.ids.advanced_class and not e.ids.to_the_future, "achievements: Advanced Class with the GBA look")
+  eq(e.scene, "grass", "achievements: the scene counts for Scenic Route")
+  check(not a.earned(s, "wild", nil).ids.advanced_class, "achievements: a trainer battle only")
+  local listed = false
+  for _, row in ipairs(a.LIST) do if row.id == "advanced_class" then listed = true end end
+  check(listed, "achievements: Advanced Class is registered")
+end
+
 -- Fixes from Emerald Lens: meta.json with a BOM or \u escapes, and the red
 -- info line kept when room is short -Elvie
 do
