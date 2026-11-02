@@ -117,6 +117,7 @@ local function findSets(mod)
 end
 
 function hud.init(mod, rows)
+  if classic.generation() ~= 2 then return nil end
   local sets = findSets(mod)
   if #sets == 0 then return nil end
   local byKey = {}

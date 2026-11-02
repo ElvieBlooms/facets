@@ -18,7 +18,7 @@ local PREFIX = "facets/classic/"
 
 local shared = require("mods.facets.classic")
 local gba = require("mods.facets.classic_gba")
-classic.BOX = shared.BOX
+classic.BOX = { front = shared.BOX.front, back = shared.BOX.back }
 classic.SIZES = shared.SIZES
 classic.bounds = shared.bounds
 classic.fitScale = shared.fitScale
@@ -102,6 +102,8 @@ end
 function classic.init(mod, rows)
   local sets = findSets(mod)
   if #sets == 0 then return nil end
+  -- Gen 1's back box is 32x32 drawn at 2x -Elvie
+  if shared.generation() == 1 then classic.BOX = { front = 56, back = 64 } end
   local choices = {}
   for _, set in ipairs(sets) do choices[#choices + 1] = { set.label, set.key } end
   for _, c in ipairs(gba.CHOICES) do choices[#choices + 1] = c end

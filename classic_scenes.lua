@@ -64,6 +64,9 @@ local function findSets(mod)
 end
 
 function scenes.init(mod, rows)
+  -- Gen 1 colours its battle screen through the SGB zones, which would
+  -- shade a scene too; Gen 2 only for now -Elvie
+  if require("mods.facets.classic").generation() ~= 2 then return nil end
   local sets = findSets(mod)
   if #sets == 0 then return nil end
   local byKey = {}

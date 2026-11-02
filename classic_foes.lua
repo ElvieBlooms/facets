@@ -38,10 +38,16 @@ foes.NAMES = {
   PSYCHIC_T = "PSYCHIC_M", SABRINA = "LEADER_SABRINA", SAILOR = "SAILOR", SCHOOLBOY = "SCHOOL_KID_M",
   SCIENTIST = "SCIENTIST", SUPER_NERD = "SUPER_NERD", SWIMMERF = "SWIMMER_F", SWIMMERM = "SWIMMER_M",
   TWINS = "TWINS", YOUNGSTER = "YOUNGSTER",
+  -- Gen 1's own classes (OPP_ without the prefix) -Elvie
+  JR_TRAINER_M = "CAMPER", JR_TRAINER_F = "PICNICKER", PSYCHIC_TR = "PSYCHIC_M", BLACKBELT = "BLACK_BELT",
+  PROF_OAK = "PROFESSOR_OAK", GIOVANNI = "LEADER_GIOVANNI", ROCKET = "ROCKET_GRUNT_M", CUE_BALL = "CUE_BALL",
+  GAMBLER = "GAMER", SWIMMER = "SWIMMER_M", ENGINEER = "ENGINEER", TAMER = "TAMER", ROCKER = "ROCKER",
+  CHANNELER = "CHANNELER", COOLTRAINER_M = "COOLTRAINER_M", COOLTRAINER_F = "COOLTRAINER_F",
+  LORELEI = "ELITE_FOUR_LORELEI", AGATHA = "ELITE_FOUR_AGATHA", LANCE = "ELITE_FOUR_LANCE",
 }
 
 -- Crystal Lens's -Elvie
-foes.SKIP = { RIVAL1 = true, RIVAL2 = true, CAL = true }
+foes.SKIP = { RIVAL1 = true, RIVAL2 = true, RIVAL3 = true, CAL = true }
 
 -- The picture for a class, or nil for the game's own.
 -- opts = { set, size, has = function(rel) } -Elvie
@@ -104,27 +110,53 @@ function foes.init(mod, rows)
   return function()
     local pics = shared.setup(mod)
     if not pics then return end
+    local opts = { has = pics.has }
+    local function pick(classId)
+      opts.set = mod.options:get("classicTrainers")
+      if opts.set == OFF then return nil end
+      opts.size = mod.options:get("classicSize")
+      return foes.choose(opts, classId)
+    end
+    if mod.events and type(mod.events.on) == "function" then
+      mod.events:on("mod.options_changed", function(change)
+        if type(change) == "table" and change.mod == mod.id and change.key == "classicTrainers" then gba.reset() end
+      end)
+    end
+    if shared.generation() == 1 then
+      -- Gen 1 asks for a trainer's picture by its OPP_ class, and its
+      -- colour flag separately; ours are full colour -Elvie
+      -- Gen 1's own module, named here at run time: the Gen 2 compatibility
+      -- scan can't see the generation check above and asks Gen 2's -Elvie
+      local okB1, Battle1 = pcall(require, table.concat({ "src", "battle", "BattleState" }, "."))
+      if not (okB1 and type(Battle1) == "table" and type(Battle1.trainerPicPath) == "function") then
+        mod.log:warn("BattleState.trainerPicPath not found; trainer pictures are off")
+        return
+      end
+      local ours = setmetatable({}, { __mode = "k" })
+      local ownPath, ownColour = Battle1.trainerPicPath, Battle1.trainerTrueColor
+      Battle1.trainerPicPath = function(data, trainer, oppClass, partyIndex)
+        local class = type(oppClass) == "string" and oppClass:gsub("^OPP_", "") or nil
+        local p = class and pick(class)
+        if type(trainer) == "table" then ours[trainer] = p and true or nil end
+        if p then return pics.picture(p) end
+        return ownPath(data, trainer, oppClass, partyIndex)
+      end
+      Battle1.trainerTrueColor = function(data, trainer)
+        if type(trainer) == "table" and ours[trainer] then return true end
+        return ownColour(data, trainer)
+      end
+      return
+    end
     local okB, BattleState = pcall(require, "src.ui.gen2.BattleState")
     if not (okB and type(BattleState) == "table" and type(BattleState.trainerArt) == "function") then
       mod.log:warn("BattleState.trainerArt not found; trainer pictures are off")
       return
     end
-    local opts = { has = pics.has }
     local own = BattleState.trainerArt
     BattleState.trainerArt = function(data, classId)
-      opts.set = mod.options:get("classicTrainers")
-      if opts.set ~= OFF then
-        opts.size = mod.options:get("classicSize")
-        local pick = foes.choose(opts, classId)
-        if pick then return pics.picture(pick), true end
-      end
+      local p = pick(classId)
+      if p then return pics.picture(p), true end
       return own(data, classId)
-    end
-    -- a game imported since: look again -Elvie
-    if mod.events and type(mod.events.on) == "function" then
-      mod.events:on("mod.options_changed", function(change)
-        if type(change) == "table" and change.mod == mod.id and change.key == "classicTrainers" then gba.reset() end
-      end)
     end
   end
 end

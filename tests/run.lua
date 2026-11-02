@@ -2048,6 +2048,9 @@ do
   eq((foes.choose(opts, "FALKNER") or {}).rel, "assets/trainers/ds/FALKNER.png", "classic foes: a Johto file by its own name")
   eq(foes.choose(opts, "BUGSY"), nil, "classic foes: no art, the game's own")
   eq(foes.choose(opts, "RIVAL1"), nil, "classic foes: the rival is Crystal Lens's")
+  files["assets/trainers/ds/CAMPER.png"] = true
+  eq((foes.choose(opts, "JR_TRAINER_M") or {}).rel, "assets/trainers/ds/CAMPER.png", "classic foes: Gen 1's Jr. Trainer as a Camper")
+  eq(foes.choose(opts, "RIVAL3"), nil, "classic foes: Gen 1's rival stays too")
   eq(foes.choose(opts, nil), nil, "classic foes: no class, the game's own")
   opts.size = "0.5"
   p = foes.choose(opts, "YOUNGSTER")

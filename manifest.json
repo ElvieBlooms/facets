@@ -18,5 +18,5 @@
   ],
   "description": "New looks for FireRed, LeafGreen, Ruby, Sapphire and Emerald: NPC overworld sprites, Pokémon pictures, icons and animations, and Game Boy screen filters. Companion to Emerald Lens: it leaves the player and the rival alone.",
   "github": "ElvieBlooms/facets",
-  "games": ["gen3", "gen2"]
+  "games": ["gen3", "gen2", "gen1"]
 }

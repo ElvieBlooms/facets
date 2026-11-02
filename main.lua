@@ -19,6 +19,21 @@ local PARTS = { "npcs", "foes", "mons", "filter", "gbui", "prebuild", "achieveme
 -- Gen 3 ones above reach into Gen 3's engine and screens. -Elvie
 local CLASSIC_PARTS = { "classic_npcs", "classic_foes", "classic_mons", "classic_scenes", "classic_hud", "filter" }
 
+-- Each part on its own, so one that can't load leaves the rest working
+-- (modkit's headless check, for one, can't reach a mod's other files) -Elvie
+local function classicParts(mod)
+  local out = {}
+  for _, name in ipairs(CLASSIC_PARTS) do
+    local ok, part = pcall(require, "mods.facets." .. name)
+    if ok and type(part) == "table" then
+      out[#out + 1] = part
+    else
+      mod.log:warn("%s couldn't load: %s", name, tostring(part))
+    end
+  end
+  return out
+end
+
 -- 1, 2 or 3 for the running game -Elvie
 local function generation()
   local ok, GameVersion = pcall(require, "src.core.GameVersion")
@@ -32,17 +47,18 @@ end
 
 local function startClassic(mod)
   local rows, starts = {}, {}
-  for _, name in ipairs(CLASSIC_PARTS) do
-    local start = require("mods.facets." .. name).init(mod, rows)
+  for _, part in ipairs(classicParts(mod)) do
+    local start = part.init(mod, rows)
     if start then starts[#starts + 1] = start end
   end
   if #rows > 0 then
-    require("mods.facets.classic").sizeRow(rows)
+    local okC, shared = pcall(require, "mods.facets.classic")
+    if okC then shared.sizeRow(rows) end
     mod.options:define(rows)
   end
   for _, start in ipairs(starts) do start() end
   -- the same settings on the game's own OPTION menu -Elvie
-  local ok, err = pcall(require("mods.facets.classic_menu").start, mod, rows)
+  local ok, err = pcall(function() require("mods.facets.classic_menu").start(mod, rows) end)
   if not ok then mod.log:warn("FACETS isn't on the OPTION menu: %s", tostring(err)) end
 end
 
