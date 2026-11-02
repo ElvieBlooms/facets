@@ -2014,7 +2014,7 @@ do
   opts.side = "mirrored"
   p = classic.choose(opts, 6, "back", "battle", true)
   eq(p and p.rel, "assets/mons/ds/front_shiny/006.png", "classic: YOUR SIDE uses the front, shiny too")
-  check(p and p.mirror and p.box == 48, "classic: mirrored into the back box")
+  check(p and p.mirror and p.box == 56, "classic: mirrored, at a front's size")
   p = classic.choose(opts, 6, "back", "summary", false)
   check(p and p.rel:find("/back/") and not p.mirror, "classic: YOUR SIDE is battle only")
   opts.size = "0.75"
@@ -2024,6 +2024,13 @@ do
   check(p and p.scale == nil and p.box == 56, "classic: other screens always fit")
   opts.set = "__off"
   eq(classic.choose(opts, 6, "front", "battle", false), nil, "classic: OFF is the game's own")
+  local def = { spriteFront = "f.png", spriteBack = "b.png",
+    letters = { B = { spriteFront = "fb.png", spriteBack = "bb.png" } } }
+  eq(classic.frontFor(def, "b.png"), "f.png", "classic: the game's own front for a back")
+  eq(classic.frontFor(def, "bb.png"), "fb.png", "classic: Unown keeps its letter")
+  eq(classic.frontFor(nil, "b.png"), nil, "classic: no record, no front")
+  local f = require("mods.facets.classic").flip(d)
+  eq((f:getPixel(59, 61)), 1, "classic: flipped, same size")
 end
 
 
@@ -2050,6 +2057,26 @@ do
   for class, name in pairs(foes.NAMES) do
     check(io.open(ROOT .. "/assets/trainers/ds/" .. name .. ".png") ~= nil, "classic foes: DS has " .. name .. " for " .. class)
   end
+end
+
+
+-- Fixes from Emerald Lens: meta.json with a BOM or \u escapes, and the red
+-- info line kept when room is short -Elvie
+do
+  local decode = require("mods.facets.npcs").decodeJson
+  local got = decode("\239\187\191" .. '{"label": "X"}')
+  eq(got and got.label, "X", "json: a BOM is skipped")
+  eq(decode('{"a": "Pok\\u00e9mon"}').a, "Pok\195\169mon", "json: \\u00e9 is UTF-8")
+  eq(decode('{"a": "\\u2764"}').a, "\226\157\164", "json: a three-byte character")
+  eq(decode('{"a": "\\ud83d\\ude00"}').a, "\240\159\152\128", "json: a surrogate pair is one character")
+  eq(decode('{"a": 1.5}').a, 1.5, "json: decimals")
+  local screen = require("mods.facets.screen")
+  local lines = { { text = "a" }, { text = "b", red = true }, { text = "c" } }
+  local fit = screen.fitting(lines, 1)
+  eq(#fit .. fit[1].text, "1b", "screen: the red line takes the only room")
+  fit = screen.fitting(lines, 2)
+  eq(fit[1].text .. fit[2].text, "ab", "screen: the rest keep their order")
+  eq(#screen.fitting(lines, 5), 3, "screen: everything when it fits")
 end
 
 print(("%d passed, %d failed"):format(passed, failed))

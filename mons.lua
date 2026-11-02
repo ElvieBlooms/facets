@@ -1440,6 +1440,10 @@ function mons.init(mod, rows, menu)
         if set.key == selected then current = set end
       end
       cache, placements, commands = {}, {}, {}
+      -- a game imported since the last look: read it again -Elvie
+      if palettes == false then palettes = nil end
+      if crystalIcons == false then crystalIcons = nil end
+      if crystalText == false then crystalText, anims = nil, {} end
       asBack, plans, stillRows = {}, {}, {}
       -- GBC-ISH changes whether FR/LG borrows Emerald's animations -Elvie
       if AnimData and type(AnimData.reset) == "function" then AnimData.reset() end
