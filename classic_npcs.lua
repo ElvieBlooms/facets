@@ -49,11 +49,6 @@ classic.STAND_INS = {
 classic.SKIP = { CHRIS = true, CHRIS_BIKE = true, KRIS = true, KRIS_BIKE = true, RIVAL = true,
   CAL = true, RED = true, RED_BIKE = true, BLUE = true }
 
--- Pokémon that walk around (Yellow's Pikachu): with any Gen 3 or later
--- look they're FireRed's or Emerald's own, read from the player's game,
--- since no set has them -Elvie
-classic.POKEMON = { PIKACHU = true }
-
 -- A full-colour sheet as the Game Boy's four greys (classic.lua) -Elvie
 classic.greys = require("mods.facets.classic").greys
 
@@ -165,7 +160,7 @@ end
 -- Yellow's Pikachu looks: assets/pikachu/<key>.png, labels and credits
 -- in its meta.json -Elvie
 classic.PIKACHU_DIR = "assets/pikachu"
-classic.PIKA_SET, classic.PIKA_GAME = "set", "game"
+classic.PIKA_GAME = "game"
 local function pikachuLooks(mod)
   local looks = {}
   local okD, decode = pcall(function() return require("mods.facets.npcs").decodeJson end)
@@ -203,12 +198,11 @@ function classic.init(mod, rows)
     choices = { { "", "_" } }, default = "_" }
   rows[#rows + 1] = { key = "classicNpcs", type = "choice", label = "  SET", choices = choices, default = OFF }
   if #looks > 0 then
-    -- SET: FireRed's or Emerald's own with a Gen 3 or later look, the
-    -- game's otherwise; GAME: always Yellow's own -Elvie
-    local pika = { { "SET", classic.PIKA_SET }, { "GAME", classic.PIKA_GAME } }
+    -- GAME: Yellow's own, whatever the NPC set -Elvie
+    local pika = { { "GAME", classic.PIKA_GAME } }
     for _, look in ipairs(looks) do pika[#pika + 1] = { look.label, look.key } end
     rows[#rows + 1] = { key = "classicPikachu", type = "choice", label = "  PIKACHU", choices = pika,
-      default = classic.PIKA_SET }
+      default = classic.PIKA_GAME }
   end
 
   return function()
@@ -261,28 +255,10 @@ function classic.init(mod, rows)
       local want = classic.candidates(def.id, names)
       if not want then return nil end
       local path, fw, fh, read
-      local short = def.id:match("^SPRITE_(.+)$")
-      local mon = short and classic.POKEMON[short]
       local grey = false
-      local function fromGame(found, choice)
-        fw, fh = classic.frameSize(found.w, found.h)
-        path = PREFIX .. choice .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
-        read = function() return gba.load(found) end
-        -- Gen 1 outside RED++ shades by brightness, which turns Pikachu's
-        -- yellow white: handed over grey instead, for the game to tint as
-        -- it does its own -Elvie
-        if mon and not fullColour() then
-          grey = true
-          path = path:gsub("%.png$", "@grey.png")
-          read = function()
-            local data = gba.load(found)
-            return data and classic.greys(data) or nil
-          end
-        end
-      end
       if pikaLook == classic.PIKA_GAME then
         return nil
-      elseif pikaLook and pikaLook ~= classic.PIKA_SET then
+      elseif pikaLook then
         -- one of Yellow's Pikachu looks -Elvie
         local rel = classic.PIKACHU_DIR .. "/" .. pikaLook .. ".png"
         if not pics.has(rel) then return nil end
@@ -292,6 +268,9 @@ function classic.init(mod, rows)
           local ok, data = pcall(love.image.newImageData, mod.assets:path(rel))
           return ok and data or nil
         end
+        -- Gen 1 outside RED++ shades by brightness, which turns Pikachu's
+        -- yellow white: handed over grey instead, for the game to tint as
+        -- it does its own -Elvie
         if not fullColour() then
           grey = true
           path = path:gsub("%.png$", "@grey.png")
@@ -305,14 +284,11 @@ function classic.init(mod, rows)
         return nil
       elseif gba.isChoice(chosen) then
         -- the GBA look: the Gen 3 sheet from the player's own game -Elvie
-        local found = gba.npcSheet(chosen, want) or (mon and gba.monSheet(chosen, { short }))
+        local found = gba.npcSheet(chosen, want)
         if not found then return nil end
-        fromGame(found, chosen)
-      elseif mon and not classic.find(order, want, pics.has) then
-        -- a Pokémon no set has: FireRed's first, as the Kanto one -Elvie
-        local found = gba.monSheet("gba_firered", { short })
-        if not found then return nil end
-        fromGame(found, "gba_firered")
+        fw, fh = classic.frameSize(found.w, found.h)
+        path = PREFIX .. chosen .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
+        read = function() return gba.load(found) end
       else
         local rel = classic.find(order, want, pics.has)
         if not rel then return nil end
