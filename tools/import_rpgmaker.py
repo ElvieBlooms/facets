@@ -40,8 +40,25 @@ def strip(im):
     return out
 
 
+def halved(im):
+    """A 2x sheet the run test missed (a few stray pixels) at 1x, or None:
+    when nearly every 2x2 block of drawn pixels is one colour."""
+    px, mixed, total = im.load(), 0, 0
+    for y in range(0, im.height - 1, 2):
+        for x in range(0, im.width - 1, 2):
+            block = {px[x, y], px[x + 1, y], px[x, y + 1], px[x + 1, y + 1]}
+            if any(p[3] for p in block):
+                total += 1
+                mixed += len(block) > 1
+    if total and mixed <= total // 100:
+        return im.resize((im.width // 2, im.height // 2), Image.NEAREST)
+    return None
+
+
 def convert(path):
     im = load(path)
+    if im.width // 4 > 32 and halved(im):
+        im = halved(im)
     if im.width == 9 * (im.width // 9) and im.width // 9 <= 32 and im.width >= 2 * im.height:
         return strip(im)
     cw, ch = im.width // 4, im.height // 4
