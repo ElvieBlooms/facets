@@ -17,7 +17,7 @@ local PARTS = { "npcs", "foes", "mons", "filter", "gbui", "prebuild", "achieveme
 
 -- The Game Boy games get their own parts, set from the Mods manager: the
 -- Gen 3 ones above reach into Gen 3's engine and screens. -Elvie
-local CLASSIC_PARTS = { "classic_npcs", "classic_foes", "classic_mons", "classic_scenes", "classic_hud", "classic_windows", "filter" }
+local CLASSIC_PARTS = { "classic_npcs", "classic_foes", "classic_mons", "classic_scenes", "classic_hud", "classic_windows", "classic_colors", "filter" }
 
 -- Each part on its own, so one that can't load leaves the rest working
 -- (modkit's headless check, for one, can't reach a mod's other files) -Elvie
