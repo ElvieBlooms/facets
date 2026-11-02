@@ -2283,6 +2283,18 @@ do
   eq(gen3.fifteen(few), few, "cable car: a sheet already under 15 is left alone")
 end
 
+-- The GBA look takes FireRed's small walking sheets too -Elvie
+do
+  local gba = require("mods.facets.classic_gba")
+  eq(gba.walks({ 16, 144, false }), true, "gba: a 16x16 walker (Little Boy)")
+  eq(gba.walks({ 16, 288, false }), true, "gba: a 16x32 walker")
+  eq(gba.walks({ 32, 32, false }), false, "gba: one frame isn't a walker")
+  eq(gba.walks({ 16, 144, true }), false, "gba: a thing isn't a walker")
+  local npcsK = require("mods.facets.classic_npcs")
+  eq(select(2, npcsK.frameSize(16, 160)), 16, "gba: ten 16x16 frames are still 16 tall")
+  eq(select(2, npcsK.frameSize(16, 288)), 32, "gba: a 16x32 sheet is 32 tall")
+end
+
 -- CREDITS on the Game Boy games -Elvie
 do
   local cr = require("mods.facets.classic_credits")

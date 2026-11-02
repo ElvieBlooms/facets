@@ -130,6 +130,8 @@ end
 -- with an extra frame is 320) -Elvie
 function classic.frameSize(w, h)
   if h % 32 == 0 and h >= 32 * 9 then return w, 32 end
+  -- the small 16x16 walkers (FireRed's Little Girl has a tenth frame) -Elvie
+  if w <= 16 and h % 16 == 0 and h >= 16 * 9 then return w, 16 end
   return w, math.floor(h / 9)
 end
 
