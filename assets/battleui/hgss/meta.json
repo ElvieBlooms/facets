@@ -1,0 +1,94 @@
+{
+  "label": "HGSS",
+  "credit": [
+    "HGSS-style battle boxes and HP bars by YoY-X, Neon Skylar, Jaizu and Verloren 5 (DPPtHGSSBWB2W2 Styled Battle Boxes and HP Bars), used with credit"
+  ],
+  "images": {
+    "healthbox_player": "healthbox_player.png",
+    "healthbox_enemy": "healthbox_enemy.png",
+    "healthbox_safari": "healthbox_safari.png",
+    "healthbox_doubles_player": "healthbox_doubles_player.png",
+    "healthbox_doubles_opponent": "healthbox_doubles_opponent.png",
+    "elements": "elements.png",
+    "elements_exp": "elements_exp.png",
+    "party_summary_bar": "party_summary_bar.png"
+  },
+  "palettes": {
+    "healthbox": {
+      "from": [
+        0,
+        8456,
+        28671,
+        23387,
+        15096,
+        16975,
+        12714,
+        228,
+        8519,
+        927,
+        19071,
+        32552,
+        31744,
+        992,
+        31,
+        32333
+      ],
+      "to": [
+        18,
+        9513,
+        29596,
+        24311,
+        20083,
+        32767,
+        9513,
+        228,
+        8519,
+        927,
+        5503,
+        28038,
+        31744,
+        992,
+        31,
+        32333
+      ]
+    },
+    "healthbar": {
+      "from": [
+        0,
+        7399,
+        32767,
+        24378,
+        17936,
+        11529,
+        11690,
+        11103,
+        8927,
+        11707,
+        22510,
+        17227,
+        8095,
+        1721,
+        7551,
+        9493
+      ],
+      "to": [
+        18496,
+        7399,
+        29596,
+        24311,
+        20083,
+        32767,
+        9513,
+        17982,
+        735,
+        11707,
+        4867,
+        576,
+        735,
+        1462,
+        5503,
+        7381
+      ]
+    }
+  }
+}
