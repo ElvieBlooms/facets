@@ -125,8 +125,11 @@ function scenes.init(mod, rows)
       local setKey = mod.options:get("classicBattleBg")
       if setKey == GAME or not byKey[setKey] or self:bgMode() ~= "white" then return nil end
       if self._facetsScene == nil or self._facetsSceneSet ~= setKey then
-        self._facetsScene = scene(setKey, scenes.pick(where(self))) or false
+        local name = scenes.pick(where(self))
+        self._facetsScene = scene(setKey, name) or false
         self._facetsSceneSet = setKey
+        -- the scene this battle is in, for Scenic Route -Elvie
+        scenes.last = self._facetsScene and name or nil
       end
       return self._facetsScene or nil
     end
