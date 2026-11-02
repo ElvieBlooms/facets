@@ -23,6 +23,14 @@ local GAMES = { "firered", "leafgreen", "emerald" }
 
 windows.FRAMES = 10
 
+-- A tile row: the next box drawn there (eight wide, four tall or more)
+-- gets the text box look. The FACETS page sets it for the WINDOWS row,
+-- so that row shows the text box the style gives -Elvie
+windows.textBoxAt = nil
+
+-- Whether WINDOWS changes anything, once init has run -Elvie
+function windows.styled() return false end
+
 -- A WINDOWS value: "fr:<n>" for FireRed's frame n, "<set>:<n>" for a
 -- set's style n. Returns kind, key, n -Elvie
 function windows.parse(value)
@@ -42,6 +50,13 @@ function windows.kind(tw, th)
   if type(tw) ~= "number" or type(th) ~= "number" or tw < 3 or th < 3 then return nil end
   if th == 6 and tw >= 8 then return "dialogue" end
   return "frame"
+end
+
+-- As kind, with the FACETS page's WINDOWS row (textBoxAt) as a text box -Elvie
+function windows.boxKind(ty, tw, th)
+  local kind = windows.kind(tw, th)
+  if kind and windows.textBoxAt == ty and tw >= 8 and th >= 4 then return "dialogue" end
+  return kind
 end
 
 -- The text box's tiles from Gen 3's 18-tile atlas, for a box at tx, ty
@@ -184,9 +199,11 @@ function windows.init(mod, rows)
       return ok and raw or false
     end
 
+    windows.styled = function() return art() ~= nil end
+
     local own = Font.drawBox
     Font.drawBox = function(tx, ty, tw, th, fill, ...)
-      local kind = windows.kind(tw, th)
+      local kind = windows.boxKind(ty, tw, th)
       local a = kind and art()
       local img = a and (kind == "dialogue" and a.dialogue or a.frame)
       if not img then return own(tx, ty, tw, th, fill, ...) end

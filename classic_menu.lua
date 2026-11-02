@@ -83,13 +83,57 @@ function cmenu.start(mod, rows)
     return out
   end
 
-  -- Gen 1's own page for a list of rows; Gen 2's built the way its
-  -- OPTION screen builds a group's page -Elvie
-  local function open(g)
-    if gen1 then
-      g.stack:push(OptionsMenu.new(g, { rows = members() }))
-      return
+  -- The WINDOWS row shows the text box its style gives: Gen 1 draws that
+  -- row's own box as the text box; Gen 2's page gives it a box of its
+  -- own, the rest as the game lays them out -Elvie
+  local WINDOWS = "facets.classicWindows"
+  local function wins()
+    local w = package.loaded["mods.facets.classic_windows"]
+    return type(w) == "table" and w or nil
+  end
+  local function boxed(row)
+    local w = wins()
+    return row and row.id == WINDOWS and w and w.styled() or false
+  end
+
+  local function gen1Page(g)
+    local page = OptionsMenu.new(g, { rows = members() })
+    local ownDraw = page.draw
+    page.draw = function(p, ...)
+      local w, rows = wins(), p.view or p.rows
+      for slot = 1, 4 do
+        if boxed(rows[(p.scroll or 0) + slot]) then w.textBoxAt = (slot - 1) * 4 end
+      end
+      local ok, err = pcall(ownDraw, p, ...)
+      if w then w.textBoxAt = nil end
+      if not ok then error(err, 0) end
     end
+    return page
+  end
+
+  -- Gen 2's OPTION page lays rows out two lines apart; the WINDOWS row
+  -- here takes four, for its box -Elvie
+  local FIRST, LAST, ARROW = 2, 15, 16
+  local function height(row)
+    if boxed(row) then return 4 end
+    return type(row.value) == "function" and 2 or 1
+  end
+  local function lastShown(rows, scroll)
+    local y, last = FIRST, scroll
+    for i = scroll + 1, #rows do
+      if y + height(rows[i]) - 1 > LAST then break end
+      last = i
+      y = y + math.max(2, height(rows[i]))
+    end
+    return last
+  end
+
+  local function gen2Page(g)
+    local Chrome = require("src.ui.gen2.Chrome")
+    local Marquee = require("src.ui.Marquee")
+    local Font = require("src.render.Font")
+    local okS, Strings = pcall(require, "src.core.Strings")
+    local function str(t) return okS and Strings(t) or t end
     local page = setmetatable({}, OptionsMenu)
     local view = members()
     page.game, page.rows = g, view
@@ -98,7 +142,79 @@ function cmenu.start(mod, rows)
     page.view = {}
     for i, r in ipairs(view) do page.view[i] = r end
     page.view[#page.view + 1] = { label = "BACK", cancel = true, id = "cancel" }
-    g.stack:push(page)
+
+    function page:ensureVisible()
+      local rows = self:visible()
+      local floor = #rows > 0 and #rows - 1 or 0
+      while floor > 0 and lastShown(rows, floor - 1) >= #rows do floor = floor - 1 end
+      if self.index <= self.scroll then self.scroll = self.index - 1 end
+      while self.scroll < self.index - 1 and lastShown(rows, self.scroll) < self.index do
+        self.scroll = self.scroll + 1
+      end
+      self.scroll = math.max(0, math.min(self.scroll, floor))
+    end
+
+    function page:layout(scroll)
+      local rows = self:visible()
+      scroll = scroll or self.scroll
+      local last = lastShown(rows, scroll)
+      local out, y = {}, FIRST
+      for i = scroll + 1, last do
+        local row = rows[i]
+        local top = boxed(row) and 1 or 0
+        out[#out + 1] = { index = i, row = row, labelY = y + top,
+          valueY = type(row.value) == "function" and y + top + 1 or nil }
+        y = y + math.max(2, height(row))
+      end
+      return out, last < #rows
+    end
+
+    function page:drawPanel()
+      Chrome.clear()
+      Chrome.textbox(0, 0, Chrome.SCREEN_W - 2, Chrome.SCREEN_H - 2)
+      self:ensureVisible()
+      local spots, more = self:layout()
+      local cursorY
+      for _, at in ipairs(spots) do
+        local row, hot = at.row, at.index == self.index
+        local key = tostring(row.id or row.label)
+        local room = 19
+        if hot then cursorY = at.labelY end
+        if boxed(row) then
+          local w = wins()
+          w.textBoxAt = at.labelY - 1
+          local ok, err = pcall(Font.drawBox, 0, at.labelY - 1, 20, 4)
+          w.textBoxAt = nil
+          if not ok then error(err, 0) end
+          room = 18
+        end
+        local function put(text, tx, ty)
+          text = hot and Marquee.scroll(text, room - tx, key) or Marquee.clip(text, room - tx)
+          if room == 18 then
+            love.graphics.setColor(0, 0, 0, 1)
+            Font.draw(text, tx * 8, ty * 8)
+          else
+            Chrome.print(text, tx, ty)
+          end
+        end
+        put(str(row.label), 2, at.labelY)
+        if at.valueY then
+          local ok, text = pcall(row.value, self.game)
+          put(":", 10, at.valueY)
+          put(ok and tostring(text) or "?", 11, at.valueY)
+        end
+      end
+      if cursorY then Chrome.cursor(1, cursorY) end
+      if more then
+        love.graphics.setColor(0, 0, 0, 1)
+        Font.drawCode(Chrome.DOWN_ARROW, 8, ARROW * 8)
+      end
+    end
+    return page
+  end
+
+  local function open(g)
+    g.stack:push(gen1 and gen1Page(g) or gen2Page(g))
   end
 
   -- START and OPTION menus through prism.lua, as in the Gen 3 games: on
