@@ -2103,15 +2103,15 @@ do
   local src = love.image.newImageData(16, 288)
   for f = 0, 8 do src:setPixel(f, f * 32 + 31, 1, 0, 0, 1) end
   local out = npcs2.sheet(src)
-  eq(select(2, out:getDimensions()), 192, "classic npcs: 6 frames")
+  eq(select(2, out:getDimensions()), 288, "classic npcs: 6 frames and the 3 second steps")
   local marks = {}
-  for i = 0, 5 do
+  for i = 0, 8 do
     for x = 0, 15 do
       local _, _, _, a = out:getPixel(x, i * 32 + 31)
       if a > 0 then marks[#marks + 1] = x end
     end
   end
-  eq(table.concat(marks, ","), "0,1,2,3,5,7", "classic npcs: stand, then one step each way")
+  eq(table.concat(marks, ","), "0,1,2,3,5,7,4,6,8", "classic npcs: stand, one step each way, then the second steps")
 end
 
 -- Gen 2 GBA look: FireRed's and Emerald's own pictures, found by name -Elvie
