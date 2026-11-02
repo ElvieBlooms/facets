@@ -64,7 +64,8 @@ end
 
 -- The entries: { text, heading } in page order. read(rel) returns a
 -- meta.json table or nil -Elvie
-function credits.entries(rows, read)
+-- fills: the fill-in NPC sets' folders, in menu order -Elvie
+function credits.entries(rows, read, fills)
   local out = {}
   out[#out + 1] = { text = "FACETS", heading = true }
   out[#out + 1] = { text = "A time machine for the Game Boy games' people and Pokémon, by Elvie." }
@@ -92,10 +93,15 @@ function credits.entries(rows, read)
         folders[#folders + 1] = folder
       end
     end
-    -- Johto's people fill in for every NPC set -Elvie
-    if key == "classicNpcs" and row and not seen[dir .. "/hns"] then
-      seen[dir .. "/hns"] = true
-      folders[#folders + 1] = "hns"
+    -- the fill-in sets (Heart & Soul, Jessie & James) stand in for every
+    -- NPC set -Elvie
+    if key == "classicNpcs" and row then
+      for _, fill in ipairs(fills or { "hns" }) do
+        if not seen[dir .. "/" .. fill] then
+          seen[dir .. "/" .. fill] = true
+          folders[#folders + 1] = fill
+        end
+      end
     end
     for _, folder in ipairs(folders) do
       local meta = read(dir .. "/" .. folder .. "/meta.json")
@@ -147,7 +153,13 @@ function credits.screen(mod, game, rows)
     local ok, meta = pcall(decode, mod:read(rel))
     return ok and meta or nil
   end
-  local lines = credits.lines(credits.entries(rows, read), W)
+  local fills = {}
+  for _, key in ipairs(mod.assets:list("assets/npcs") or {}) do
+    local meta = key:match("^[%w_%-]+$") and read("assets/npcs/" .. key .. "/meta.json")
+    if type(meta) == "table" and meta.fill == true then fills[#fills + 1] = key end
+  end
+  table.sort(fills)
+  local lines = credits.lines(credits.entries(rows, read, fills), W)
   local self = { isOpaque = true, scroll = 0 }
   local last = math.max(0, #lines - ROWS)
 
