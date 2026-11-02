@@ -238,10 +238,45 @@ function classic.init(mod, rows)
       return own(def, seed, ...)
     end
 
+    -- Everyone already on the map keeps the renderer they were made with,
+    -- so a new SET draws them again: Gen 1's by their sprite id, Gen 2's
+    -- by their sheet, with its palette put back on -Elvie
+    local function redraw()
+      local okG, game = pcall(function() return mod.game end)
+      if not (okG and type(game) == "table") then return end
+      local data = game.data or (package.loaded["src.core.Game"] or {}).data
+      local seen = {}
+      local function again(world, npc)
+        if type(npc) ~= "table" or seen[npc] or not npc.sprite then return end
+        seen[npc] = true
+        local def = npc.spriteDef
+        if not def then
+          local id = npc.appearance or (type(npc.def) == "table" and npc.def.sprite)
+          def = type(data) == "table" and type(data.sprites) == "table" and data.sprites[id]
+        end
+        if type(def) ~= "table" then return end
+        local ok, renderer = pcall(SpriteRenderer.new, def, npc.id)
+        if not (ok and renderer) then return end
+        npc.sprite = renderer
+        npc.appearances = nil
+        if type(world.applySpritePalette) == "function" then pcall(world.applySpritePalette, world, npc) end
+      end
+      local worlds = { game.world, game.overworld }
+      local stack = type(game.stack) == "table" and game.stack.states
+      for _, state in ipairs(type(stack) == "table" and stack or {}) do worlds[#worlds + 1] = state end
+      for _, world in pairs(worlds) do
+        if type(world) == "table" and (type(world.npcPool) == "table" or type(world.npcs) == "table") then
+          for _, npc in pairs(world.npcPool or {}) do again(world, npc) end
+          for _, npc in ipairs(world.npcs or {}) do again(world, npc) end
+        end
+      end
+    end
+
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
         if type(change) == "table" and change.mod == mod.id and change.key == "classicNpcs" then
           configure()
+          pcall(redraw)
         end
       end)
     end

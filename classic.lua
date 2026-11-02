@@ -129,6 +129,23 @@ function classic.setup(mod)
     scaleFor[pick.path] = pick.scale
     return pick.path
   end
+  -- The same picture as a PNG in the engine's install cache, for a
+  -- screen that loads straight from a file. Written once a run; nil when
+  -- it can't be -Elvie
+  local written = {}
+  function pics.file(pick)
+    local cache = mod.cache
+    if not (type(cache) == "table" and type(cache.write) == "function") then return nil end
+    local rel = "pics/" .. pick.path:gsub("^facets/classic/", ""):gsub("[^%w%._@/%-]", "_")
+    if written[rel] == nil then
+      local ok, data = pcall(Assets.imageData, pics.picture(pick))
+      local okE, bytes = false, nil
+      if ok and data then okE, bytes = pcall(function() return data:encode("png"):getString() end) end
+      written[rel] = okE and type(bytes) == "string" and cache:write(rel, bytes) and true or false
+    end
+    -- mod.cache sits at mod_cache/<id> in the save folder -Elvie
+    return written[rel] and ("mod_cache/" .. mod.id .. "/" .. rel) or nil
+  end
   -- any picture flipped, as the game would load it: for YOUR SIDE when
   -- the front isn't ours -Elvie
   function pics.flipped(src)

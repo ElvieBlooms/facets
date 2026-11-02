@@ -2009,6 +2009,13 @@ do
   eq(p and p.rel, "assets/mons/ds/back/006.png", "classic: no shiny back, the plain one")
   eq(p and p.box, 48, "classic: FIT fits backs to 48")
   eq(classic.choose(opts, 6, "front", "battle_anim", false), nil, "classic: animations stay the game's own")
+  local saved = classic.BOX
+  classic.BOX = { front = 56, back = 64, hofBack = 28 }
+  p = classic.choose(opts, 6, "back", "hof", false)
+  eq(p and p.box, 28, "classic: Gen 1's HALL OF FAME back is 28, doubled")
+  p = classic.choose(opts, 6, "front", "summary", false)
+  eq(p and p.box, 56, "classic: a summary front keeps the front box")
+  classic.BOX = saved
   eq(classic.choose(opts, 7, "front", "battle", false), nil, "classic: a missing Pokemon stays the game's own")
   eq(classic.choose(opts, nil, "front", "battle", false), nil, "classic: no dex number, the game's own")
   opts.side = "mirrored"
