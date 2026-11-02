@@ -17,6 +17,7 @@ local OFF = "__off"
 local PREFIX = "facets/classic/"
 
 local shared = require("mods.facets.classic")
+local gba = require("mods.facets.classic_gba")
 classic.BOX = shared.BOX
 classic.SIZES = shared.SIZES
 classic.bounds = shared.bounds
@@ -37,19 +38,30 @@ function classic.choose(opts, dex, side, kind, shiny)
     face = "front"
     mirror = opts.side == "mirrored"
   end
-  local name = ("%03d.png"):format(dex)
-  local rel
-  for _, dir in ipairs(shiny and { face .. "_shiny", face } or { face }) do
-    local try = MONS_DIR .. "/" .. opts.set .. "/" .. dir .. "/" .. name
-    if opts.has(try) then rel = try break end
+  local rel, load
+  if gba.isChoice(opts.set) then
+    -- the GBA look: from the player's own FireRed or Emerald. Unown stays
+    -- the game's own, since its letters are kept apart there -Elvie
+    if dex == 201 then return nil end
+    local found = (opts.gbaFind or gba.monPicture)(opts.set, dex, face, shiny)
+    if not found then return nil end
+    rel = opts.set .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
+    load = function() return gba.load(found) end
+  else
+    local name = ("%03d.png"):format(dex)
+    for _, dir in ipairs(shiny and { face .. "_shiny", face } or { face }) do
+      local try = MONS_DIR .. "/" .. opts.set .. "/" .. dir .. "/" .. name
+      if opts.has(try) then rel = try break end
+    end
   end
   if not rel then return nil end
   local scale = battle and tonumber(opts.size) or nil
   -- a front on your side keeps a front's size: it stands 8 px taller than
   -- the back box, into empty screen -Elvie
   local box = not scale and classic.BOX[face == "front" and "front" or side] or nil
-  return { rel = rel, box = box, mirror = mirror, scale = scale,
-    path = PREFIX .. rel:sub(#MONS_DIR + 2):gsub("%.png$", "")
+  local stem = load and rel or rel:sub(#MONS_DIR + 2)
+  return { rel = rel, load = load, box = box, mirror = mirror, scale = scale,
+    path = PREFIX .. stem:gsub("%.png$", "")
       .. (box and ("@" .. box) or "@cut") .. (mirror and "m" or "") .. ".png" }
 end
 
@@ -92,6 +104,7 @@ function classic.init(mod, rows)
   if #sets == 0 then return nil end
   local choices = {}
   for _, set in ipairs(sets) do choices[#choices + 1] = { set.label, set.key } end
+  for _, c in ipairs(gba.CHOICES) do choices[#choices + 1] = c end
   choices[#choices + 1] = { "OFF", OFF }
   rows[#rows + 1] = { key = "sectionClassicMons", type = "choice", label = "POKEMON",
     choices = { { "", "_" } }, default = "_" }
@@ -131,6 +144,12 @@ function classic.init(mod, rows)
       if opts.side == "mirrored" then return pics.flipped(fpath) end
       return fpath
     end)
+    -- a game imported since: look again -Elvie
+    if mod.events and type(mod.events.on) == "function" then
+      mod.events:on("mod.options_changed", function(change)
+        if type(change) == "table" and change.mod == mod.id and change.key == "classicMons" then gba.reset() end
+      end)
+    end
   end
 end
 

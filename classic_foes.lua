@@ -14,6 +14,7 @@
 -- --------------------------------------------------
 
 local shared = require("mods.facets.classic")
+local gba = require("mods.facets.classic_gba")
 
 local foes = {}
 
@@ -46,16 +47,25 @@ foes.SKIP = { RIVAL1 = true, RIVAL2 = true, CAL = true }
 -- opts = { set, size, has = function(rel) } -Elvie
 function foes.choose(opts, classId)
   if not opts.set or opts.set == OFF or type(classId) ~= "string" or foes.SKIP[classId] then return nil end
-  local rel
-  for _, name in ipairs({ classId, foes.NAMES[classId] }) do
-    local try = DIR .. "/" .. opts.set .. "/" .. name .. ".png"
-    if opts.has(try) then rel = try break end
+  local rel, load
+  if gba.isChoice(opts.set) then
+    -- the GBA look: the Gen 3 picture from the player's own game -Elvie
+    local found = (opts.gbaFind or gba.trainerPicture)(opts.set, { foes.NAMES[classId] or classId, classId })
+    if not found then return nil end
+    rel = opts.set .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
+    load = function() return gba.load(found) end
+  else
+    for _, name in ipairs({ classId, foes.NAMES[classId] }) do
+      local try = DIR .. "/" .. opts.set .. "/" .. name .. ".png"
+      if opts.has(try) then rel = try break end
+    end
   end
   if not rel then return nil end
   local scale = tonumber(opts.size)
   local box = not scale and shared.BOX.front or nil
-  return { rel = rel, box = box, scale = scale,
-    path = PREFIX .. rel:sub(#DIR + 2):gsub("%.png$", "") .. (box and ("@" .. box) or "@cut") .. ".png" }
+  local stem = load and rel or rel:sub(#DIR + 2)
+  return { rel = rel, load = load, box = box, scale = scale,
+    path = PREFIX .. stem:gsub("%.png$", "") .. (box and ("@" .. box) or "@cut") .. ".png" }
 end
 
 -- Full-colour sets; the Game Boy ones are these games' own look -Elvie
@@ -85,6 +95,7 @@ function foes.init(mod, rows)
   if #sets == 0 then return nil end
   local choices = {}
   for _, set in ipairs(sets) do choices[#choices + 1] = { set.label, set.key } end
+  for _, c in ipairs(gba.CHOICES) do choices[#choices + 1] = c end
   choices[#choices + 1] = { "OFF", OFF }
   rows[#rows + 1] = { key = "sectionClassicTrainers", type = "choice", label = "TRAINERS",
     choices = { { "", "_" } }, default = "_" }
@@ -108,6 +119,12 @@ function foes.init(mod, rows)
         if pick then return pics.picture(pick), true end
       end
       return own(data, classId)
+    end
+    -- a game imported since: look again -Elvie
+    if mod.events and type(mod.events.on) == "function" then
+      mod.events:on("mod.options_changed", function(change)
+        if type(change) == "table" and change.mod == mod.id and change.key == "classicTrainers" then gba.reset() end
+      end)
     end
   end
 end

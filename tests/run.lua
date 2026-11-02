@@ -2098,6 +2098,42 @@ do
   eq(table.concat(marks, ","), "0,1,2,3,5,7", "classic npcs: stand, then one step each way")
 end
 
+-- Gen 2 GBA look: FireRed's and Emerald's own pictures, found by name -Elvie
+do
+  local gba = require("mods.facets.classic_gba")
+  check(gba.isChoice("gba_firered") and gba.isChoice("gba_emerald") and not gba.isChoice("ds"), "gba: its two choices")
+  eq(gba.ORDER.gba_emerald[1], "emerald", "gba: EMERALD reads Emerald first")
+  eq(gba.ORDER.gba_firered[2], "leafgreen", "gba: FIRERED reads LeafGreen next")
+  local ids = require("mods.facets.gba_ids")
+  check(ids.firered.ow.NURSE and ids.emerald.ow.NURSE and ids.firered.pics.YOUNGSTER, "gba: the id tables have both games")
+  eq(gba.image(string.rep("\0", 8), 2, 2), nil, "gba: a picture of the wrong size is refused")
+  check(gba.image(string.rep("\0", 16), 2, 2) ~= nil, "gba: raw RGBA becomes a picture")
+  eq(gba.monPicture("gba_firered", 300, "front", false), nil, "gba: nothing past Johto")
+
+  local mons2 = require("mods.facets.classic_mons")
+  local asked
+  local opts = { set = "gba_emerald", size = "fit", side = "back", has = function() return false end,
+    gbaFind = function(choice, dex, face, shiny) asked = { choice, dex, face, shiny }
+      return { game = "emerald", rel = "pokemon/" .. face .. "/" .. dex .. ".rgba", w = 64, h = 64 } end }
+  local p = mons2.choose(opts, 6, "front", "battle", false)
+  eq(p and p.path, "facets/classic/gba_emerald/emerald/pokemon/front/6@56.png", "gba: a Pokémon picture's own path")
+  check(p and type(p.load) == "function", "gba: it's made from the game's cache")
+  eq(asked and table.concat({ asked[1], asked[2], asked[3] }, ","), "gba_emerald,6,front", "gba: asked for the right picture")
+  eq(mons2.choose(opts, 201, "front", "battle", false), nil, "gba: Unown stays the game's own")
+  opts.side = "mirrored"
+  p = mons2.choose(opts, 6, "back", "battle", false)
+  check(p and p.mirror and asked[3] == "front", "gba: YOUR SIDE asks for the front")
+
+  local foes2 = require("mods.facets.classic_foes")
+  local names
+  local fopts = { set = "gba_firered", size = "fit", has = function() return false end,
+    gbaFind = function(choice, list) names = list
+      return { game = "firered", rel = "trainers/front/3.rgba", w = 64, h = 64 } end }
+  p = foes2.choose(fopts, "BROCK")
+  eq(names and names[1], "LEADER_BROCK", "gba: a trainer by the Gen 3 picture name")
+  eq(p and p.path, "facets/classic/trainers/gba_firered/firered/trainers/front/3@56.png", "gba: a trainer picture's own path")
+end
+
 -- Fixes from Emerald Lens: meta.json with a BOM or \u escapes, and the red
 -- info line kept when room is short -Elvie
 do
