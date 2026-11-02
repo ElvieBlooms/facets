@@ -62,6 +62,19 @@ function classic.build(src, box, mirror)
   return out
 end
 
+-- A picture flipped left to right, kept the same size -Elvie
+function classic.flip(src)
+  local w, h = src:getDimensions()
+  local out = love.image.newImageData(w, h)
+  for y = 0, h - 1 do
+    for x = 0, w - 1 do
+      local r, g, b, a = src:getPixel(x, y)
+      if a > 0 then out:setPixel(w - 1 - x, y, r, g, b, a) end
+    end
+  end
+  return out
+end
+
 -- SIZE, for Pokémon and trainers both; added after their rows -Elvie
 function classic.sizeRow(rows)
   rows[#rows + 1] = { key = "classicSize", type = "choice", label = "PICTURE SIZE",
@@ -102,6 +115,23 @@ function classic.setup(mod)
     end
     if pick.scale then scaleFor[pick.path] = pick.scale end
     return pick.path
+  end
+  -- any picture flipped, as the game would load it: for YOUR SIDE when
+  -- the front isn't ours -Elvie
+  function pics.flipped(src)
+    local path = "facets/classic/flip/" .. src
+    if not made[path] then
+      made[path] = true
+      Assets.compose(path, function()
+        local ok, data = pcall(Assets.imageData, src)
+        if not ok or not data then
+          mod.log:warn("%s couldn't be flipped", tostring(src))
+          return love.image.newImageData(1, 1)
+        end
+        return classic.flip(data)
+      end)
+    end
+    return path
   end
 
   -- the engine keeps a scaled picture on the ground line, centred -Elvie

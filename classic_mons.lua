@@ -45,10 +45,24 @@ function classic.choose(opts, dex, side, kind, shiny)
   end
   if not rel then return nil end
   local scale = battle and tonumber(opts.size) or nil
-  local box = not scale and classic.BOX[side] or nil
+  -- a front on your side keeps a front's size: it stands 8 px taller than
+  -- the back box, into empty screen -Elvie
+  local box = not scale and classic.BOX[face == "front" and "front" or side] or nil
   return { rel = rel, box = box, mirror = mirror, scale = scale,
     path = PREFIX .. rel:sub(#MONS_DIR + 2):gsub("%.png$", "")
       .. (box and ("@" .. box) or "@cut") .. (mirror and "m" or "") .. ".png" }
+end
+
+-- The game's own front for the back picture it asked for, Unown's letter
+-- included: nil when there isn't one -Elvie
+function classic.frontFor(def, backPath)
+  if type(def) ~= "table" then return nil end
+  for _, form in pairs(type(def.letters) == "table" and def.letters or {}) do
+    if type(form) == "table" and form.spriteBack == backPath and type(form.spriteFront) == "string" then
+      return form.spriteFront
+    end
+  end
+  return type(def.spriteFront) == "string" and def.spriteFront or nil
 end
 
 -- Sets that suit the Game Boy games: full colour, with a front folder -Elvie
@@ -92,16 +106,33 @@ function classic.init(mod, rows)
       local got = nextFn(path, ctx)
       if type(ctx) ~= "table" or not ctx.species then return got end
       opts.set = mod.options:get("classicMons")
-      if opts.set == OFF then return got end
       opts.size = mod.options:get("classicSize")
       opts.side = mod.options:get("classicSide")
       local data = ctx.data
       local def = type(data) == "table" and type(data.pokemon) == "table" and data.pokemon[ctx.species]
       local dex = type(def) == "table" and tonumber(def.dex) or nil
       local pick = classic.choose(opts, dex, ctx.side, ctx.kind, ctx.shiny)
-      if not pick then return got end
-      ctx.trueColor = true
-      return pics.picture(pick)
+      if pick then
+        ctx.trueColor = true
+        return pics.picture(pick)
+      end
+      -- YOUR SIDE with no set art: the front whoever draws it (the game, or
+      -- another mod like SPRITE SWAPPER), mirrored if asked -Elvie
+      if ctx.side == "back" and ctx.kind == "battle" and opts.side ~= "back" then
+        local front = classic.frontFor(def, path)
+        if front then
+          local fctx = {}
+          for k, v in pairs(ctx) do fctx[k] = v end
+          fctx.side = "front"
+          local fpath = nextFn(front, fctx)
+          if type(fpath) == "string" and fpath ~= "" then
+            ctx.trueColor = fctx.trueColor and true or false
+            if opts.side == "mirrored" then return pics.flipped(fpath) end
+            return fpath
+          end
+        end
+      end
+      return got
     end)
   end
 end
