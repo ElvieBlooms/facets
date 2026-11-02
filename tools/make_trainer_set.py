@@ -78,7 +78,7 @@ def to_set(path, doubled):
 def main():
     if len(sys.argv) < 4:
         sys.exit(__doc__)
-    recipe = json.load(open(sys.argv[1], encoding="utf-8"))
+    recipe = json.load(open(sys.argv[1], encoding="utf-8-sig"))
     mod = sys.argv[2]
     folders = {}
     for arg in sys.argv[3:]:

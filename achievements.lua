@@ -159,12 +159,16 @@ function achievements.init(mod)
     end
 
     local atStart, kind = nil, nil
-    mod.events:on(ach.events.ready, function()
+    local function fresh()
       load()
       raise("scenic_route", count(seen.scenes))
       raise("gem_collector", count(seen.gems))
       checkBoth()
-    end)
+    end
+    mod.events:on(ach.events.ready, fresh)
+    -- another save's scenes and filters, not the last one's -Elvie
+    mod.events:on("save.loaded", function() atStart = nil; fresh() end)
+    mod.events:on("save.created", function() atStart = nil; fresh() end)
     mod.events:on("battle.started", function(ev)
       local okM, menu = pcall(require, "mods.facets.menu")
       atStart = achievements.read(get, okM and menu.family() or nil, gen2())
