@@ -102,9 +102,10 @@ function classic.init(mod, rows)
     local pics = shared.setup(mod)
     if not pics then return end
     local opts = { has = pics.has }
+    -- next runs at most once per call, as the hook contract asks: not at
+    -- all when the picture is ours, on the front when YOUR SIDE asks -Elvie
     mod.hooks:wrap("pokemon.sprite", function(nextFn, path, ctx)
-      local got = nextFn(path, ctx)
-      if type(ctx) ~= "table" or not ctx.species then return got end
+      if type(ctx) ~= "table" or not ctx.species then return nextFn(path, ctx) end
       opts.set = mod.options:get("classicMons")
       opts.size = mod.options:get("classicSize")
       opts.side = mod.options:get("classicSide")
@@ -118,21 +119,17 @@ function classic.init(mod, rows)
       end
       -- YOUR SIDE with no set art: the front whoever draws it (the game, or
       -- another mod like SPRITE SWAPPER), mirrored if asked -Elvie
-      if ctx.side == "back" and ctx.kind == "battle" and opts.side ~= "back" then
-        local front = classic.frontFor(def, path)
-        if front then
-          local fctx = {}
-          for k, v in pairs(ctx) do fctx[k] = v end
-          fctx.side = "front"
-          local fpath = nextFn(front, fctx)
-          if type(fpath) == "string" and fpath ~= "" then
-            ctx.trueColor = fctx.trueColor and true or false
-            if opts.side == "mirrored" then return pics.flipped(fpath) end
-            return fpath
-          end
-        end
-      end
-      return got
+      local front = ctx.side == "back" and ctx.kind == "battle" and opts.side ~= "back"
+        and classic.frontFor(def, path)
+      if not front then return nextFn(path, ctx) end
+      local fctx = {}
+      for k, v in pairs(ctx) do fctx[k] = v end
+      fctx.side = "front"
+      local fpath = nextFn(front, fctx)
+      ctx.trueColor = fctx.trueColor and true or false
+      if type(fpath) ~= "string" or fpath == "" then return path end
+      if opts.side == "mirrored" then return pics.flipped(fpath) end
+      return fpath
     end)
   end
 end
