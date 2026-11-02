@@ -43,6 +43,29 @@ classic.STAND_INS = {
 classic.SKIP = { CHRIS = true, CHRIS_BIKE = true, KRIS = true, KRIS_BIKE = true, RIVAL = true,
   CAL = true, RED = true, RED_BIKE = true, BLUE = true }
 
+-- Pokémon that walk around (Yellow's Pikachu): with any Gen 3 or later
+-- look they're FireRed's or Emerald's own, read from the player's game,
+-- since no set has them -Elvie
+classic.POKEMON = { PIKACHU = true }
+
+-- A full-colour sheet as the Game Boy's four greys, by brightness (the
+-- see-through kept), for Gen 1 to tint with its own palette -Elvie
+function classic.greys(src)
+  local w, h = src:getDimensions()
+  local out = love.image.newImageData(w, h)
+  for y = 0, h - 1 do
+    for x = 0, w - 1 do
+      local r, g, b, a = src:getPixel(x, y)
+      if a > 0 then
+        local l = 0.299 * r + 0.587 * g + 0.114 * b
+        local v = l > 0.9 and 1 or l > 0.55 and 2 / 3 or l > 0.25 and 1 / 3 or 0
+        out:setPixel(x, y, v, v, v, 1)
+      end
+    end
+  end
+  return out
+end
+
 -- Gen 2 sprite name -> Gen 3 names, from gb.json ({ family = { NAME = {
 -- sprite = "youngster" } } }): the one that's the same name first, then the
 -- rest in order -Elvie
@@ -190,22 +213,55 @@ function classic.init(mod, rows)
     end
     configure()
 
+    -- whether the running game shows full colour as it is: Gen 2, or Gen 1
+    -- with COLORS on RED++ -Elvie
+    local okF, PaletteFX = pcall(require, "src.render.PaletteFX")
+    local gen1 = require("mods.facets.classic").generation() == 1
+    local function fullColour()
+      if not gen1 then return true end
+      if not (okF and type(PaletteFX) == "table" and type(PaletteFX.honorsTrueColor) == "function") then return false end
+      local ok, yes = pcall(PaletteFX.honorsTrueColor)
+      return ok and yes and true or false
+    end
+
     local defs = {} -- [set .. id] = our record, or false -Elvie
     local function ours(def)
-      local key = chosen .. ":" .. def.id
+      local key = chosen .. ":" .. def.id .. (fullColour() and "" or ":grey")
       local hit = defs[key]
       if hit ~= nil then return hit or nil end
       defs[key] = false
       local want = classic.candidates(def.id, names)
       if not want then return nil end
       local path, fw, fh, read
+      local short = def.id:match("^SPRITE_(.+)$")
+      local mon = short and classic.POKEMON[short]
+      local grey = false
+      local function fromGame(found, choice)
+        fw, fh = classic.frameSize(found.w, found.h)
+        path = PREFIX .. choice .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
+        read = function() return gba.load(found) end
+        -- Gen 1 outside RED++ shades by brightness, which turns Pikachu's
+        -- yellow white: handed over grey instead, for the game to tint as
+        -- it does its own -Elvie
+        if mon and not fullColour() then
+          grey = true
+          path = path:gsub("%.png$", "@grey.png")
+          read = function()
+            local data = gba.load(found)
+            return data and classic.greys(data) or nil
+          end
+        end
+      end
       if gba.isChoice(chosen) then
         -- the GBA look: the Gen 3 sheet from the player's own game -Elvie
-        local found = gba.npcSheet(chosen, want)
+        local found = gba.npcSheet(chosen, want) or (mon and gba.monSheet(chosen, { short }))
         if not found then return nil end
-        fw, fh = classic.frameSize(found.w, found.h)
-        path = PREFIX .. chosen .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
-        read = function() return gba.load(found) end
+        fromGame(found, chosen)
+      elseif mon and not classic.find(order, want, pics.has) then
+        -- a Pokémon no set has: FireRed's first, as the Kanto one -Elvie
+        local found = gba.monSheet("gba_firered", { short })
+        if not found then return nil end
+        fromGame(found, "gba_firered")
       else
         local rel = classic.find(order, want, pics.has)
         if not rel then return nil end
@@ -232,7 +288,7 @@ function classic.init(mod, rows)
       record.frameWidth, record.frameHeight = fw, fh
       record.frameColumns, record.frameOffset, record.cells = nil, nil, nil
       record.anchorX, record.anchorY = nil, nil
-      record.gbaArt = true
+      record.gbaArt = not grey
       defs[key] = record
       return record
     end
