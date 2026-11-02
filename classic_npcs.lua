@@ -18,6 +18,8 @@
 
 local classic = {}
 
+local gba = require("mods.facets.classic_gba")
+
 local NPCS_DIR = "assets/npcs"
 local OFF = "__off"
 local PREFIX = "facets/classic/npcs/"
@@ -145,6 +147,7 @@ function classic.init(mod, rows)
   if #sets == 0 then return nil end
   local choices = {}
   for _, set in ipairs(sets) do choices[#choices + 1] = { set.label, set.key } end
+  for _, c in ipairs(gba.CHOICES) do choices[#choices + 1] = c end
   choices[#choices + 1] = { "OFF", OFF }
   rows[#rows + 1] = { key = "sectionClassicNpcs", type = "choice", label = "NPCS",
     choices = { { "", "_" } }, default = "_" }
@@ -172,6 +175,7 @@ function classic.init(mod, rows)
       chosen = mod.options:get("classicNpcs")
       order = {}
       if chosen == OFF then return end
+      if gba.isChoice(chosen) then gba.reset() return end
       order[1] = chosen
       for _, set in ipairs(sets) do if set.key ~= chosen then order[#order + 1] = set.key end end
     end
@@ -184,18 +188,33 @@ function classic.init(mod, rows)
       if hit ~= nil then return hit or nil end
       defs[key] = false
       local want = classic.candidates(def.id, names)
-      local rel = want and classic.find(order, want, pics.has)
-      if not rel then return nil end
-      local okI, src = pcall(love.image.newImageData, mod.assets:path(rel))
-      if not okI then
-        mod.log:warn("%s couldn't be read", rel)
-        return nil
+      if not want then return nil end
+      local path, fw, fh, read
+      if gba.isChoice(chosen) then
+        -- the GBA look: the Gen 3 sheet from the player's own game -Elvie
+        local found = gba.npcSheet(chosen, want)
+        if not found then return nil end
+        fw, fh = classic.frameSize(found.w, found.h)
+        path = PREFIX .. chosen .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
+        read = function() return gba.load(found) end
+      else
+        local rel = classic.find(order, want, pics.has)
+        if not rel then return nil end
+        local okI, src = pcall(love.image.newImageData, mod.assets:path(rel))
+        if not okI then
+          mod.log:warn("%s couldn't be read", rel)
+          return nil
+        end
+        fw, fh = classic.frameSize(src:getDimensions())
+        path = PREFIX .. rel:sub(#NPCS_DIR + 2)
+        read = function()
+          local ok, again = pcall(love.image.newImageData, mod.assets:path(rel))
+          return ok and again or nil
+        end
       end
-      local fw, fh = classic.frameSize(src:getDimensions())
-      local path = PREFIX .. rel:sub(#NPCS_DIR + 2)
       Assets.compose(path, function()
-        local ok, again = pcall(love.image.newImageData, mod.assets:path(rel))
-        return ok and (classic.sheet(again)) or love.image.newImageData(1, 1)
+        local ok, src = pcall(read)
+        return ok and src and (classic.sheet(src)) or love.image.newImageData(1, 1)
       end)
       local record = {}
       for k, v in pairs(def) do record[k] = v end

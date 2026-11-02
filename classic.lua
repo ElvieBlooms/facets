@@ -82,7 +82,8 @@ function classic.sizeRow(rows)
 end
 
 -- One set of pictures for every part: { has(rel), picture(pick) }, or nil
--- when the engine can't take them. pick = { rel, path, box, mirror, scale } -Elvie
+-- when the engine can't take them. pick = { rel, path, box, mirror, scale,
+-- load } (load, when there, makes the ImageData instead of rel) -Elvie
 local pics
 function classic.setup(mod)
   if pics ~= nil then return pics or nil end
@@ -106,8 +107,10 @@ function classic.setup(mod)
     if not made[pick.path] then
       made[pick.path] = true
       Assets.compose(pick.path, function()
-        local ok, src = pcall(love.image.newImageData, mod.assets:path(pick.rel))
-        local out = ok and classic.build(src, pick.box, pick.mirror)
+        -- a picture from another game comes with its own loader -Elvie
+        local ok, src
+        if pick.load then ok, src = pcall(pick.load) else ok, src = pcall(love.image.newImageData, mod.assets:path(pick.rel)) end
+        local out = ok and src and classic.build(src, pick.box, pick.mirror)
         if out then return out end
         mod.log:warn("%s couldn't be read", pick.rel)
         return love.image.newImageData(1, 1)
