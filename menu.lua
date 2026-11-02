@@ -186,6 +186,7 @@ function menu.new(mod, opts)
     local entry = { id = "facets", label = "FACETS", short = "FACETS",
       about = "The look of everything else.",
       colour = { 130, 60, 170 }, -- amethyst -Elvie
+      order = 20, -- under the lens mods in PRISM
       draw = function(area, clock) M.drawPreview(area, clock) end,
       value = function()
         local first = M.rows()[1]
@@ -200,7 +201,7 @@ function menu.new(mod, opts)
       if #page.parts > 0 and type(page.entry) == "table" then
         local pageScreen = require("mods.facets.screen").new(mod, page)
         page.screen = pageScreen
-        local e = {}
+        local e = { order = 22 }
         for k, v in pairs(page.entry) do e[k] = v end
         e.open = function(g) pageScreen.open(liveGame(g)) end
         e.value = e.value or function()
@@ -217,7 +218,7 @@ function menu.new(mod, opts)
       M.performance = perfScreen
       entries[#entries + 1] = { id = "facets_performance", label = "PERFORMANCE", short = "PERFORMANCE",
         about = "Facets, built ahead of time.",
-        colour = prebuild.COLOUR,
+        colour = prebuild.COLOUR, order = 21,
         draw = function(area) perf.drawPreview(area) end,
         value = function() return perf.value() end,
         open = function(g) perfScreen.open(liveGame(g)) end,

@@ -103,6 +103,7 @@ function cmenu.start(mod, rows)
   local entry = { id = "facets", label = "FACETS", short = "FACETS",
     about = "The look of everything else.",
     colour = { 130, 60, 170 }, -- amethyst
+    order = 20, -- under the lens mods in PRISM
     value = function()
       local first = members()[1]
       return first and tostring(first.value()) or "OFF"
