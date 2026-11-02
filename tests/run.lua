@@ -2153,6 +2153,23 @@ do
   eq(table.concat({ x, y, w, h }, ","), "40,16,160,96", "scenes: the middle, keeping the ground")
 end
 
+-- Gen 2 OPTION menu: the FACETS page's rows and stepping -Elvie
+do
+  local cm = require("mods.facets.classic_menu")
+  local rows = {
+    { key = "sectionClassicNpcs", label = "NPCS", choices = { { "", "_" } } },
+    { key = "classicNpcs", label = "  SET", choices = { { "DIEGO", "diego" }, { "OFF", "__off" } } },
+    { key = "classicSide", label = "  YOUR SIDE", choices = { { "BACK", "back" }, { "FRONT", "front" } } },
+    { key = "classicBattleBg", label = "BATTLE BG", choices = { { "GAME", "game" }, { "SCENERY", "scenery" } } },
+  }
+  local e = cm.entries(rows)
+  eq(#e, 3, "options page: headings aren't rows")
+  eq(e[1].label .. "," .. e[2].label .. "," .. e[3].label, "NPCS,YOUR SIDE,BATTLE BG", "options page: a SET is named by its heading")
+  eq(cm.step(e[1].choices, "diego", 1), "__off", "options page: the next choice")
+  eq(cm.step(e[1].choices, "__off", 1), "diego", "options page: wraps round")
+  eq(cm.step(e[1].choices, "diego", -1), "__off", "options page: and back")
+end
+
 -- Fixes from Emerald Lens: meta.json with a BOM or \u escapes, and the red
 -- info line kept when room is short -Elvie
 do
