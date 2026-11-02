@@ -27,8 +27,14 @@ local PREFIX = "facets/classic/npcs/"
 -- reads (the HEART & SOUL fill-in set) -Elvie
 local FAMILIES = { "frlg", "rse", "johto" }
 
--- the Gen 3 frames for the game's 6: stand down, up, left, step down, up, left -Elvie
-classic.FRAMES = { 0, 1, 2, 3, 5, 7 }
+-- the Gen 3 frames for the game's 6 (stand down, up, left, step down, up,
+-- left), then Gen 3's second steps down, up and left -Elvie
+classic.FRAMES = { 0, 1, 2, 3, 5, 7, 4, 6, 8 }
+-- On every other tile the Game Boy mirrors the down and up step (which
+-- swaps a tail, a cap or a ponytail from side to side) and repeats the
+-- side step (so the feet don't move): Gen 3's second steps are shown there
+-- instead, right still the mirror of left -Elvie
+classic.SECOND_STEP = { down = 6, up = 7, left = 8, right = 8 }
 
 -- Gen 2 sprites with no Gen 3 name of their own in gb.json, and the Gen 3
 -- person who stands in until there's art of them -Elvie
@@ -338,12 +344,27 @@ function classic.init(mod, rows)
       return record
     end
 
+    -- the second step on the tiles the game would mirror -Elvie
+    local function bothSteps(renderer)
+      if type(renderer) ~= "table" or type(renderer.draw) ~= "function" then return renderer end
+      local draw = renderer.draw
+      renderer.draw = function(self, px, py, camX, camY, facing, walkPhase, stepFlip, topHalf, forceFlip,
+          frameOverride, ...)
+        if frameOverride == nil and walkPhase == 1 and stepFlip and classic.SECOND_STEP[facing] then
+          frameOverride = classic.SECOND_STEP[facing]
+          forceFlip = facing == "right" or forceFlip
+        end
+        return draw(self, px, py, camX, camY, facing, walkPhase, stepFlip, topHalf, forceFlip, frameOverride, ...)
+      end
+      return renderer
+    end
+
     local own = SpriteRenderer.new
     SpriteRenderer.new = function(def, seed, ...)
       if seed ~= "player" and type(def) == "table" and type(def.id) == "string"
           and (chosen ~= OFF or (#looks > 0 and def.id == "SPRITE_PIKACHU")) then
         local record = ours(def)
-        if record then return own(record, seed, ...) end
+        if record then return bothSteps(own(record, seed, ...)) end
       end
       return own(def, seed, ...)
     end
