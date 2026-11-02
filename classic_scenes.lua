@@ -209,7 +209,11 @@ function scenes.init(mod, rows)
     -- this battle's scene, or nil for the game's own -Elvie
     local function sceneFor(self)
       local setKey = mod.options:get("classicBattleBg")
-      if setKey == GAME or not byKey[setKey] or self:bgMode() ~= "white" then return nil end
+      -- The engine's BATTLE BG only fills the screen around the battle; the
+      -- battle keeps its paper field in every mode but one, the EXTENDED
+      -- HUD over the world, which has no field to paint -Elvie
+      if setKey == GAME or not byKey[setKey] then return nil end
+      if type(self.extendedWorldHUD) == "function" and self:extendedWorldHUD() then return nil end
       if self._facetsScene == nil or self._facetsSceneSet ~= setKey then
         local name = scenes.pick(where(self))
         self._facetsScene = scene(setKey, name) or false
