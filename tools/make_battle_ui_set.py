@@ -180,11 +180,9 @@ def main():
         meta["palettes"]["healthbar"] = {"from": VANILLA["healthbar"], "to": colours(bar_pal_raw)}
 
     def need_pal(name):
+        # a patch that redraws a picture in the game's own colours: FireRed's -Elvie
         raw = {"healthbox": hb_pal_raw, "healthbar": bar_pal_raw}[name]
-        if raw is None:
-            sys.exit("%s changes a picture but not its palette; give the set the game's own "
-                     "palette by hand, or leave the picture out" % src)
-        return colours(raw)
+        return colours(raw) if raw is not None else VANILLA[name]
 
     for name, sym, tall in (("healthbox_player", "gHealthboxSinglesPlayerGfx", True),
                             ("healthbox_enemy", "gHealthboxSinglesOpponentGfx", False),
@@ -200,6 +198,10 @@ def main():
         sheet(el, need_pal("healthbar")).save(os.path.join(out_dir, "elements.png"))
         sheet(el, need_pal("healthbox")).save(os.path.join(out_dir, "elements_exp.png"))
         meta["images"]["elements"], meta["images"]["elements_exp"] = "elements.png", "elements_exp.png"
+    bar = piece("gBattleInterface_PartySummaryBar_Gfx")
+    if bar:
+        sheet(bar, need_pal("healthbox"), 128, 8).save(os.path.join(out_dir, "party_summary_bar.png"))
+        meta["images"]["party_summary_bar"] = "party_summary_bar.png"
     tb_gfx, tb_pal = piece("gBattleInterface_Textbox_Gfx"), piece("gBattleInterface_Textbox_Pal")
     if tb_pal:
         # the message box's colours: the first bank -Elvie
