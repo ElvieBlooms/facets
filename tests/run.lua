@@ -2258,6 +2258,28 @@ do
   eq(w.boxKind(12, 20, 4), "frame", "windows: only while the page marks it")
 end
 
+-- Emerald's cable car takes 15 colours at most: a sheet with more is cut
+-- down to 15 for it -Elvie
+do
+  local gen3 = require("mods.facets.gen3")
+  local d = love.image.newImageData(20, 1)
+  for x = 0, 19 do d:setPixel(x, 0, x / 31, 0, 0, 1) end
+  d:setPixel(19, 0, 0, 0, 0, 0)
+  local out = gen3.fifteen(d)
+  local seen, n, clear = {}, 0, true
+  for x = 0, 19 do
+    local r, g, b, al = out:getPixel(x, 0)
+    if al > 0 then
+      local k = math.floor(r * 31 + 0.5)
+      if not seen[k] then seen[k] = true; n = n + 1 end
+    elseif x ~= 19 then clear = false end
+  end
+  eq(n, 15, "cable car: 19 colours become 15")
+  eq(clear and select(4, out:getPixel(19, 0)) == 0, true, "cable car: see-through stays see-through")
+  local few = love.image.newImageData(4, 1)
+  eq(gen3.fifteen(few), few, "cable car: a sheet already under 15 is left alone")
+end
+
 -- CREDITS on the Game Boy games -Elvie
 do
   local cr = require("mods.facets.classic_credits")
