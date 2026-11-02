@@ -2244,6 +2244,12 @@ do
   local ring = 0
   w.frameCells(11, 0, 9, 3, function() ring = ring + 1 end)
   eq(ring, 2 * 9 + 2 * 1, "windows: a frame round its box's border ring")
+  w.textBoxAt = 12
+  eq(w.boxKind(12, 20, 4), "dialogue", "windows: the WINDOWS row's box is the text box")
+  eq(w.boxKind(8, 20, 4), "frame", "windows: the other rows keep the frame")
+  eq(w.boxKind(12, 5, 4), "frame", "windows: too narrow for the text box")
+  w.textBoxAt = nil
+  eq(w.boxKind(12, 20, 4), "frame", "windows: only while the page marks it")
 end
 
 -- Gen 2 BATTLE UI in wide battles: FireRed's text, HP bar and colours -Elvie
