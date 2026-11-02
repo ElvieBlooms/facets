@@ -3,7 +3,8 @@
 
 Turns each overworld sheet into a Facets sheet: nine 32x32 frames, top to
 bottom, in Gen 3's order (stand down, up, left, then two steps each), the
-Pikachu centred with its feet on row 30. Writes assets/pikachu/<key>.png;
+Pikachu centred with its feet on row 30 and each step a pixel up, unless
+the sheet draws its own bob. Writes assets/pikachu/<key>.png;
 assets/pikachu/meta.json keeps the labels and credits. -Elvie
 
 Sheets are found by their DeviantArt file names (any extension), in the
@@ -110,7 +111,14 @@ def convert(path, layout):
         art = im.crop((b[0], b[1], b[2] + 1, b[3] + 1))
         if art.width > 32 or art.height > FEET + 1:
             raise SystemExit(f"{path}: frame {r},{c} is {art.size}, too big for 32x32")
-        out.alpha_composite(art, ((32 - art.width) // 2, i * 32 + FEET + 1 - art.height))
+        # the row's own feet line, so a sheet's walking bob stays; a sheet
+        # with none drawn gets one: each step a pixel up, as the
+        # follower's walk bounces -Elvie
+        bottoms = [box[3] for box in rows[r]]
+        drop = max(bottoms) - b[3]
+        if len(set(bottoms)) == 1 and i >= 3:
+            drop += 1
+        out.alpha_composite(art, ((32 - art.width) // 2, i * 32 + FEET + 1 - drop - art.height))
     return out
 
 
