@@ -10,7 +10,7 @@ Facets works on the Game Boy games too: Red, Blue, Yellow, Gold, Silver and Crys
 
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
-**Status: 0.7.0.** Works in all five games. It ships with four sprite sets, all free to use with credit:
+**Status: 1.0.0.** Works in all eleven games: FireRed, LeafGreen, Ruby, Sapphire and Emerald, and Red, Blue, Yellow, Gold, Silver and Crystal. It ships with four sprite sets, all free to use with credit:
 
 - **DIEGO:** DiegoWT's Black/White-style trainers and townsfolk.
 - **TAIGA:** Taiga's ORAS-style trainers.
@@ -410,6 +410,7 @@ Red, Blue, Yellow, Gold, Silver and Crystal get their own set of Facets' options
 - **WINDOWS:** every text box and menu in a Gen 3 frame: **FIRERED 1-10** (FireRed's OPTION frames, with FireRed's own text box at the bottom, read from your imported FireRed, LeafGreen or Emerald), or a **TITO** style (its text box, with FireRed's first frame round everything else). Boxes keep the game's sizes and the Game Boy's font; ones under three tiles stay the game's. On Red, Blue and Yellow they keep their colours with COLORS on RED++. On the FACETS page the WINDOWS row itself is drawn in the style's text box, so you can see it while you pick.
 - **COLORS:** **ADVANCED** on Red, Blue and Yellow, **GEN 2** on Gold, Silver and Crystal (the default), or **GAME**. Facets' art is drawn for the games' full-colour mode, and the DMG greys only half shade it, so while anything in Facets is on (the FILTER included), the game stays in full colour whatever its own COLORS says, and that row reads FACETS (A on it opens the FACETS page). Your own COLORS is kept, and comes back when everything in Facets is off, or with COLORS on GAME. For the Game Boy look with Facets, use FILTER.
 - **FILTER**, **FILTER ON**, **DOTS** and **SHADES** work just as on Gen 3, and share their settings with it.
+- **CREDITS** (the last row on the FACETS page): who made everything Facets can show on these games, from each set's meta.json, in the game's own font. Up and down scroll a line, left and right a page, A or B goes back.
 
 On Gen 1, Pokémon and trainers show in full colour with COLORS on RED++; in the other modes the game shades them to its own four colours. NPCs are full colour in every mode. The normal Gen 1 battle screen is coloured through the Super Game Boy's zones, which would shade a scene too, so BATTLE BG there is for wide battles, and not in the Game Boy greys (CLASSIC, OG). Pictures for screens that load from a file (summary, Hall of Fame, Pokédex, evolution, trades, party icons) are written once to the engine's cache and kept until Facets, the engine or an imported game changes.
 
