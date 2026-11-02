@@ -236,8 +236,59 @@ function classic.init(mod, rows)
         end
       end
     end
+    -- Yellow's partner Pikachu in its PIKACHU look's front and back
+    -- (leParagon's), whatever the POKEMON set is. The partner is the
+    -- engine's: a Pikachu with your trainer ID and name -Elvie
+    local partnerOf
+    if gen1 then
+      local okY, GameVersion = pcall(require, "src.core.GameVersion")
+      local okV, version = false, nil
+      if okY and type(GameVersion) == "table" and type(GameVersion.get) == "function" then okV, version = pcall(GameVersion.get) end
+      local okP, Follower = pcall(require, table.concat({ "src", "world", "PikachuFollower" }, "."))
+      if okV and version == "yellow" and okP and type(Follower) == "table"
+          and type(Follower.isStarterPikachu) == "function" then
+        partnerOf = function(mon)
+          local okG, game = pcall(function() return mod.game end)
+          local save = okG and type(game) == "table" and game.save
+          if type(save) ~= "table" or type(mon) ~= "table" then return false end
+          local ok, yes = pcall(Follower.isStarterPikachu, save, mon)
+          return ok and yes
+        end
+      end
+    end
+    local function partnerPicture(ctx)
+      if not partnerOf or type(ctx.kind) ~= "string" or ctx.kind:match("_anim$") then return nil end
+      local look = mod.options:get("classicPikachu")
+      if type(look) ~= "string" or not look:match("^[%w_]+$") or not partnerOf(ctx.mon) then return nil end
+      local battle = ctx.kind == "battle"
+      local side = ctx.side == "back" and "back" or "front"
+      local face, mirror = side, false
+      local yourSide = mod.options:get("classicSide")
+      if side == "back" and battle and yourSide ~= "back" then face, mirror = "front", yourSide == "mirrored" end
+      local rel = "assets/pikachu/battle/" .. look .. (face == "back" and "_back" or "") .. ".png"
+      if not pics.has(rel) then return nil end
+      local scale = battle and tonumber(mod.options:get("classicSize")) or nil
+      local box = not scale and classic.BOX[face == "front" and "front" or side] or nil
+      if ctx.kind == "hof" and side == "back" and classic.BOX.hofBack then box = classic.BOX.hofBack end
+      local grey = not coloured()
+      local pick = { rel = rel, box = box, mirror = mirror, scale = scale, grey = grey,
+        path = ("facets/classic/pikachu/%s%s@%s%s%s.png"):format(look, face == "back" and "_back" or "",
+          box or "cut", mirror and "m" or "", grey and "g" or "") }
+      if grey then
+        pick.load = function()
+          local data = love.image.newImageData(mod.assets:path(rel))
+          return shared.greys(data)
+        end
+      end
+      ctx.trueColor = not grey
+      if not battle then return pics.file(pick) or pics.picture(pick) end
+      return pics.picture(pick)
+    end
+
     mod.hooks:wrap("pokemon.sprite", function(nextFn, path, ctx)
       if type(ctx) ~= "table" or not ctx.species then return nextFn(path, ctx) end
+      local partner = partnerPicture(ctx)
+      if partner then return partner end
       if ctx.kind == "battle_anim" and not gen1 then
         local got = animSheet(type(ctx.data) == "table" and ctx.data.pokemon, ctx.species, ctx.shiny, path)
         if got then
