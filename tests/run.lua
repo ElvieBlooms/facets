@@ -2096,6 +2096,8 @@ do
   eq(table.concat(npcs2.candidates("SPRITE_FISHING_GURU", names, 1), ","), "FISHING_GURU,FISHER", "classic npcs: Kanto's Fishing Guru is FireRed's Fisher")
   eq(table.concat(npcs2.candidates("SPRITE_FISHING_GURU", names, 2), ","), "FISHING_GURU,FISHERMAN", "classic npcs: Johto's is Emerald's Fisherman")
   eq(table.concat(npcs2.candidates("SPRITE_WAITER", names), ","), "WAITER,COOK", "classic npcs: the Waiter is Emerald's Cook")
+  eq(npcs2.candidates("SPRITE_MOM", names, 2)[1], "MOM_JOHTO", "classic npcs: Crystal's Mom is Johto's")
+  eq(npcs2.candidates("SPRITE_MOM", names, 1)[1], "MOM", "classic npcs: Red's is Kanto's")
   eq(npcs2.candidates("SPRITE_RIVAL", names), nil, "classic npcs: so is the rival")
   eq(npcs2.candidates("YOUNGSTER", names), nil, "classic npcs: not a sprite id")
   local files = { ["assets/npcs/taiga/gen3/rse/TEALA.png"] = true, ["assets/npcs/diego/gen3/frlg/WOMAN_1.png"] = true,
