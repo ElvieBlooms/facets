@@ -2209,6 +2209,18 @@ do
   eq(#rows .. "," .. rows[2].label, "3,PRISM", "prism gb: one PRISM row")
 end
 
+-- Game Boy trainer art in a set's gb/ folder comes first, and Gen 3 never
+-- looks there -Elvie
+do
+  local foes = require("mods.facets.classic_foes")
+  local files = { ["assets/trainers/ds/gb/FALKNER.png"] = true, ["assets/trainers/ds/gb/FIREBREATHER.png"] = true,
+    ["assets/trainers/ds/KINDLER.png"] = true, ["assets/trainers/ds/CAMPER.png"] = true }
+  local opts = { set = "ds", size = "fit", has = function(rel) return files[rel] end }
+  eq(foes.choose(opts, "FALKNER").rel, "assets/trainers/ds/gb/FALKNER.png", "foes: a Johto leader from gb/")
+  eq(foes.choose(opts, "FIREBREATHER").rel, "assets/trainers/ds/gb/FIREBREATHER.png", "foes: gb/ art beats a stand-in")
+  eq(foes.choose(opts, "JR_TRAINER_M").rel, "assets/trainers/ds/CAMPER.png", "foes: stand-ins still work")
+end
+
 -- Gen 2 BATTLE UI in wide battles: FireRed's text, HP bar and colours -Elvie
 do
   local hud = require("mods.facets.classic_hud")

@@ -23,7 +23,9 @@ local gba = require("mods.facets.classic_gba")
 local NPCS_DIR = "assets/npcs"
 local OFF = "__off"
 local PREFIX = "facets/classic/npcs/"
-local FAMILIES = { "frlg", "rse" }
+-- johto: sheets under the Game Boy sprite's own name, which Gen 3 never
+-- reads (the HEART & SOUL fill-in set) -Elvie
+local FAMILIES = { "frlg", "rse", "johto" }
 
 -- the Gen 3 frames for the game's 6: stand down, up, left, step down, up, left -Elvie
 classic.FRAMES = { 0, 1, 2, 3, 5, 7 }
@@ -136,7 +138,10 @@ local function findSets(mod)
         local ok, got = pcall(decode, mod:read(dir .. "/meta.json"))
         if ok and type(got) == "table" then meta = got end
       end
-      sets[#sets + 1] = { key = key, label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper() }
+      -- "fill": true: only for people the chosen set doesn't have, never
+      -- a choice of its own -Elvie
+      sets[#sets + 1] = { key = key, fill = meta.fill == true,
+        label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper() }
     end
   end
   table.sort(sets, function(a, b) return a.label < b.label end)
@@ -147,7 +152,9 @@ function classic.init(mod, rows)
   local sets = findSets(mod)
   if #sets == 0 then return nil end
   local choices = {}
-  for _, set in ipairs(sets) do choices[#choices + 1] = { set.label, set.key } end
+  for _, set in ipairs(sets) do
+    if not set.fill then choices[#choices + 1] = { set.label, set.key } end
+  end
   for _, c in ipairs(gba.CHOICES) do choices[#choices + 1] = c end
   choices[#choices + 1] = { "OFF", OFF }
   rows[#rows + 1] = { key = "sectionClassicNpcs", type = "choice", label = "NPCS",
@@ -178,7 +185,8 @@ function classic.init(mod, rows)
       if chosen == OFF then return end
       if gba.isChoice(chosen) then gba.reset() return end
       order[1] = chosen
-      for _, set in ipairs(sets) do if set.key ~= chosen then order[#order + 1] = set.key end end
+      for _, set in ipairs(sets) do if set.key ~= chosen and not set.fill then order[#order + 1] = set.key end end
+      for _, set in ipairs(sets) do if set.fill then order[#order + 1] = set.key end end
     end
     configure()
 

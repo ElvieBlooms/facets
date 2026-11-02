@@ -61,8 +61,13 @@ function foes.choose(opts, classId)
     rel = opts.set .. "/" .. found.game .. "/" .. found.rel:gsub("%.rgba$", ".png")
     load = function() return gba.load(found) end
   else
+    -- the set's gb/ folder first: art under the Game Boy class's own name,
+    -- kept apart so Gen 3 never picks it up (RED, BLUE) -Elvie
+    local tries = { DIR .. "/" .. opts.set .. "/gb/" .. classId .. ".png" }
     for _, name in ipairs({ classId, foes.NAMES[classId] }) do
-      local try = DIR .. "/" .. opts.set .. "/" .. name .. ".png"
+      tries[#tries + 1] = DIR .. "/" .. opts.set .. "/" .. name .. ".png"
+    end
+    for _, try in ipairs(tries) do
       if opts.has(try) then rel = try break end
     end
   end
