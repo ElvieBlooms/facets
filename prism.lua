@@ -6,6 +6,8 @@
 -- item (LENS, FACETS) and opens its screen; with more it's PRISM and
 -- opens a list of them. Another mod can join by doing the same: an item
 -- or row with id "prism" and an `entries` list. -Elvie
+-- In the Game Boy games it's the same, through the *Gb functions at the
+-- end of this file.
 -- --------------------------------------------------
 
 local prism = {}
@@ -286,6 +288,156 @@ function prism.addOption(rows, entry, picker, game)
   end
   if found then out[found] = row else out[#out + 1] = row end
   return out
+end
+
+-- The Game Boy games
+-- Red/Blue/Yellow and Gold/Silver/Crystal have their own START and OPTION
+-- menus, drawn the Game Boy way, so PRISM is drawn that way there too:
+-- the game's own box and font, a gem per entry (in full colour), its
+-- value under it and the picked one's about line at the bottom. The list
+-- is a screen each mod registers while it loads (prism.registerGb), under
+-- its own id, so two mods carrying this file don't clash; the item keeps
+-- whichever was registered first.
+-- --------------------------------------------------
+local GB_ROW_Y, GB_ROW_H = 24, 20
+local GB_GEM_X, GB_LABEL_X = 16, 28
+
+function prism.registerGb(mod)
+  if not (mod.content and mod.content.screens and mod.ui and mod.ui.Font) then return nil end
+  local Font = mod.ui.Font
+  local okFx, PaletteFX = pcall(require, "src.render.PaletteFX")
+  if not okFx then PaletteFX = nil end
+  local id = (mod.id or "mod") .. "_prism"
+  local function gem(x, y, c)
+    local pal = {
+      K = { 0, 0, 0 }, H = { 1, 1, 1 },
+      L = { (c[1] + (255 - c[1]) * 0.45) / 255, (c[2] + (255 - c[2]) * 0.45) / 255, (c[3] + (255 - c[3]) * 0.45) / 255 },
+      M = { (c[1] + (255 - c[1]) * 0.1) / 255, (c[2] + (255 - c[2]) * 0.1) / 255, (c[3] + (255 - c[3]) * 0.1) / 255 },
+      D = { c[1] * 0.65 / 255, c[2] * 0.65 / 255, c[3] * 0.65 / 255 },
+    }
+    if PaletteFX and type(PaletteFX.markTrueColor) == "function" then pcall(PaletteFX.markTrueColor, x, y, 7, 7) end
+    for gy, row in ipairs(GEM) do
+      for gx = 1, #row do
+        local p = pal[row:sub(gx, gx)]
+        if p then
+          love.graphics.setColor(p[1], p[2], p[3], 1)
+          love.graphics.rectangle("fill", x + gx - 1, y + gy - 1, 1, 1)
+        end
+      end
+    end
+    love.graphics.setColor(1, 1, 1, 1)
+  end
+  mod.content.screens:register(id, {
+    new = function(game, entries)
+      local self = { isOpaque = true, index = 1, entries = type(entries) == "table" and entries or {} }
+      function self:update()
+        local input = game.input
+        local n = #self.entries
+        if n == 0 or input:wasPressed("b") or input:wasPressed("start") then game.stack:pop() return end
+        if input:wasPressed("down") then self.index = self.index % n + 1 end
+        if input:wasPressed("up") then self.index = (self.index - 2) % n + 1 end
+        if input:wasPressed("a") or input:wasPressed("right") then
+          local entry = self.entries[self.index]
+          if entry and entry.open then entry.open(game) end
+        end
+      end
+      function self:draw()
+        Font.drawBox(0, 0, 20, 18)
+        Font.draw("PRISM", 8, 8)
+        for i, entry in ipairs(self.entries) do
+          local y = GB_ROW_Y + (i - 1) * GB_ROW_H
+          if i == self.index then
+            local Theme = mod.ui.Theme
+            if Theme and Theme.cursor and Font.drawCode then Font.drawCode(Theme.cursor, 6, y)
+            else Font.draw(">", 6, y) end
+          end
+          local c = entry.colour
+          if not (type(c) == "table" and tonumber(c[1]) and tonumber(c[2]) and tonumber(c[3])) then c = BLUE end
+          gem(GB_GEM_X, y, c)
+          Font.draw(tostring(entry.label):sub(1, 16), GB_LABEL_X, y)
+          local value = valueOf(entry)
+          Font.draw(value:sub(1, 15), GB_LABEL_X + 8, y + 8)
+        end
+        local picked = self.entries[self.index]
+        local about = picked and (picked.aboutGb or picked.about)
+        if type(about) == "string" then
+          local line, n = "", 0
+          for word in about:gmatch("%S+") do
+            if #line > 0 and #line + 1 + #word > 18 then
+              Font.draw(line, 8, 120 + n * 8); n = n + 1; line = word
+            else
+              line = #line > 0 and (line .. " " .. word) or word
+            end
+          end
+          if #line > 0 and n < 2 then Font.draw(line, 8, 120 + n * 8) end
+        end
+      end
+      return self
+    end,
+  })
+  return id
+end
+
+-- START menu: the PRISM item (or the one mod's own), just above MODS, or
+-- QUIT if there's no MODS. screenId: what prism.registerGb gave back.
+function prism.addStartGb(mod, items, entry, game, screenId)
+  local found
+  for i, item in ipairs(items) do
+    if type(item) == "table" and item.id == ID and type(item.entries) == "table" then found = i end
+  end
+  local entries = withEntry(found and items[found].entries, entry)
+  local screen = (found and items[found].screen) or screenId
+  local item = { id = ID, entries = entries, screen = screen }
+  if #entries == 1 then
+    item.label = entry.short or entry.label
+    item.onSelect = function() entry.open(game) end
+  else
+    item.label = "PRISM"
+    item.onSelect = function() mod.ui.push(game, screen, entries) end
+  end
+  if found then
+    items[found] = item
+    return items
+  end
+  local at
+  for _, anchor in ipairs({ "MODS", "QUIT" }) do
+    for i, it in ipairs(items) do
+      if not at and type(it) == "table" and it.label == anchor then at = i end
+    end
+  end
+  table.insert(items, at or (#items + 1), item)
+  return items
+end
+
+-- OPTION menu: a row just before BACK, where a mod's rows go, shaped like
+-- the screen's own rows that open a page (value, activate).
+function prism.addOptionGb(mod, rows, entry, game, screenId)
+  local found
+  for i, row in ipairs(rows) do
+    if type(row) == "table" and row.id == ID and type(row.entries) == "table" then found = i end
+  end
+  local entries = withEntry(found and rows[found].entries, entry)
+  local screen = (found and rows[found].screen) or screenId
+  local row = { id = ID, entries = entries, screen = screen, port = true }
+  if #entries == 1 then
+    row.label = entry.label
+    row.value = function() return valueOf(entry) end
+    row.activate = function(g) entry.open(g or game) end
+  else
+    row.label = "PRISM"
+    row.value = function() return "" end
+    row.activate = function(g) mod.ui.push(g or game, screen, entries) end
+  end
+  if found then
+    rows[found] = row
+    return rows
+  end
+  local at = #rows + 1
+  for i, r in ipairs(rows) do
+    if type(r) == "table" and r.cancel then at = i break end
+  end
+  table.insert(rows, at, row)
+  return rows
 end
 
 return prism
