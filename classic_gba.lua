@@ -5,7 +5,7 @@
 --
 -- FIRERED reads FireRed, then LeafGreen, then Emerald for anyone missing;
 -- EMERALD reads Emerald first. Names are turned into the games' own ids
--- with gba_ids.lua (made by tools/make_gba_ids.py), since a Gen 2 game
+-- with gba_ids.lua (made by tools/make_gba_ids.py), since a Game Boy game
 -- can't load the engine's Gen 3 modules. -Elvie
 -- --------------------------------------------------
 

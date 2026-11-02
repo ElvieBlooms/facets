@@ -1,8 +1,9 @@
--- Battle backgrounds on the Game Boy games (Gold, Silver, Crystal)
--- The battle screen starts each frame by clearing to white
--- (BattleState.drawPanel, then Chrome.clear); a set's scene is painted
--- there instead, so the boxes, the Pokémon and the text all draw over it as
--- usual. -Elvie
+-- Battle backgrounds on the Game Boy games (Red, Blue, Yellow, Gold, Silver, Crystal)
+-- Gold, Silver and Crystal's battle screen starts each frame by clearing to
+-- white (BattleState.drawPanel, then Chrome.clear); Red, Blue and Yellow's
+-- wide battle fills its field with paper (WideBattle.draw). A set's scene
+-- is painted there instead, so the boxes, the Pokémon and the text all
+-- draw over it as usual. -Elvie
 --
 -- The sets are the Gen 3 ones (assets/battlebg/), 240x112. The Game Boy
 -- screen has 160x96 above the text box, so the middle of the scene is

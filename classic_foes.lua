@@ -1,13 +1,14 @@
--- Trainer battle pictures on the Game Boy games (Gold, Silver, Crystal)
+-- Trainer battle pictures on the Game Boy games (Red, Blue, Yellow, Gold, Silver, Crystal)
 -- The game asks BattleState.trainerArt for a trainer class's picture, so
 -- one wrap there covers every trainer. A set's art is fitted to the
 -- game's own 56x56 box like the Pokémon (classic.lua), and PICTURE SIZE
 -- scales both. -Elvie
 --
--- A picture is found by the Gen 2 class name first (FALKNER.png,
--- KIMONO_GIRL.png), then by the Gen 3 name in NAMES below, so art for a
--- Johto class only has to be dropped in the set's folder under its own
--- name. Classes without art stay the game's own. -Elvie
+-- A picture is found in the set's gb/ folder under the Game Boy class name
+-- first (FALKNER.png, JESSIE_JAMES.png), then by the class's own name and
+-- its Gen 3 name in NAMES below, then in gb_hns/ (Heart & Soul's). The GBA
+-- look reads the player's FireRed or Emerald, then gb_hns/ and gb/ for a
+-- class neither game has. Classes without art stay the game's own. -Elvie
 --
 -- The player and the rival (Silver) are Crystal Lens's, so they're never
 -- touched here. -Elvie
@@ -22,9 +23,9 @@ local DIR = "assets/trainers"
 local OFF = "__off"
 local PREFIX = "facets/classic/trainers/"
 
--- Gen 2 class -> the Gen 3 picture that stands for it. Kindler, Channeler
--- and Blue's later look are stand-ins until there's art of the Gen 2 class
--- itself. -Elvie
+-- Game Boy class -> the Gen 3 picture that stands for it. Kindler,
+-- Channeler and Blue's later look stand in on the GBA look, where FireRed
+-- and Emerald have no Firebreather, Medium or Gen 2 Blue. -Elvie
 foes.NAMES = {
   BEAUTY = "BEAUTY", BIKER = "BIKER", BIRD_KEEPER = "BIRD_KEEPER", BLACKBELT_T = "BLACK_BELT",
   BLAINE = "LEADER_BLAINE", BLUE = "RIVAL_LATE", BROCK = "LEADER_BROCK", BRUNO = "ELITE_FOUR_BRUNO",

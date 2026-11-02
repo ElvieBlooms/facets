@@ -1,4 +1,4 @@
--- Pictures for the Game Boy games (Gold, Silver, Crystal)
+-- Pictures for the Game Boy games (Red, Blue, Yellow, Gold, Silver, Crystal)
 -- What the Pokémon and trainer parts share: cutting a set's art to its
 -- edge, fitting it to the game's own box, and handing it to the game under
 -- a "facets/classic/..." path made in memory (Assets.compose), so the game

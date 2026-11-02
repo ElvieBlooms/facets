@@ -43,11 +43,6 @@ function crystal.reset()
   palettes, icons, partyPal = nil, nil, nil
 end
 
--- Whether the player has one of the games to read from -Elvie
-function crystal.available()
-  return gb.imported(GAMES) ~= nil
-end
-
 -- A grey sprite through a palette (colours 1 and 2; 0 white, 3 black),
 -- the see-through kept. pal nil keeps it grey -Elvie
 function crystal.colour(src, pal)
