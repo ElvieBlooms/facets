@@ -43,7 +43,7 @@ function cmenu.start(mod, rows)
     if Runtime and Runtime.safeMode then return end
     -- The settings that get saved: game.options in Gold/Silver/Crystal and
     -- the Gen 3 games, game.save.options in Red/Blue/Yellow (the same table
-    -- in Gold/Silver/Crystal), as the Mods manager writes them
+    -- in Gold/Silver/Crystal), as the Mods manager writes them -Elvie
     local saved = {}
     if type(game.options) == "table" then saved[#saved + 1] = game.options end
     local fromSave = type(game.save) == "table" and game.save.options
