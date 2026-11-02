@@ -2024,6 +2024,12 @@ do
   check(p and p.scale == nil and p.box == 56, "classic: other screens always fit")
   opts.set = "__off"
   eq(classic.choose(opts, 6, "front", "battle", false), nil, "classic: OFF is the game's own")
+  local icons = { ["assets/mons/gbcish/icons/025.png"] = true }
+  local iconHas = function(rel) return icons[rel] end
+  eq(classic.iconFor("minidex", 25, iconHas), "assets/mons/gbcish/icons/025.png", "classic: a Minidex icon")
+  eq(classic.iconFor("minidex", 26, iconHas), nil, "classic: no icon, the game's own")
+  eq(classic.iconFor("game", 25, iconHas), nil, "classic: ICONS on GAME")
+  eq(classic.iconFor("minidex", 300, iconHas), nil, "classic: nothing past Johto")
   local def = { spriteFront = "f.png", spriteBack = "b.png",
     letters = { B = { spriteFront = "fb.png", spriteBack = "bb.png" } } }
   eq(classic.frontFor(def, "b.png"), "f.png", "classic: the game's own front for a back")
