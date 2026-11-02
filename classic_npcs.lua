@@ -171,9 +171,37 @@ local function findSets(mod)
   return sets
 end
 
+-- Yellow's Pikachu looks: assets/pikachu/<key>.png, labels and credits
+-- in its meta.json -Elvie
+classic.PIKACHU_DIR = "assets/pikachu"
+classic.PIKA_SET, classic.PIKA_GAME = "set", "game"
+local function pikachuLooks(mod)
+  local looks = {}
+  local okD, decode = pcall(function() return require("mods.facets.npcs").decodeJson end)
+  local rel = classic.PIKACHU_DIR .. "/meta.json"
+  if not (okD and mod.assets:info(rel)) then return looks end
+  local ok, meta = pcall(decode, mod:read(rel))
+  for _, look in ipairs(ok and type(meta) == "table" and type(meta.looks) == "table" and meta.looks or {}) do
+    if type(look) == "table" and type(look.key) == "string" and look.key:match("^[%w_]+$")
+        and mod.assets:info(classic.PIKACHU_DIR .. "/" .. look.key .. ".png") then
+      looks[#looks + 1] = { key = look.key, label = type(look.label) == "string" and look.label or look.key:upper() }
+    end
+  end
+  return looks
+end
+
+-- Whether the running game is Yellow -Elvie
+local function yellow()
+  local ok, GameVersion = pcall(require, "src.core.GameVersion")
+  if not (ok and type(GameVersion) == "table" and type(GameVersion.get) == "function") then return false end
+  local okV, v = pcall(GameVersion.get)
+  return okV and v == "yellow"
+end
+
 function classic.init(mod, rows)
   local sets = findSets(mod)
   if #sets == 0 then return nil end
+  local looks = yellow() and pikachuLooks(mod) or {}
   local choices = {}
   for _, set in ipairs(sets) do
     if not set.fill then choices[#choices + 1] = { set.label, set.key } end
@@ -183,6 +211,14 @@ function classic.init(mod, rows)
   rows[#rows + 1] = { key = "sectionClassicNpcs", type = "choice", label = "NPCS",
     choices = { { "", "_" } }, default = "_" }
   rows[#rows + 1] = { key = "classicNpcs", type = "choice", label = "  SET", choices = choices, default = OFF }
+  if #looks > 0 then
+    -- SET: FireRed's or Emerald's own with a Gen 3 or later look, the
+    -- game's otherwise; GAME: always Yellow's own -Elvie
+    local pika = { { "SET", classic.PIKA_SET }, { "GAME", classic.PIKA_GAME } }
+    for _, look in ipairs(looks) do pika[#pika + 1] = { look.label, look.key } end
+    rows[#rows + 1] = { key = "classicPikachu", type = "choice", label = "  PIKACHU", choices = pika,
+      default = classic.PIKA_SET }
+  end
 
   return function()
     local okS, SpriteRenderer = pcall(require, "src.render.SpriteRenderer")
@@ -226,7 +262,8 @@ function classic.init(mod, rows)
 
     local defs = {} -- [set .. id] = our record, or false -Elvie
     local function ours(def)
-      local key = chosen .. ":" .. def.id .. (fullColour() and "" or ":grey")
+      local pikaLook = #looks > 0 and def.id == "SPRITE_PIKACHU" and mod.options:get("classicPikachu") or nil
+      local key = chosen .. ":" .. def.id .. (fullColour() and "" or ":grey") .. ":" .. tostring(pikaLook)
       local hit = defs[key]
       if hit ~= nil then return hit or nil end
       defs[key] = false
@@ -252,7 +289,30 @@ function classic.init(mod, rows)
           end
         end
       end
-      if gba.isChoice(chosen) then
+      if pikaLook == classic.PIKA_GAME then
+        return nil
+      elseif pikaLook and pikaLook ~= classic.PIKA_SET then
+        -- one of Yellow's Pikachu looks -Elvie
+        local rel = classic.PIKACHU_DIR .. "/" .. pikaLook .. ".png"
+        if not pics.has(rel) then return nil end
+        fw, fh = 32, 32
+        path = PREFIX .. "pikachu/" .. pikaLook .. ".png"
+        read = function()
+          local ok, data = pcall(love.image.newImageData, mod.assets:path(rel))
+          return ok and data or nil
+        end
+        if not fullColour() then
+          grey = true
+          path = path:gsub("%.png$", "@grey.png")
+          local plain = read
+          read = function()
+            local data = plain()
+            return data and classic.greys(data) or nil
+          end
+        end
+      elseif chosen == OFF then
+        return nil
+      elseif gba.isChoice(chosen) then
         -- the GBA look: the Gen 3 sheet from the player's own game -Elvie
         local found = gba.npcSheet(chosen, want) or (mon and gba.monSheet(chosen, { short }))
         if not found then return nil end
@@ -295,7 +355,8 @@ function classic.init(mod, rows)
 
     local own = SpriteRenderer.new
     SpriteRenderer.new = function(def, seed, ...)
-      if chosen ~= OFF and seed ~= "player" and type(def) == "table" and type(def.id) == "string" then
+      if seed ~= "player" and type(def) == "table" and type(def.id) == "string"
+          and (chosen ~= OFF or (#looks > 0 and def.id == "SPRITE_PIKACHU")) then
         local record = ours(def)
         if record then return own(record, seed, ...) end
       end
@@ -338,7 +399,8 @@ function classic.init(mod, rows)
 
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
-        if type(change) == "table" and change.mod == mod.id and change.key == "classicNpcs" then
+        if type(change) == "table" and change.mod == mod.id
+            and (change.key == "classicNpcs" or change.key == "classicPikachu") then
           configure()
           pcall(redraw)
         end
