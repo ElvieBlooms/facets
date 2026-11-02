@@ -62,6 +62,42 @@ function classic.build(src, box, mirror)
   return out
 end
 
+-- An animation's frames as one sheet: every frame cut to the edge of all
+-- of them together and shrunk by the same amount, so nothing jumps when
+-- the frame changes. Each sits in a square, centred and on the bottom
+-- row, and the square's side (a whole number of tiles) comes back too.
+-- frames: list of ImageData; order: which frame goes in each slot -Elvie
+function classic.sheet(frames, order, box)
+  local x0, y0, x1, y1
+  for _, f in ipairs(frames) do
+    local a, b, c, d = classic.bounds(f)
+    if a then
+      x0, y0 = math.min(x0 or a, a), math.min(y0 or b, b)
+      x1, y1 = math.max(x1 or c, c), math.max(y1 or d, d)
+    end
+  end
+  if not x0 then return nil end
+  local w, h = x1 - x0 + 1, y1 - y0 + 1
+  local s = classic.fitScale(w, h, box)
+  local ow, oh = math.max(1, math.floor(w * s + 0.5)), math.max(1, math.floor(h * s + 0.5))
+  local side = math.ceil(math.max(ow, oh) / 8) * 8
+  local out = love.image.newImageData(side, side * #order)
+  local left, top = math.floor((side - ow) / 2), side - oh
+  for slot, index in ipairs(order) do
+    local src = frames[index]
+    local base = (slot - 1) * side
+    for oy = 0, oh - 1 do
+      local sy = y1 - math.min(h - 1, math.floor((oh - 1 - oy + 0.5) / s))
+      for ox = 0, ow - 1 do
+        local sx = x0 + math.min(w - 1, math.floor((ox + 0.5) / s))
+        local r, g, b, a = src:getPixel(sx, sy)
+        if a > 0 then out:setPixel(left + ox, base + top + oy, r, g, b, a) end
+      end
+    end
+  end
+  return out, side
+end
+
 -- A picture flipped left to right, kept the same size -Elvie
 function classic.flip(src)
   local w, h = src:getDimensions()
@@ -120,7 +156,8 @@ function classic.setup(mod)
         -- a picture from another game comes with its own loader -Elvie
         local ok, src
         if pick.load then ok, src = pcall(pick.load) else ok, src = pcall(love.image.newImageData, mod.assets:path(pick.rel)) end
-        local out = ok and src and classic.build(src, pick.box, pick.mirror)
+        -- raw: already laid out (an animation's still frame) -Elvie
+        local out = ok and src and (pick.raw and src or classic.build(src, pick.box, pick.mirror))
         if out then return out end
         mod.log:warn("%s couldn't be read", pick.rel)
         return love.image.newImageData(1, 1)
@@ -130,21 +167,71 @@ function classic.setup(mod)
     return pick.path
   end
   -- The same picture as a PNG in the engine's install cache, for a
-  -- screen that loads straight from a file. Written once a run; nil when
-  -- it can't be -Elvie
-  local written = {}
-  function pics.file(pick)
+  -- screen that loads straight from a file. Kept between runs in a folder
+  -- named for Facets' version, the engine's and each imported game's, so
+  -- anything new makes them again and the old ones are deleted. nil when
+  -- it can't be written -Elvie
+  local written, folder = {}, nil
+  local function setUpFiles(cache)
+    if folder ~= nil then return folder end
+    folder = false
+    local disk = require("mods.facets.diskcache")
+    local okV, Version = pcall(require, "src.core.Version")
+    local engine = okV and type(Version) == "table" and (tostring(Version.engine) .. " " .. tostring(Version.cache)) or "?"
+    local okC, Contract = pcall(require, "src.import.CacheContract")
+    local markers = {}
+    for _, g in ipairs({ "firered", "leafgreen", "emerald", "crystal", "gold", "silver" }) do
+      local marker = okC and type(Contract) == "table" and type(Contract.readMarker) == "function"
+        and select(2, pcall(Contract.readMarker, g)) or nil
+      markers[g] = type(marker) == "string" and marker or "none"
+    end
+    local stamp = disk.hash(disk.stampText(mod.version, engine, markers))
+    local okR, old = pcall(cache.read, cache, "pics/stamp.txt")
+    if not (okR and old == stamp) then
+      local okL, list = pcall(cache.read, cache, "pics/files.txt")
+      if okL and type(list) == "string" then
+        for rel in list:gmatch("[^\n]+") do pcall(cache.delete, cache, rel) end
+      end
+      pcall(cache.write, cache, "pics/files.txt", "")
+      pcall(cache.write, cache, "pics/stamp.txt", stamp)
+    end
+    folder = "pics/" .. stamp .. "/"
+    return folder
+  end
+  local listed = nil
+  -- name: where it goes under the folder; make: gives the ImageData -Elvie
+  function pics.fileOf(name, make)
     local cache = mod.cache
     if not (type(cache) == "table" and type(cache.write) == "function") then return nil end
-    local rel = "pics/" .. pick.path:gsub("^facets/classic/", ""):gsub("[^%w%._@/%-]", "_")
+    local dir = setUpFiles(cache)
+    if not dir then return nil end
+    local rel = dir .. name:gsub("[^%w%._@/%-]", "_")
     if written[rel] == nil then
-      local ok, data = pcall(Assets.imageData, pics.picture(pick))
-      local okE, bytes = false, nil
-      if ok and data then okE, bytes = pcall(function() return data:encode("png"):getString() end) end
-      written[rel] = okE and type(bytes) == "string" and cache:write(rel, bytes) and true or false
+      if cache:exists(rel) then
+        written[rel] = true
+      else
+        local ok, data = pcall(make)
+        local okE, bytes = false, nil
+        if ok and data then okE, bytes = pcall(function() return data:encode("png"):getString() end) end
+        written[rel] = okE and type(bytes) == "string" and cache:write(rel, bytes) and true or false
+        if written[rel] then
+          -- the list of files, so a new folder can clear this one -Elvie
+          if listed == nil then
+            local okL, list = pcall(cache.read, cache, "pics/files.txt")
+            listed = okL and type(list) == "string" and list or ""
+          end
+          listed = listed .. rel .. "\n"
+          pcall(cache.write, cache, "pics/files.txt", listed)
+        end
+      end
     end
     -- mod.cache sits at mod_cache/<id> in the save folder -Elvie
     return written[rel] and ("mod_cache/" .. mod.id .. "/" .. rel) or nil
+  end
+  function pics.file(pick)
+    return pics.fileOf(pick.path:gsub("^facets/classic/", ""), function()
+      return Assets.imageData(pics.picture(pick))
+    end)
   end
   -- any picture flipped, as the game would load it: for YOUR SIDE when
   -- the front isn't ours -Elvie

@@ -25,6 +25,15 @@ function scenes.pick(where)
   local env = tostring(where.environment or "")
   local tiles = tostring(where.tileset or "")
   if where.surfing then return "sea" end
+  -- Gen 1's maps have a tileset but no environment -Elvie
+  if env == "" and tiles ~= "" then
+    if id:find("CHAMPIONS_ROOM") then return "space" end
+    for _, room in ipairs({ "LORELEIS_ROOM", "BRUNOS_ROOM", "AGATHAS_ROOM", "LANCES_ROOM" }) do
+      if id:find(room) then return "gym" end
+    end
+    if id:find("SEAFOAM") then return "snow_cave" end
+    if tiles:find("GATE") then return "indoors" end
+  end
   if tiles:find("CHAMPIONS_ROOM") then return "space" end
   if id:find("_GYM") or tiles:find("ELITE_FOUR") then return "gym" end
   if id:find("SILVER_CAVE") or id:find("MOUNT_SILVER") then return "snow_mountain" end
@@ -37,6 +46,11 @@ function scenes.pick(where)
   if tiles:find("PORT") then return "beach" end
   if env == "TOWN" then return "town" end
   if env == "ROUTE" then return where.trainer and "route" or "grass" end
+  if env == "" and tiles == "OVERWORLD" then
+    if id:find("^ROUTE") then return where.trainer and "route" or "grass" end
+    return "town"
+  end
+  if env == "" and tiles ~= "" then return "indoors" end
   return "neutral"
 end
 
@@ -63,10 +77,65 @@ local function findSets(mod)
   return sets
 end
 
+-- Gen 1's wide battle: the field's paper fill (PaletteFX.paperShade, then
+-- one rectangle) is painted with the scene instead, all 304 across, its
+-- sides carried on mirrored. Only there: the 160x144 screen is coloured
+-- through the SGB zones, which would shade a scene too, and so is the wide
+-- one in the Game Boy greys (CLASSIC, OG) -Elvie
+local function startGen1(mod, sceneFor)
+  local okW, WideBattle = pcall(require, table.concat({ "src", "battle", "WideBattle" }, "."))
+  local okP, PaletteFX = pcall(require, "src.render.PaletteFX")
+  if not (okW and type(WideBattle) == "table" and type(WideBattle.draw) == "function"
+      and okP and type(PaletteFX) == "table" and type(PaletteFX.paperShade) == "function") then
+    mod.log:warn("WideBattle.draw not found; BATTLE BG is off")
+    return
+  end
+  local W, H = tonumber(WideBattle.WIDTH) or 304, tonumber(WideBattle.HEIGHT) or 144
+  local BOTTOM = tonumber(WideBattle.FIELD_BOTTOM) or 104
+  local function grey()
+    local m = PaletteFX.mode
+    if m == "og" or m == "og_inv" or m == "classic" then return true end
+    local ok, raw = pcall(function() return PaletteFX.forcesRawGrays() end)
+    return ok and raw or false
+  end
+  local quads = {}
+  local own = WideBattle.draw
+  WideBattle.draw = function(battle, ...)
+    local s = type(battle) == "table" and type(battle.wideLayout) == "function" and battle:wideLayout()
+      and not grey() and not (type(battle.extendedWorldHUD) == "function" and battle:extendedWorldHUD())
+      and sceneFor(battle)
+    if not s then return own(battle, ...) end
+    local G = love.graphics
+    local paper = PaletteFX.paperShade
+    local used = false
+    PaletteFX.paperShade = function(...)
+      if used then return paper(...) end
+      used = true
+      local r, g, b = paper(...)
+      G.setColor(r, g, b, 1)
+      G.rectangle("fill", 0, BOTTOM, W, H - BOTTOM)
+      local iw, ih = s.image:getDimensions()
+      local q = quads[s.image]
+      if not q then
+        s.image:setWrap("mirroredrepeat", "clamp")
+        q = love.graphics.newQuad(math.floor((iw - W) / 2), ih - BOTTOM, W, BOTTOM, iw, ih)
+        quads[s.image] = q
+      end
+      G.setColor(1, 1, 1, 1)
+      G.draw(s.image, q, 0, 0)
+      -- the game's own fill then goes down see-through -Elvie
+      return r, g, b, 0
+    end
+    local results = { pcall(own, battle, ...) }
+    PaletteFX.paperShade = paper
+    if not results[1] then error(results[2], 0) end
+    return unpack(results, 2)
+  end
+end
+
 function scenes.init(mod, rows)
-  -- Gen 1 colours its battle screen through the SGB zones, which would
-  -- shade a scene too; Gen 2 only for now -Elvie
-  if require("mods.facets.classic").generation() ~= 2 then return nil end
+  local gen = require("mods.facets.classic").generation()
+  if gen ~= 2 and gen ~= 1 then return nil end
   local sets = findSets(mod)
   if #sets == 0 then return nil end
   local byKey = {}
@@ -78,9 +147,12 @@ function scenes.init(mod, rows)
   rows[#rows + 1] = { key = "classicBattleBg", type = "choice", label = "BATTLE BG", choices = choices, default = GAME }
 
   return function()
-    local okB, BattleState = pcall(require, "src.ui.gen2.BattleState")
-    local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
-    if not (okB and type(BattleState) == "table" and type(BattleState.drawPanel) == "function"
+    local okB, BattleState, okC, Chrome = false, nil, false, nil
+    if gen == 2 then
+      okB, BattleState = pcall(require, "src.ui.gen2.BattleState")
+      okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
+    end
+    if gen == 2 and not (okB and type(BattleState) == "table" and type(BattleState.drawPanel) == "function"
         and okC and type(Chrome) == "table" and type(Chrome.clear) == "function") then
       mod.log:warn("BattleState.drawPanel not found; BATTLE BG is off")
       return
@@ -111,13 +183,27 @@ function scenes.init(mod, rows)
     end
 
     -- where this battle is, read once per battle -Elvie
-    local function where(state)
+    local where
+    where = function(state)
       local world = state.game and state.game.world
       local map = world and world.map
       local def = map and map.def or {}
       return { map = map and map.id, environment = def.environment, tileset = def.tileset,
         surfing = world and world.playerState == "surf",
         trainer = state.battle and state.battle.trainer ~= nil }
+    end
+
+    -- Gen 1: the overworld under the battle, from WorldAPI -Elvie
+    if gen == 1 then
+      where = function(state)
+        local ow
+        pcall(function() ow = require("src.world.WorldAPI").new(state.game):overworld() end)
+        local map = type(ow) == "table" and ow.map or nil
+        local def = type(map) == "table" and map.def or {}
+        return { map = map and map.id, tileset = def.tileset,
+          surfing = type(ow) == "table" and type(ow.player) == "table" and ow.player.surfing and true or false,
+          trainer = state.kind == "trainer" }
+      end
     end
 
     -- this battle's scene, or nil for the game's own -Elvie
@@ -149,6 +235,8 @@ function scenes.init(mod, rows)
       Chrome.clear = clear
       if not ok then error(err, 0) end
     end
+
+    if gen == 1 then return startGen1(mod, sceneFor) end
 
     local own = BattleState.drawPanel
     BattleState.drawPanel = function(self, ...)
