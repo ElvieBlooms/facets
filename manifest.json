@@ -5,7 +5,7 @@
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
-  "game_version": ">=0.3.91",
+  "game_version": ">=0.3.98",
   "category": "GRAPHICS",
   "priority": 100,
   "dependencies": [],
