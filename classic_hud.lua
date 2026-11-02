@@ -116,8 +116,75 @@ local function findSets(mod)
   return sets
 end
 
+-- Gen 1's wide battle: its own status boxes are switched off through
+-- battle.status_hud_visible and the set's drawn in battle.overlay, in the
+-- same places and at the same moments as the game's (WideBattle's
+-- drawHUDs) -Elvie
+local function startGen1(mod, chosenSet, drawEnemy, drawPlayer)
+  local okW, WideBattle = pcall(require, table.concat({ "src", "battle", "WideBattle" }, "."))
+  local okG, Growth = pcall(require, "src.pokemon.Growth")
+  local FIELD_RIGHT = okW and type(WideBattle) == "table" and tonumber(WideBattle.WIDTH) or 304
+  local function wide(battle)
+    return type(battle) == "table" and type(battle.wideLayout) == "function" and battle:wideLayout()
+  end
+  local function active(battle)
+    return wide(battle) and not battle.fieldCleared and chosenSet() or nil
+  end
+  local function slide(battle) return (battle.introSlide or 0) ~= 0 end
+  local function expOf(battle, mon)
+    if not (okG and type(Growth) == "table" and type(mon) == "table") then return 0 end
+    local def = battle.data and battle.data.pokemon and battle.data.pokemon[mon.species]
+    local rates = battle.game and battle.game.data and battle.game.data.growth_rates
+    if not def or (mon.level or 1) >= 100 then return 0 end
+    local ok, lo = pcall(Growth.expForLevel, def.growthRate, mon.level, rates)
+    local ok2, hi = pcall(Growth.expForLevel, def.growthRate, mon.level + 1, rates)
+    if not (ok and ok2 and hi > lo) then return 0 end
+    return math.max(0, math.min(1, ((mon.exp or lo) - lo) / (hi - lo)))
+  end
+  local function view(battle, battler, player)
+    local mon = battler.mon
+    local tag
+    if battler.shownStatus and type(battle.statusLabel) == "function" then
+      local ok, label = pcall(battle.statusLabel, battle, { status = battler.shownStatus })
+      tag = ok and label or nil
+    end
+    return { name = battler.name, tag = tag, level = mon.level,
+      hp = math.max(0, math.floor(battler.shownHP or mon.hp or 0)),
+      maxHp = (mon.stats and mon.stats.hp) or 1, exp = player and expOf(battle, mon) or nil }
+  end
+  mod.hooks:wrap("battle.status_hud_visible", function(nextFn, battle, ...)
+    if active(battle) then return false end
+    return nextFn(battle, ...)
+  end)
+  mod.hooks:wrap("battle.overlay", function(nextFn, battle, ...)
+    local result = nextFn(battle, ...)
+    local a = active(battle)
+    if not a then return result end
+    local fx = battle.fx
+    local sx, sy = (fx and fx.shakeX) or 0, (fx and fx.shakeY) or 0
+    love.graphics.push()
+    love.graphics.translate(sx, sy)
+    local enemy = battle.enemy
+    if enemy and enemy.mon and not battle.showEnemyTrainer and not battle.enemySendingOut
+        and not (type(battle.growInScale) == "function" and battle:growInScale(enemy))
+        and not slide(battle) and not battle.introBalls and not enemy.fainted then
+      drawEnemy(a, view(battle, enemy, false), 2, 2)
+    end
+    local player = battle.player
+    if not battle.safari and player and player.mon and not battle.demo and not battle.showPlayerBack
+        and not slide(battle) and not player.fainted then
+      -- where the game's own box ends: 304, 96 -Elvie
+      drawPlayer(a, view(battle, player, true), FIELD_RIGHT - 2, 95)
+    end
+    love.graphics.pop()
+    love.graphics.setColor(1, 1, 1, 1)
+    return result
+  end)
+end
+
 function hud.init(mod, rows)
-  if classic.generation() ~= 2 then return nil end
+  local gen = classic.generation()
+  if gen ~= 2 and gen ~= 1 then return nil end
   local sets = findSets(mod)
   if #sets == 0 then return nil end
   local byKey = {}
@@ -129,8 +196,9 @@ function hud.init(mod, rows)
   rows[#rows + 1] = { key = "classicBattleUi", type = "choice", label = "BATTLE UI", choices = choices, default = GAME }
 
   return function()
-    local okB, BattleState = pcall(require, "src.ui.gen2.BattleState")
-    if not (okB and type(BattleState) == "table" and type(BattleState.drawEnemyHud) == "function"
+    local okB, BattleState = true, nil
+    if gen == 2 then okB, BattleState = pcall(require, "src.ui.gen2.BattleState") end
+    if gen == 2 and not (okB and type(BattleState) == "table" and type(BattleState.drawEnemyHud) == "function"
         and type(BattleState.drawPlayerHud) == "function") then
       mod.log:warn("the battle HUD wasn't found; BATTLE UI is off")
       return
@@ -260,32 +328,68 @@ function hud.init(mod, rows)
       return tostring(s or "")
     end
 
-    -- the name, gender and level (or status) along the top -Elvie
-    local function topLine(self, a, mon, side, x, y)
+    -- the name, gender and level (or status) along the top. v = { name,
+    -- gender, tag, level, hp, maxHp, exp (0-1) } -Elvie
+    local function topLine(a, v, side, x, y)
       local geo = hud.GEO[side]
       local c = a.colours
       fill(c.cream, hud.INK[side], x, y)
-      local nx = text(hud.glyphs(self:name(mon)), x + geo.name[1], y + geo.name[2], c)
-      local g = self:genderSymbol(mon)
+      local nx = text(hud.glyphs(str(v.name)), x + geo.name[1], y + geo.name[2], c)
+      local g = v.gender
       if g then text(hud.glyphs(g), nx, y + geo.name[2], g == "\xe2\x99\x82" and hud.MALE or hud.FEMALE) end
-      local tag = self:statusTag(mon, side)
       local lx = x + geo.level
-      if tag then
-        text(hud.glyphs(str(tag)), lx, y + geo.name[2], c)
+      if v.tag then
+        text(hud.glyphs(str(v.tag)), lx, y + geo.name[2], c)
       else
-        local digits = tostring(math.max(1, math.min(999, math.floor(tonumber(mon.level) or 1))))
+        local digits = tostring(math.max(1, math.min(999, math.floor(tonumber(v.level) or 1))))
         local dx = lx + 5 * (3 - #digits)
         local after = text({ hud.LV_GLYPH }, dx, y + geo.name[2], c)
         text(hud.glyphs(digits), after, y + geo.name[2], c)
       end
     end
 
-    local function chosen(self)
+    -- The foe's box, its top-left corner at x, y -Elvie
+    local function drawEnemy(a, v, x, y)
+      local b = a.enemyBox
+      x, y = x - b[1], y - b[2]
+      love.graphics.setColor(1, 1, 1, 1)
+      love.graphics.draw(a.enemy, x, y)
+      topLine(a, v, "enemy", x, y)
+      hpBar(a, x + hud.GEO.enemy.bar[1], y + hud.GEO.enemy.bar[2], v.hp, v.maxHp)
+    end
+
+    -- Yours, its bottom-right corner at right, bottom -Elvie
+    local function drawPlayer(a, v, right, bottom)
+      local b = a.playerBox
+      local x, y = right - b[3], bottom - b[4]
+      local geo = hud.GEO.player
+      love.graphics.setColor(1, 1, 1, 1)
+      love.graphics.draw(a.player, x, y)
+      topLine(a, v, "player", x, y)
+      hpBar(a, x + geo.bar[1], y + geo.bar[2], v.hp, v.maxHp)
+      fill(a.colours.cream, { geo.hpWindow }, x, y)
+      text(hud.glyphs(("%3d/"):format(math.floor(v.hp or 0))), x + geo.hpText[1], y + geo.hpText[3], a.colours)
+      text(hud.glyphs(("%3d"):format(math.floor(v.maxHp))), x + geo.hpText[2], y + geo.hpText[3], a.colours)
+      expBar(a, x + geo.exp[1], y + geo.exp[2], v.exp or 0)
+    end
+
+    local function chosenSet()
       local key = mod.options:get("classicBattleUi")
       if key == GAME or not byKey[key] then return nil end
-      if not (type(self.isWideBattleLayout) == "function" and self:isWideBattleLayout()) then return nil end
       if not getFont() then return nil end
       return art(key)
+    end
+
+    if gen == 1 then return startGen1(mod, chosenSet, drawEnemy, drawPlayer) end
+
+    local function chosen(self)
+      if not (type(self.isWideBattleLayout) == "function" and self:isWideBattleLayout()) then return nil end
+      return chosenSet()
+    end
+    local function view(self, mon, side)
+      return { name = self:name(mon), gender = self:genderSymbol(mon), tag = self:statusTag(mon, side),
+        level = mon.level, hp = self:hudHp(mon, side), maxHp = mon.maxHp or (mon.stats and mon.stats.hp) or 1,
+        exp = side == "player" and (self.shownExp or 0) / EXP_PX or nil }
     end
 
     local ownEnemy = BattleState.drawEnemyHud
@@ -296,13 +400,7 @@ function hud.init(mod, rows)
           or self:hudCleared("enemy") or (self.ballRows and self.ballRows.enemy) then
         return ownEnemy(self, ...)
       end
-      local b = a.enemyBox
-      local x, y = 2 - b[1], 2 - b[2]
-      love.graphics.setColor(1, 1, 1, 1)
-      love.graphics.draw(a.enemy, x, y)
-      topLine(self, a, mon, "enemy", x, y)
-      local maxHp = mon.maxHp or (mon.stats and mon.stats.hp) or 1
-      hpBar(a, x + hud.GEO.enemy.bar[1], y + hud.GEO.enemy.bar[2], self:hudHp(mon, "enemy"), maxHp)
+      drawEnemy(a, view(self, mon, "enemy"), 2, 2)
     end
 
     local ownPlayer = BattleState.drawPlayerHud
@@ -314,19 +412,7 @@ function hud.init(mod, rows)
         return ownPlayer(self, ...)
       end
       -- bottom right of the game's own HUD space, which ends at 160, 96 -Elvie
-      local b = a.playerBox
-      local x, y = 158 - b[3], 95 - b[4]
-      local geo = hud.GEO.player
-      love.graphics.setColor(1, 1, 1, 1)
-      love.graphics.draw(a.player, x, y)
-      topLine(self, a, mon, "player", x, y)
-      local maxHp = mon.maxHp or (mon.stats and mon.stats.hp) or 1
-      local hp = self:hudHp(mon, "player")
-      hpBar(a, x + geo.bar[1], y + geo.bar[2], hp, maxHp)
-      fill(a.colours.cream, { geo.hpWindow }, x, y)
-      text(hud.glyphs(("%3d/"):format(math.floor(hp or 0))), x + geo.hpText[1], y + geo.hpText[3], a.colours)
-      text(hud.glyphs(("%3d"):format(math.floor(maxHp))), x + geo.hpText[2], y + geo.hpText[3], a.colours)
-      expBar(a, x + geo.exp[1], y + geo.exp[2], (self.shownExp or 0) / EXP_PX)
+      drawPlayer(a, view(self, mon, "player"), 158, 95)
     end
   end
 end

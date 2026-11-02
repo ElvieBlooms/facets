@@ -144,6 +144,28 @@ function gba.npcSheet(choice, names)
 end
 
 -- ImageData for one of the finds above -Elvie
+-- Emerald's two-frame front (64x128: still, then moving), for a choice
+-- that reads Emerald for this Pokémon; FireRed and LeafGreen have none -Elvie
+function gba.monAnim(choice, dex, shiny)
+  local found = gba.monPicture(choice, dex, "front", shiny)
+  if not found or found.game ~= "emerald" then return nil end
+  for _, dir in ipairs(shiny and { "front_anim_shiny", "front_anim" } or { "front_anim" }) do
+    local rel = "pokemon/" .. dir .. "/" .. dex .. ".rgba"
+    if gba.read("emerald", rel) then return { game = "emerald", rel = rel, w = 64, h = 128 } end
+  end
+  return nil
+end
+
+-- Its two frames, as 64x64 ImageData each -Elvie
+function gba.animFrames(found)
+  local data = gba.load(found)
+  if not data then return nil end
+  local a, b = love.image.newImageData(64, 64), love.image.newImageData(64, 64)
+  a:paste(data, 0, 0, 0, 0, 64, 64)
+  b:paste(data, 0, 0, 0, 64, 64, 64)
+  return a, b
+end
+
 function gba.load(found)
   return found and gba.image(gba.read(found.game, found.rel), found.w, found.h) or nil
 end
