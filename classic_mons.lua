@@ -73,6 +73,8 @@ function classic.choose(opts, dex, side, kind, shiny)
   -- a front on your side keeps a front's size: it stands 8 px taller than
   -- the back box, into empty screen -Elvie
   local box = not scale and classic.BOX[face == "front" and "front" or side] or nil
+  -- Gen 1's HALL OF FAME doubles the back's top-left 28x28 -Elvie
+  if kind == "hof" and side == "back" and classic.BOX.hofBack then box = classic.BOX.hofBack end
   local stem = load and rel or rel:sub(#MONS_DIR + 2)
   return { rel = rel, load = load, box = box, mirror = mirror, scale = scale,
     path = PREFIX .. stem:gsub("%.png$", "")
@@ -117,7 +119,7 @@ function classic.init(mod, rows)
   local sets = findSets(mod)
   if #sets == 0 then return nil end
   -- Gen 1's back box is 32x32 drawn at 2x -Elvie
-  if shared.generation() == 1 then classic.BOX = { front = 56, back = 64 } end
+  if shared.generation() == 1 then classic.BOX = { front = 56, back = 64, hofBack = 28 } end
   local choices = {}
   for _, set in ipairs(sets) do choices[#choices + 1] = { set.label, set.key } end
   for _, c in ipairs(gba.CHOICES) do choices[#choices + 1] = c end
@@ -132,6 +134,7 @@ function classic.init(mod, rows)
     local pics = shared.setup(mod)
     if not pics then return end
     local opts = { has = pics.has }
+    local gen1 = shared.generation() == 1
     -- next runs at most once per call, as the hook contract asks: not at
     -- all when the picture is ours, on the front when YOUR SIDE asks -Elvie
     mod.hooks:wrap("pokemon.sprite", function(nextFn, path, ctx)
@@ -145,6 +148,10 @@ function classic.init(mod, rows)
       local pick = classic.choose(opts, dex, ctx.side, ctx.kind, ctx.shiny)
       if pick then
         ctx.trueColor = true
+        -- Gen 1 loads pictures outside battle straight from a file
+        -- (summary, HALL OF FAME, POKéDEX, evolution, trade), so those
+        -- get one written out -Elvie
+        if gen1 and ctx.kind ~= "battle" then return pics.file(pick) or pics.picture(pick) end
         return pics.picture(pick)
       end
       -- YOUR SIDE with no set art: the front whoever draws it (the game, or
@@ -162,13 +169,35 @@ function classic.init(mod, rows)
       return fpath
     end)
     -- ICONS: party and naming screen icons -Elvie
+    -- Gen 1's party menu keeps the game's icon class (MON, BIRD...) after
+    -- the hook, and draws by it: the left half mirrored, and the class's
+    -- own frames, some past the end of a two-frame sheet. While one of ours
+    -- is being drawn it gets neither: frames 0 and 1, drawn whole -Elvie
+    local iconOurs = false
+    if gen1 then
+      local okP, PartyMenu = pcall(require, table.concat({ "src", "ui", "PartyMenu" }, "."))
+      if okP and type(PartyMenu) == "table" and type(PartyMenu.frameFor) == "function"
+          and type(PartyMenu.mirrorsIcon) == "function" then
+        local frameFor, mirrors = PartyMenu.frameFor, PartyMenu.mirrorsIcon
+        PartyMenu.frameFor = function(name, alt, ih)
+          if iconOurs then return alt and 1 or 0 end
+          return frameFor(name, alt, ih)
+        end
+        PartyMenu.mirrorsIcon = function(name)
+          if iconOurs then return false end
+          return mirrors(name)
+        end
+      end
+    end
     mod.hooks:wrap("pokemon.icon", function(nextFn, path, ctx)
+      iconOurs = false
       local choice = mod.options:get("classicIcons")
       local data = type(ctx) == "table" and ctx.data
       local def = type(data) == "table" and type(data.pokemon) == "table" and ctx.species and data.pokemon[ctx.species]
       local rel = choice ~= "game" and classic.iconFor(choice, type(def) == "table" and tonumber(def.dex) or nil, pics.has)
       if not rel then return nextFn(path, ctx) end
       ctx.trueColor = true
+      iconOurs = true
       return mod.assets:path(rel)
     end)
     -- a game imported since: look again -Elvie
