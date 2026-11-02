@@ -2134,6 +2134,25 @@ do
   eq(p and p.path, "facets/classic/trainers/gba_firered/firered/trainers/front/3@56.png", "gba: a trainer picture's own path")
 end
 
+-- Gen 2 battle backgrounds: which scene, and the part the screen shows -Elvie
+do
+  local sc = require("mods.facets.classic_scenes")
+  eq(sc.pick({ map = "VIOLET_GYM", environment = "INDOOR", tileset = "TILESET_FACILITY" }), "gym", "scenes: a gym")
+  eq(sc.pick({ map = "ROUTE_29", environment = "ROUTE", tileset = "TILESET_JOHTO" }), "grass", "scenes: a wild one on a route")
+  eq(sc.pick({ map = "ROUTE_29", environment = "ROUTE", trainer = true }), "route", "scenes: a trainer on a route")
+  eq(sc.pick({ map = "ROUTE_40", environment = "ROUTE", surfing = true }), "sea", "scenes: surfing")
+  eq(sc.pick({ map = "DARK_CAVE_VIOLET_ENTRANCE", environment = "CAVE", tileset = "TILESET_DARK_CAVE" }), "cave", "scenes: a cave")
+  eq(sc.pick({ map = "ICE_PATH_1F", environment = "CAVE", tileset = "TILESET_ICE_PATH" }), "snow_cave", "scenes: the Ice Path")
+  eq(sc.pick({ map = "ILEX_FOREST", environment = "DUNGEON", tileset = "TILESET_FOREST" }), "forest", "scenes: a forest")
+  eq(sc.pick({ map = "SILVER_CAVE_ROOM_3", environment = "CAVE" }), "snow_mountain", "scenes: Mt. Silver")
+  eq(sc.pick({ map = "LANCES_ROOM", environment = "INDOOR", tileset = "TILESET_CHAMPIONS_ROOM" }), "space", "scenes: the champion")
+  eq(sc.pick({ map = "NEW_BARK_TOWN", environment = "TOWN" }), "town", "scenes: a town")
+  eq(sc.pick({ map = "ELMS_LAB", environment = "INDOOR", tileset = "TILESET_LAB" }), "lab", "scenes: a lab")
+  eq(sc.pick({}), "neutral", "scenes: nowhere in particular")
+  local x, y, w, h = sc.crop(240, 112)
+  eq(table.concat({ x, y, w, h }, ","), "40,16,160,96", "scenes: the middle, keeping the ground")
+end
+
 -- Fixes from Emerald Lens: meta.json with a BOM or \u escapes, and the red
 -- info line kept when room is short -Elvie
 do
