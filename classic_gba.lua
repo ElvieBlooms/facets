@@ -143,6 +143,25 @@ function gba.npcSheet(choice, names)
   return nil
 end
 
+-- A Pokémon's walking sheet by name: nine 16x16 frames, the Game Boy's own
+-- size (FireRed's and Emerald's PIKACHU) -Elvie
+function gba.monSheet(choice, names)
+  local order = gba.ORDER[choice]
+  if not order then return nil end
+  for _, game in ipairs(order) do
+    local t = idTable(game)
+    for _, name in ipairs(names) do
+      local id = t and t.ow[name]
+      local size = id and gba.sheetSize(game, id)
+      if size and not size[3] and size[1] == 16 and size[2] == 9 * 16 then
+        local rel = "ow/" .. id .. ".rgba"
+        if gba.read(game, rel) then return { game = game, rel = rel, w = size[1], h = size[2] } end
+      end
+    end
+  end
+  return nil
+end
+
 -- ImageData for one of the finds above -Elvie
 -- Emerald's two-frame front (64x128: still, then moving), for a choice
 -- that reads Emerald for this Pokémon; FireRed and LeafGreen have none -Elvie
