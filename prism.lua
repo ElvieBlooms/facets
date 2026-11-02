@@ -1,6 +1,6 @@
 -- PRISM: one menu item for every visuals mod
--- Facets and Emerald Lens each carry a copy of this file (the same code),
--- so neither needs the other. Each adds its screen to the START menu and
+-- Facets, Emerald Lens and Crystal Lens each carry a copy of this file
+-- (the same code), so none needs the others. Each adds its screen to the START menu and
 -- the OPTION menu through it: the first one there makes the item, the
 -- next adds itself to that item's list. With one mod it's that mod's own
 -- item (LENS, FACETS) and opens its screen; with more it's PRISM and
@@ -38,13 +38,19 @@ end
 -- inside area = { x0, y0, x1, y1 }), open = fn(game) }. Entries sort by
 -- label, so the order doesn't depend on which mod loaded first. A mod's
 -- entry replaces an older one with its id. -Elvie
+-- An entry's optional `order` comes before its label: the lens mods (10)
+-- go first, then Facets (20) and its other pages (21 on); no order is 50.
+local function orderOf(e) return tonumber(e.order) or 50 end
 local function withEntry(entries, entry)
   local out = {}
   for _, e in ipairs(entries or {}) do
     if e.id ~= entry.id then out[#out + 1] = e end
   end
   out[#out + 1] = entry
-  table.sort(out, function(a, b) return tostring(a.label) < tostring(b.label) end)
+  table.sort(out, function(a, b)
+    if orderOf(a) ~= orderOf(b) then return orderOf(a) < orderOf(b) end
+    return tostring(a.label) < tostring(b.label)
+  end)
   return out
 end
 prism.withEntry = withEntry
@@ -399,7 +405,12 @@ function prism.addStartGb(mod, items, entry, game, screenId)
     items[found] = item
     return items
   end
+  -- just under another mod's own LENS item, so the lens comes first;
+  -- else above MODS, or QUIT
   local at
+  for i, it in ipairs(items) do
+    if not at and type(it) == "table" and it.label == "LENS" and it.id ~= ID then at = i + 1 end
+  end
   for _, anchor in ipairs({ "MODS", "QUIT" }) do
     for i, it in ipairs(items) do
       if not at and type(it) == "table" and it.label == anchor then at = i end
