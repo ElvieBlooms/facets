@@ -75,6 +75,16 @@ function classic.flip(src)
   return out
 end
 
+-- 1 or 2: which Game Boy generation is running -Elvie
+function classic.generation()
+  local ok, GameVersion = pcall(require, "src.core.GameVersion")
+  if ok and type(GameVersion) == "table" and type(GameVersion.generation) == "function" then
+    local okG, gen = pcall(GameVersion.generation)
+    if okG and type(gen) == "number" then return gen end
+  end
+  return 2
+end
+
 -- SIZE, for Pokémon and trainers both; added after their rows -Elvie
 function classic.sizeRow(rows)
   rows[#rows + 1] = { key = "classicSize", type = "choice", label = "PICTURE SIZE",
@@ -116,7 +126,7 @@ function classic.setup(mod)
         return love.image.newImageData(1, 1)
       end)
     end
-    if pick.scale then scaleFor[pick.path] = pick.scale end
+    scaleFor[pick.path] = pick.scale
     return pick.path
   end
   -- any picture flipped, as the game would load it: for YOUR SIDE when
@@ -138,6 +148,21 @@ function classic.setup(mod)
   end
 
   -- the engine keeps a scaled picture on the ground line, centred -Elvie
+  if classic.generation() == 1 then
+    -- Gen 1 draws its own backs at 2x; ours are already their size, so
+    -- every picture of ours is 1x unless PICTURE SIZE says otherwise -Elvie
+    local okB, BattleState = pcall(require, "src.battle.BattleState")
+    if okB and type(BattleState) == "table" and type(BattleState.resolveBattleScale) == "function" then
+      local own = BattleState.resolveBattleScale
+      BattleState.resolveBattleScale = function(data, side, path, species)
+        if path and made[path] then return scaleFor[path] or 1 end
+        return own(data, side, path, species)
+      end
+    else
+      mod.log:warn("BattleState.resolveBattleScale not found; Gen 1 pictures may be the wrong size")
+    end
+    return pics
+  end
   local okB, BattleState = pcall(require, "src.ui.gen2.BattleState")
   if okB and type(BattleState) == "table" and type(BattleState.picScale) == "function" then
     local own = BattleState.picScale

@@ -34,11 +34,12 @@ classic.STAND_INS = {
   OFFICER = { "POLICEMAN" },
   STANDING_YOUNGSTER = { "YOUNGSTER" },
   OLD_LINK_RECEPTIONIST = { "LINK_RECEPTIONIST" },
+  GUARD = { "POLICEMAN" },
 }
 
 -- The player and the rival are Crystal Lens's -Elvie
 classic.SKIP = { CHRIS = true, CHRIS_BIKE = true, KRIS = true, KRIS_BIKE = true, RIVAL = true,
-  CAL = true, RED = true, BLUE = true }
+  CAL = true, RED = true, RED_BIKE = true, BLUE = true }
 
 -- Gen 2 sprite name -> Gen 3 names, from gb.json ({ family = { NAME = {
 -- sprite = "youngster" } } }): the one that's the same name first, then the

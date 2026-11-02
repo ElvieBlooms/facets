@@ -1,4 +1,4 @@
--- FACETS on the OPTION menu of the Game Boy games (Gold, Silver, Crystal)
+-- FACETS on the OPTION menu of the Game Boy games
 -- One FACETS row on the OPTION screen (the ui.options.rows hook) opens a
 -- page of the same settings as the Mods manager, set the same way, so
 -- everything listening reacts as it would there. -Elvie
@@ -31,7 +31,8 @@ end
 
 function cmenu.start(mod, rows)
   if not (mod.hooks and type(mod.hooks.wrap) == "function") then return end
-  local okO, OptionsMenu = pcall(require, "src.ui.gen2.OptionsMenu")
+  local gen1 = require("mods.facets.classic").generation() == 1
+  local okO, OptionsMenu = pcall(require, gen1 and "src.ui.OptionsMenu" or "src.ui.gen2.OptionsMenu")
   if not (okO and type(OptionsMenu) == "table") then return end
   local entries = cmenu.entries(rows)
   if #entries == 0 then return end
@@ -79,7 +80,10 @@ function cmenu.start(mod, rows)
     local got = nextFn(game, list)
     if type(got) ~= "table" then return got end
     local row = { id = "facets", label = "FACETS", port = true,
-      activate = function(g)
+      activate = gen1 and function(g)
+        -- Gen 1's own page for a list of rows -Elvie
+        g.stack:push(OptionsMenu.new(g, { rows = members() }))
+      end or function(g)
         local page = setmetatable({}, OptionsMenu)
         local view = members()
         page.game, page.rows = g, view
