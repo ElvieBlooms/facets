@@ -125,7 +125,14 @@ function gba.sheetSize(game, id)
 end
 
 -- An NPC sheet by Gen 3 names (OBJ_EVENT_GFX_ without the prefix): a
--- walking person's sheet, 9 frames or more -Elvie
+-- walking person's sheet, 9 frames or more, 32 tall or the small 16x16
+-- ones (FireRed's Little Boy and Little Girl) -Elvie
+function gba.walks(size)
+  if type(size) ~= "table" or size[3] then return false end
+  local w, h = size[1], size[2]
+  return h >= 9 * 32 or (w <= 16 and h >= 9 * 16 and h % 16 == 0)
+end
+
 function gba.npcSheet(choice, names)
   local order = gba.ORDER[choice]
   if not order then return nil end
@@ -134,7 +141,7 @@ function gba.npcSheet(choice, names)
     for _, name in ipairs(names) do
       local id = t and t.ow[name]
       local size = id and gba.sheetSize(game, id)
-      if size and not size[3] and size[2] >= 9 * 32 then
+      if gba.walks(size) then
         local rel = "ow/" .. id .. ".rgba"
         if gba.read(game, rel) then return { game = game, rel = rel, w = size[1], h = size[2] } end
       end
