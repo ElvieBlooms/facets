@@ -6,6 +6,8 @@ NPC overworld sprites for the Gen 3 games in gen1recomp: FireRed, LeafGreen, Rub
 
 Facets can also swap Pokémon pictures, party icons and animations (Crystal's sprites with a Game Boy Hoenn made from your own Emerald, animations and all, every Pokémon made Game Boy from your Emerald, Crystal's sprites with Nuuk's animated Hoenn, or the DS-style 64x64 resource), show your own Pokémon by their front, and give the whole screen a Game Boy filter (below).
 
+Facets works on the Game Boy games too: Red, Blue, Yellow, Gold, Silver and Crystal get the same NPCs, trainers and Pokémon, a GBA look made from your own FireRed or Emerald, and more. See [Gen 1 and 2](#gen-1-and-2).
+
 Facets is the companion to [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens): Emerald Lens does the player and the rival, Facets does everyone else. They never touch the same sprites, so they work together in either load order.
 
 **Status: 0.7.0.** Works in all five games. It ships with four sprite sets, all free to use with credit:
@@ -392,6 +394,23 @@ GEN1RECOMP_SRC=<unzipped .love> GEN1RECOMP_DATA=<install folder> texlua tests/ru
 
 (`texlua` comes with TeX Live and has `lfs` built in; plain Lua 5.1–5.4 or LuaJIT with luafilesystem works too.)
 
+## Gen 1 and 2
+
+Red, Blue, Yellow, Gold, Silver and Crystal get their own set of Facets' options, under the mod's options in the Mods manager and on a **FACETS** page at the bottom of the game's OPTION menu. They're kept apart from the Gen 3 ones, so each can have its own look.
+
+- **NPCS:** COMMUNITY, DIEGO, TAIGA or ZAFFRE, cut down from Gen 3's nine frames to the Game Boy's six and drawn in full colour. Someone a set doesn't have is looked for in the other sets, then left as the game draws them. Gen 3 people are taller than the Game Boy's and stand into the tile above, as they do on the GBA. The player and the rival are left to Crystal Lens.
+- **TRAINERS:** DS, with Gen 3 stand-ins where a class changed (Jr. Trainers as Campers and Picnickers, Firebreathers as Kindlers).
+- **POKEMON:** DS, with **YOUR SIDE** (BACK, MIRRORED or FRONT) as on Gen 3. With a set off, YOUR SIDE shows the game's own front, or another mod's.
+- **FIRERED** and **EMERALD** under all three are the GBA look: people, trainer pictures and Pokémon read from your own imported FireRed (or LeafGreen) and Emerald while you play. FIRERED looks in FireRed first, then LeafGreen, then Emerald; EMERALD in Emerald first. Nothing from either game is included.
+- **PICTURE SIZE:** FIT (the default) cuts each picture to the Pokémon or trainer and shrinks it only if it still doesn't fit the game's own box. 0.5X, 0.75X and 1X scale it in battle instead, standing on the same ground line.
+- **BATTLE BG** (Gold, Silver, Crystal): SCENERY behind the battle, picked from where you are: gyms, caves, the Ice Path, Ilex Forest, Mt. Silver, labs, towns, routes, the champion's room and surfing. With the engine's own BATTLE BG on WHITE.
+- **BATTLE UI** (Gold, Silver, Crystal): a set's battle boxes in **wide battles**, where there's room for them; the normal screen keeps the game's own. Their text is FireRed's small font, so a GBA game has to be imported.
+- **FILTER**, **FILTER ON**, **DOTS** and **SHADES** work just as on Gen 3, and share their settings with it.
+
+On Gen 1, Pokémon and trainers show in full colour with COLORS on RED++; in the other modes the game shades them to its own four colours. NPCs are full colour in every mode. BATTLE BG and BATTLE UI are Gen 2 only for now, since Gen 1 colours its battle screen through the Super Game Boy's zones.
+
+Art for anyone still missing can be dropped into a set's folder under the Game Boy name: `assets/trainers/ds/FALKNER.png` for a trainer class, `assets/npcs/<set>/gen3/frlg/KURT.png` for an overworld sheet.
+
 ## Achievements
 
 With [Recomp Achievements](https://github.com/ElvieBlooms/recomp_achievements) installed, Facets adds its own tab, **FACETS**, to the TROPHIES menu. Each one is earned by winning a battle in a look, judged by your settings when the battle started. They count on Recomp Achievements' Extra Credit board, not the main one. Without it, Facets carries on as before.
@@ -407,8 +426,9 @@ With [Recomp Achievements](https://github.com/ElvieBlooms/recomp_achievements) i
 | **Face to Face** | 10 | Win 10 battles with YOUR SIDE on FRONT or MIRRORED. |
 | **Scenic Route** | 15 | Win battles in 8 different SCENERY backgrounds. |
 | **Built to Last** | 5 | Let PREBUILD build and keep everything your settings need. |
+| **Advanced Class** | 10 | Win a trainer battle in Red, Blue, Yellow, Gold, Silver or Crystal with FIRERED or EMERALD people, trainers and Pokémon. |
 
-Catching a wild Pokémon counts as a win. The scenes and filters you've won in are kept with your save, so Gem Collector and Scenic Route carry on where they left off.
+On the Game Boy games, To the Future! needs DS-era people, DS trainers and DS Pokémon (there are no battle boxes to change outside wide battles), and the filters, YOUR SIDE and SCENERY count there too. Catching a wild Pokémon counts as a win. The scenes and filters you've won in are kept with your save, so Gem Collector and Scenic Route carry on where they left off.
 
 ## Credits
 
