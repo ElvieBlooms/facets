@@ -41,8 +41,8 @@ function scenes.pick(where)
 end
 
 -- The part of a 240x112 scene the Game Boy screen shows: x, y, w, h -Elvie
-function scenes.crop(w, h)
-  local cw, ch = math.min(scenes.W, w), math.min(scenes.H, h)
+function scenes.crop(w, h, maxW)
+  local cw, ch = math.min(maxW or scenes.W, w), math.min(scenes.H, h)
   return math.floor((w - cw) / 2), h - ch, cw, ch
 end
 
@@ -100,7 +100,10 @@ function scenes.init(mod, rows)
       image:setFilter("nearest", "nearest")
       local w, h = image:getDimensions()
       local x, y, cw, ch = scenes.crop(w, h)
-      images[id] = { image = image, quad = love.graphics.newQuad(x, y, cw, ch, w, h) }
+      -- the wide battle has room for the whole width -Elvie
+      local wx, wy, ww, wh = scenes.crop(w, h, w)
+      images[id] = { image = image, quad = love.graphics.newQuad(x, y, cw, ch, w, h),
+        wide = love.graphics.newQuad(wx, wy, ww, wh, w, h), wideX = math.floor((scenes.W - ww) / 2) }
       return images[id]
     end
 
@@ -114,25 +117,50 @@ function scenes.init(mod, rows)
         trainer = state.battle and state.battle.trainer ~= nil }
     end
 
-    local own = BattleState.drawPanel
-    BattleState.drawPanel = function(self, ...)
+    -- this battle's scene, or nil for the game's own -Elvie
+    local function sceneFor(self)
       local setKey = mod.options:get("classicBattleBg")
-      if setKey == GAME or not byKey[setKey] or self:bgMode() ~= "white" then return own(self, ...) end
+      if setKey == GAME or not byKey[setKey] or self:bgMode() ~= "white" then return nil end
       if self._facetsScene == nil or self._facetsSceneSet ~= setKey then
         self._facetsScene = scene(setKey, scenes.pick(where(self))) or false
         self._facetsSceneSet = setKey
       end
-      local s = self._facetsScene
-      if not s then return own(self, ...) end
+      return self._facetsScene or nil
+    end
+    -- runs fn with Chrome.clear painting the scene after it clears -Elvie
+    local function painted(s, wide, fn, ...)
       local clear = Chrome.clear
       Chrome.clear = function(...)
         clear(...)
         love.graphics.setColor(1, 1, 1, 1)
-        love.graphics.draw(s.image, s.quad, 0, 0)
+        if wide then
+          love.graphics.draw(s.image, s.wide, s.wideX, 0)
+        else
+          love.graphics.draw(s.image, s.quad, 0, 0)
+        end
       end
-      local ok, err = pcall(own, self, ...)
+      local ok, err = pcall(fn, ...)
       Chrome.clear = clear
       if not ok then error(err, 0) end
+    end
+
+    local own = BattleState.drawPanel
+    BattleState.drawPanel = function(self, ...)
+      local s = sceneFor(self)
+      if not s then return own(self, ...) end
+      painted(s, false, own, self, ...)
+    end
+
+    local okW, WideBattle = pcall(require, "src.ui.gen2.WideBattle")
+    if okW and type(WideBattle) == "table" and type(WideBattle.drawField) == "function" then
+      local ownField = WideBattle.drawField
+      WideBattle.drawField = function(battle, ...)
+        local s = sceneFor(battle)
+        if not s then return ownField(battle, ...) end
+        local results
+        painted(s, true, function(...) results = { ownField(...) } end, battle, ...)
+        return results and results[1]
+      end
     end
   end
 end

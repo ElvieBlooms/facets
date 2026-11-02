@@ -2151,6 +2151,8 @@ do
   eq(sc.pick({}), "neutral", "scenes: nowhere in particular")
   local x, y, w, h = sc.crop(240, 112)
   eq(table.concat({ x, y, w, h }, ","), "40,16,160,96", "scenes: the middle, keeping the ground")
+  x, y, w, h = sc.crop(240, 112, 240)
+  eq(table.concat({ x, y, w, h }, ","), "0,16,240,96", "scenes: the whole width in a wide battle")
 end
 
 -- Gen 2 OPTION menu: the FACETS page's rows and stepping -Elvie
@@ -2168,6 +2170,26 @@ do
   eq(cm.step(e[1].choices, "diego", 1), "__off", "options page: the next choice")
   eq(cm.step(e[1].choices, "__off", 1), "diego", "options page: wraps round")
   eq(cm.step(e[1].choices, "diego", -1), "__off", "options page: and back")
+end
+
+-- Gen 2 BATTLE UI in wide battles: FireRed's text, HP bar and colours -Elvie
+do
+  local hud = require("mods.facets.classic_hud")
+  eq(table.concat(hud.glyphs("Ab9"), ","), table.concat({ 0xBB, 0xD6, 0xAA }, ","), "battle ui: letters and digits in FireRed's charmap")
+  eq(#hud.glyphs("A\xe2\x99\x82"), 2, "battle ui: the male mark is one glyph")
+  eq(#hud.glyphs("A~B"), 2, "battle ui: anything else is left out")
+  local px, colour = hud.hpBar(100, 100)
+  eq(px .. colour, "48green", "battle ui: full HP")
+  px, colour = hud.hpBar(40, 100)
+  eq(px .. colour, "19yellow", "battle ui: under half is yellow")
+  px, colour = hud.hpBar(1, 200)
+  eq(px .. colour, "1red", "battle ui: never less than a pixel")
+  px, colour = hud.hpBar(0, 100)
+  eq(px .. colour, "0red", "battle ui: fainted")
+  local c = hud.colours({ palettes = { healthbox = { from = { 0, 8456, 28671, 23387 }, to = { 0, 32767, 0, 31 } } } })
+  eq(("%d,%d,%d"):format(c.text[1], c.cream[1], c.shadow[1]), "1,0,1", "battle ui: a set's palette recolours the text")
+  c = hud.colours({})
+  eq(math.floor(c.cream[3] * 31 + 0.5), 27, "battle ui: FireRed's own cream without one")
 end
 
 -- Fixes from Emerald Lens: meta.json with a BOM or \u escapes, and the red
