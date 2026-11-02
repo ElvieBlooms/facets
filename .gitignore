@@ -14,6 +14,8 @@ assets/npcs/*
 !assets/npcs/community/
 # HEART & SOUL: Johto's people from Pokémon Heart & Soul, credited -Elvie
 !assets/npcs/hns/
+# JESSIE & JAMES: Yellow's Jessie and James by kalarie, credited -Elvie
+!assets/npcs/jessie_james/
 # GBC is a name map only: its sprites come from the player's own install. -Elvie
 !assets/npcs/gbc/
 !assets/npcs/gbc_2x/

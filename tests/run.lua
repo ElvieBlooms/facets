@@ -2305,6 +2305,12 @@ do
   for _, e in ipairs(cr.entries(rows, function(rel) return metas[rel] end)) do
     if e.heading then got[#got + 1] = e.text end
   end
+  metas["assets/npcs/jessie_james/meta.json"] = { label = "JESSIE & JAMES", credit = "By kalarie" }
+  local withFills = {}
+  for _, e in ipairs(cr.entries(rows, function(rel) return metas[rel] end, { "hns", "jessie_james" })) do
+    if e.heading then withFills[#withFills + 1] = e.text end
+  end
+  eq(withFills[4], "NPCS: JESSIE & JAMES", "credits: every fill-in set")
   eq(table.concat(got, "|"), "FACETS|NPCS: COMMUNITY|NPCS: HEART & SOUL|WINDOWS: TITO|YOUR OWN GAMES",
     "credits: each set once, Heart & Soul with the NPCs, own games last")
 end
