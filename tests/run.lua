@@ -68,6 +68,12 @@ local function pixelData(w, h)
       assert(x >= 0 and x < w and y >= 0 and y < h, ("setPixel %d,%d outside %dx%d"):format(x, y, w, h))
       px[y * w + x] = { r, g, b, a }
     end,
+    paste = function(self, src, dx, dy, sx, sy, sw, sh)
+      for y = 0, sh - 1 do for x = 0, sw - 1 do
+        local r, g, b, a = src:getPixel(sx + x, sy + y)
+        if dx + x >= 0 and dx + x < w and dy + y >= 0 and dy + y < h then px[(dy + y) * w + dx + x] = { r, g, b, a } end
+      end end
+    end,
     -- raw RGBA bytes, as ImageData:getString gives them -Elvie
     getString = function()
       local out = {}
@@ -2022,6 +2028,12 @@ do
   eq(r, 1, "classic: the bottom row stays the bottom row")
   local m = classic.build(d, 56, true)
   eq((m:getPixel(55, 55)), 1, "classic: mirrored")
+  local small = love.image.newImageData(20, 30)
+  small:setPixel(0, 29, 1, 0, 0, 1)
+  local sq = classic.square(small, 56)
+  eq(select(1, sq:getDimensions()) .. "x" .. select(2, sq:getDimensions()), "56x56", "classic: a small picture in the box's square")
+  eq((sq:getPixel(18, 55)), 1, "classic: ...centred across, on the bottom row")
+  eq(classic.square(fit, 56), fit, "classic: a full box is left as it is")
 
   local files = { ["assets/mons/ds/front/006.png"] = true, ["assets/mons/ds/back/006.png"] = true,
     ["assets/mons/ds/front_shiny/006.png"] = true }
