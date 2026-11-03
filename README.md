@@ -419,7 +419,7 @@ A person's own name is looked for in every set before any stand-in, so a fill-in
 
 - **POKEMON: DS**, with **YOUR SIDE** (BACK, MIRRORED or FRONT) as on Gen 3. With a set off, YOUR SIDE shows the game's own front, or another mod's. On Red, Blue and Yellow there's also **CRYSTAL**: Crystal's battle sprites, read from your own imported Crystal (or Gold, or Silver).
 - **ICONS**: **GAME**, **MINIDEX** (a different icon for every Pokémon, at the Game Boy's own size) or, on Red, Blue and Yellow, **CRYSTAL** (Crystal's icons, from your install).
-- **PICTURE SIZE**: **FIT** (the default) cuts each Pokémon or trainer picture to its edges and shrinks it only if it still doesn't fit the game's own box. **0.5X**, **0.75X** and **1X** scale it in battle instead, standing on the same ground line.
+- **SIZE**, under POKEMON and under TRAINERS (POKEMON SIZE and TRAINER SIZE on the FACETS page): **FIT** (the default) cuts each picture to its edges and shrinks it only if it still doesn't fit the game's own box. **FULL** shows the art at its own size in battle, **SMALL** at three quarters and **TINY** at half, standing on the same ground line.
 
 Red, Blue and Yellow show pictures on some screens (summary, Hall of Fame, Pokédex, evolution, trades, party icons) by loading a file, so Facets writes those once to the engine's per-install cache and keeps them until Facets, the engine or an imported game changes.
 
@@ -472,7 +472,7 @@ With [Recomp Achievements](https://github.com/ElvieBlooms/recomp_achievements) i
 | **Crystal Clear** | 10 | Win a trainer battle in Red, Blue or Yellow with POKEMON and ICONS on CRYSTAL. |
 | **Pika Pika!** | 15 | Win 10 battles in Yellow with your Pikachu in one of its PIKACHU looks. |
 | **Window Shopping** | 15 | Win battles in 5 different WINDOWS styles. |
-| **The Big Picture** | 10 | Win a battle with PICTURE SIZE on 1X and SCENERY behind it. |
+| **The Big Picture** | 10 | Win a battle with POKEMON SIZE on FULL and SCENERY behind it. |
 | **Roll the Credits** | 5 | Read the FACETS page's CREDITS all the way to the end. |
 
 We have to go Back..., Time Traveler and Built to Last are the Gen 3 games' own. Advanced Class, Window Shopping, The Big Picture and Roll the Credits are Red, Blue, Yellow, Gold, Silver and Crystal's, Crystal Clear is Red, Blue and Yellow's, and Pika Pika! is Yellow's. Each only shows in the games it can be earned in.

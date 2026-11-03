@@ -65,7 +65,7 @@ achievements.LIST = {
     description = "Win battles in 5 different WINDOWS styles." },
   { id = "big_picture", title = "The Big Picture", points = 10, category = "SCENES",
     games = achievements.GAMEBOY,
-    description = "Win a battle with PICTURE SIZE on 1X and SCENERY behind it." },
+    description = "Win a battle with POKEMON SIZE on FULL and SCENERY behind it." },
   { id = "roll_credits", title = "Roll the Credits", points = 5, category = "FACETS",
     games = achievements.GAMEBOY,
     description = "Read the FACETS page's CREDITS all the way to the end." },

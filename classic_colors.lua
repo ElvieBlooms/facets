@@ -12,8 +12,8 @@ local colors = {}
 
 local GAME, FULL = "game", "full"
 
--- The settings that change how the game looks. PICTURE SIZE on its own
--- changes nothing -Elvie
+-- The settings that change how the game looks. the SIZE rows on their own
+-- change nothing -Elvie
 colors.LOOKS = { "classicNpcs", "classicPikachu", "classicTrainers", "classicMons", "classicSide",
   "classicIcons", "classicBattleBg", "classicBattleUi", "classicWindows", "filter" }
 

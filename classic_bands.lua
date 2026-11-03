@@ -3,7 +3,7 @@
 -- slide) draws the battle into a canvas and copies it back a line at a
 -- time, each line shifted on its own. The lines a Pokémon's box covers
 -- move together, so the game's own pictures move whole. A picture bigger
--- than its box (PICTURE SIZE 1X) reaches lines that don't move, and was
+-- than its box (POKEMON SIZE on FULL) reaches lines that don't move, and was
 -- cut in two there. So only the part inside the box goes into the canvas,
 -- and the rest is drawn after, moved as the box's nearest edge line
 -- moved -Elvie

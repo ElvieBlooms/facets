@@ -166,6 +166,7 @@ function classic.init(mod, rows)
   rows[#rows + 1] = { key = "classicMons", type = "choice", label = "  SET", choices = choices, default = OFF }
   rows[#rows + 1] = { key = "classicSide", type = "choice", label = "  YOUR SIDE", choices = classic.SIDES, default = "back" }
   rows[#rows + 1] = { key = "classicIcons", type = "choice", label = "  ICONS", choices = classic.ICONS, default = "game" }
+  shared.sizeRow(rows, "classicSize")
 
   return function()
     local pics = shared.setup(mod)
