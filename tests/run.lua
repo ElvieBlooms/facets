@@ -2242,6 +2242,26 @@ do
   eq(foes.choose(opts, "JESSIE_JAMES"), nil, "foes: no picture of them, so the game's own")
 end
 
+-- Big pictures under Gen 2's move animations: the part outside the box
+-- moves as the box's edge line did -Elvie
+do
+  local b = require("mods.facets.classic_bands")
+  local lines = {}
+  for row = 0, 143 do
+    -- the player's half (rows 48-95) drawn 8 lower, shifted 2 left -Elvie
+    if row >= 56 and row < 104 then lines[#lines + 1] = { src = row - 8, dest = row, dx = -2 }
+    elseif row < 48 or row >= 104 then lines[#lines + 1] = { src = row, dest = row, dx = 0 } end
+  end
+  local dx, dy = b.edge(lines, 48, b.BOX.player, false)
+  eq(dx .. "," .. dy, "-2,8", "bands: above the box moves with the box's top line")
+  dx, dy = b.edge(lines, 0, b.BOX.enemy, false)
+  eq(dx .. "," .. dy, "0,0", "bands: the enemy's box didn't move")
+  eq(b.edge({}, 48, b.BOX.player, false), nil, "bands: nothing of the box shows")
+  local slide = b.slideLines(200, 8)
+  eq(slide[1].dx .. "," .. slide[0x41].dx .. "," .. slide[0x61].dx, "56,-8,0", "bands: the intro slide's three bands")
+  eq(b.signed(0xF8), -8, "bands: a register byte as signed")
+end
+
 -- WINDOWS on the Game Boy games: which art a box gets, and where the
 -- text box's tiles go -Elvie
 do
