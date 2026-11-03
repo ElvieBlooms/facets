@@ -82,8 +82,8 @@ The mod options still have every row for both families.
 
 Under **SCREEN**, four options give the game a Game Boy look (and three more give its windows and battle boxes Gen 2's, [below](#gbc-windows-and-battle-ui)). They're also on their own **SCREEN** page in PRISM (as FILTER, SHADES, WHERE and DOTS; SHADES shows with the shade palettes), whose corner shows the picked look's shades.
 
-* **FILTER**: **GRAY** turns everything into the Game Boy Pocket's four greys, **GREEN** the original Game Boy's four greens, and **RUBY**, **SAPPHIRE** and **EMERALD** four shades of each gem, for the games themselves (EMERALD is bluer and deeper than GREEN). **GBC** keeps colour but cuts each channel down to four levels, for the flat, bright look of a Game Boy Color game. **OFF** (the default) leaves the game's own colours.
-* **SHADES**: how many shades GRAY, GREEN, RUBY, SAPPHIRE and EMERALD use: **4** (the default, like a Game Boy), **8** or **16** for smoother shading and more of the scene's detail. The extra shades are blended between the four palette colours.
+* **FILTER**: **GRAY** turns everything into the Game Boy Pocket's four greys, **GREEN** the original Game Boy's four greens, **YELLOW**, **GOLD** and **CRYSTAL** four shades of each, for the Game Boy games, and **RUBY**, **SAPPHIRE** and **EMERALD** four shades of each gem, for the games themselves (EMERALD is bluer and deeper than GREEN). **GBC** keeps colour but cuts each channel down to four levels, for the flat, bright look of a Game Boy Color game. **OFF** (the default) leaves the game's own colours.
+* **SHADES**: how many shades GRAY, GREEN and the game colours use: **4** (the default, like a Game Boy), **8** or **16** for smoother shading and more of the scene's detail. The extra shades are blended between the four palette colours.
 * **FILTER ON**: **SCREEN** (the default) filters everything: the map, sprites, menus and battles. **MAP** filters only the map and everyone on it, so menus, text boxes and battles keep their colours.
 * **DOTS**: a dot-matrix grid between the game's pixels, like an old handheld's screen. It works with any filter or none, over the whole screen.
 
