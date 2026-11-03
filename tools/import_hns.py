@@ -18,12 +18,14 @@ import sys
 from PIL import Image
 
 # Gen 2 trainer class -> HnS front pic. Classes Gen 1 shares (KOGA, BRUNO)
-# keep the DS set's own, so Red's leaders don't change. -Elvie
+# keep the DS set's own, so Red's leaders don't change. Not CHAMPION:
+# HnS's Lance is FireRed's own picture, and the GBA look reads that from
+# the player's FireRed anyway -Elvie
 TRAINERS = {
     "FALKNER": "leader_falkner_hns", "BUGSY": "leader_bugsy_hns", "WHITNEY": "leader_whitney_hns",
     "MORTY": "leader_morty_hns", "CHUCK": "leader_chuck_hns", "JASMINE": "leader_jasmine_hns",
     "PRYCE": "leader_pryce_hns", "CLAIR": "leader_clair_hns", "JANINE": "leader_janine_hns",
-    "WILL": "elite_four_will_hns", "KAREN": "elite_four_karen_hns", "CHAMPION": "champion_lance_hns",
+    "WILL": "elite_four_will_hns", "KAREN": "elite_four_karen_hns",
     "RED": "red_hns", "BLUE": "leader_blue_hns", "MYSTICALMAN": "eusine_hns",
     "KIMONO_GIRL": "kimono_girl_hns", "OFFICER": "officer_hns", "SAGE": "sage_hns",
     "SKIER": "skier_f_hns", "BOARDER": "skier_m_hns", "FIREBREATHER": "firebreather_hns",
