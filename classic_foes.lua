@@ -1,8 +1,8 @@
 -- Trainer battle pictures on the Game Boy games (Red, Blue, Yellow, Gold, Silver, Crystal)
 -- The game asks BattleState.trainerArt for a trainer class's picture, so
 -- one wrap there covers every trainer. A set's art is fitted to the
--- game's own 56x56 box like the Pokémon (classic.lua), and PICTURE SIZE
--- scales both. -Elvie
+-- game's own 56x56 box like the Pokémon (classic.lua), and TRAINER SIZE
+-- scales them as POKEMON SIZE does the Pokémon. -Elvie
 --
 -- A picture is found in the set's gb/ folder under the Game Boy class name
 -- first (FALKNER.png, JESSIE_JAMES.png), then by the class's own name and
@@ -139,6 +139,7 @@ function foes.init(mod, rows)
   rows[#rows + 1] = { key = "sectionClassicTrainers", type = "choice", label = "TRAINERS",
     choices = { { "", "_" } }, default = "_" }
   rows[#rows + 1] = { key = "classicTrainers", type = "choice", label = "  SET", choices = choices, default = OFF }
+  shared.sizeRow(rows, "classicTrainerSize")
 
   return function()
     local pics = shared.setup(mod)
@@ -147,7 +148,7 @@ function foes.init(mod, rows)
     local function pick(classId)
       opts.set = mod.options:get("classicTrainers")
       if opts.set == OFF then return nil end
-      opts.size = mod.options:get("classicSize")
+      opts.size = mod.options:get("classicTrainerSize")
       return foes.choose(opts, classId)
     end
     if mod.events and type(mod.events.on) == "function" then

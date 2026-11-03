@@ -52,8 +52,6 @@ local function startClassic(mod)
     if start then starts[#starts + 1] = start end
   end
   if #rows > 0 then
-    local okC, shared = pcall(require, "mods.facets.classic")
-    if okC then shared.sizeRow(rows) end
     mod.options:define(rows)
   end
   for _, start in ipairs(starts) do start() end

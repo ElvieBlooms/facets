@@ -11,8 +11,9 @@ local classic = {}
 -- The game's own boxes: hlcoord 12,0 7x7 tiles and hlcoord 2,6 6x6 -Elvie
 classic.BOX = { front = 56, back = 48 }
 
--- Nothing past 1X: a bigger picture runs off the top of the screen -Elvie
-classic.SIZES = { { "FIT", "fit" }, { "0.5X", "0.5" }, { "0.75X", "0.75" }, { "1X", "1" } }
+-- FIT, or the art at a fixed size: FULL (1x), SMALL (0.75x), TINY (0.5x).
+-- Nothing past 1x: a bigger picture runs off the top of the screen -Elvie
+classic.SIZES = { { "FIT", "fit" }, { "FULL", "1" }, { "SMALL", "0.75" }, { "TINY", "0.5" } }
 
 -- The see-through edge around the art: x0, y0, x1, y1 (inclusive), or
 -- nil when nothing is drawn -Elvie
@@ -41,7 +42,7 @@ function classic.fitScale(w, h, box)
 end
 
 -- The art cut to its edge, shrunk to fit box (nearest pixel) when there is
--- one, or by shrink (PICTURE SIZE under 1X), and flipped when mirror is
+-- one, or by shrink (SMALL and TINY), and flipped when mirror is
 -- set. A shrunk picture keeps its first and last row and column, so the
 -- outline round the edges stays. Returns new ImageData, or nil for an
 -- empty picture. -Elvie
@@ -158,10 +159,10 @@ function classic.generation()
   return 2
 end
 
--- SIZE, for Pokémon and trainers both; added after their rows -Elvie
-function classic.sizeRow(rows)
-  rows[#rows + 1] = { key = "classicSize", type = "choice", label = "PICTURE SIZE",
-    choices = classic.SIZES, default = "fit" }
+-- A SIZE row, under a section's SET: classicSize for Pokémon,
+-- classicTrainerSize for trainers -Elvie
+function classic.sizeRow(rows, key)
+  rows[#rows + 1] = { key = key, type = "choice", label = "  SIZE", choices = classic.SIZES, default = "fit" }
 end
 
 -- One set of pictures for every part: { has(rel), picture(pick) }, or nil
@@ -187,7 +188,7 @@ function classic.setup(mod)
     return got
   end
   function pics.picture(pick)
-    -- PICTURE SIZE under 1X is shrunk here, not by the engine, so no edge
+    -- SMALL and TINY are shrunk here, not by the engine, so no edge
     -- is lost -Elvie
     local shrink = not pick.raw and tonumber(pick.scale) and pick.scale < 1 and pick.scale or nil
     if shrink then
@@ -303,7 +304,7 @@ function classic.setup(mod)
   -- the engine keeps a scaled picture on the ground line, centred -Elvie
   if classic.generation() == 1 then
     -- Gen 1 draws its own backs at 2x; ours are already their size, so
-    -- every picture of ours is 1x unless PICTURE SIZE says otherwise -Elvie
+    -- every picture of ours is 1x unless a SIZE row says otherwise -Elvie
     local okB, BattleState = pcall(require, "src.battle.BattleState")
     if okB and type(BattleState) == "table" and type(BattleState.resolveBattleScale) == "function" then
       local own = BattleState.resolveBattleScale
@@ -325,7 +326,7 @@ function classic.setup(mod)
       return own(self, path, mon, back)
     end
   else
-    mod.log:warn("BattleState.picScale not found; PICTURE SIZE only fits")
+    mod.log:warn("BattleState.picScale not found; SIZE only fits")
   end
   return pics
 end

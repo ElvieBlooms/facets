@@ -14,7 +14,7 @@ Facets now covers all eleven of gen1recomp's games: Red, Blue, Yellow, Gold, Sil
 - **POKEMON: DS** and **YOUR SIDE**, plus **CRYSTAL** (Crystal's own sprites) on Red, Blue and Yellow.
 - **ICONS:** **MINIDEX**, a different icon for every Pokémon, and **CRYSTAL** on Red, Blue and Yellow.
 - **The GBA look:** FIRERED and EMERALD under NPCS, TRAINERS and POKEMON, read from your own imported games, with Heart & Soul's and kalarie's Gen 3-style people for anyone neither game has, small walkers (the Little Boy and Little Girl) included. Emerald's Pokémon animate on Gold, Silver and Crystal.
-- **PICTURE SIZE:** FIT, 0.5X, 0.75X or 1X for Pokémon and trainers.
+- **SIZE** for Pokémon and for trainers, each on its own: FIT, FULL, SMALL or TINY.
 - **BATTLE BG: SCENERY** behind the battle, picked from where you are (in wide battles on Red, Blue and Yellow), and **BATTLE UI** sets in wide battles.
 - **WINDOWS:** FireRed's ten frames and its text box, or a TITO style, for every box in the game; the FACETS page shows the style on its own row.
 - **COLORS** keeps the game in its full-colour mode while anything in Facets is on, and gives your own choice back when it's off.

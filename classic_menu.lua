@@ -16,7 +16,10 @@ function cmenu.entries(rows)
     if row.key:match("^section") then
       section = label
     elseif type(row.choices) == "table" and #row.choices > 1 then
-      out[#out + 1] = { key = row.key, label = (label == "SET" and section) or label, choices = row.choices }
+      -- SIZE takes its section's name too: POKEMON SIZE, TRAINER SIZE -Elvie
+      if label == "SET" then label = section
+      elseif label == "SIZE" and section then label = section:gsub("S$", "") .. " SIZE" end
+      out[#out + 1] = { key = row.key, label = label, choices = row.choices }
     end
   end
   return out

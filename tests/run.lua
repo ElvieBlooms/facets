@@ -2109,7 +2109,7 @@ do
   eq(foes.choose(opts, nil), nil, "classic foes: no class, the game's own")
   opts.size = "0.5"
   p = foes.choose(opts, "YOUNGSTER")
-  check(p and p.scale == 0.5 and not p.box, "classic foes: PICTURE SIZE scales")
+  check(p and p.scale == 0.5 and not p.box, "classic foes: TRAINER SIZE scales")
   opts.set = "__off"
   eq(foes.choose(opts, "YOUNGSTER"), nil, "classic foes: OFF")
   for class, name in pairs(foes.NAMES) do
@@ -2238,6 +2238,16 @@ do
   eq(cm.step(e[1].choices, "diego", 1), "__off", "options page: the next choice")
   eq(cm.step(e[1].choices, "__off", 1), "diego", "options page: wraps round")
   eq(cm.step(e[1].choices, "diego", -1), "__off", "options page: and back")
+  local sized = {}
+  require("mods.facets.classic").sizeRow(sized, "classicSize")
+  local se = cm.entries({ { key = "sectionClassicTrainers", label = "TRAINERS", choices = { { "", "_" } } },
+    { key = "classicTrainerSize", label = "  SIZE", choices = sized[1].choices },
+    { key = "sectionClassicMons", label = "POKEMON", choices = { { "", "_" } } },
+    { key = "classicSize", label = "  SIZE", choices = sized[1].choices } })
+  eq(se[1].label .. "," .. se[2].label, "TRAINER SIZE,POKEMON SIZE", "options page: each SIZE named by its heading")
+  local names = {}
+  for _, c in ipairs(sized[1].choices) do names[#names + 1] = c[1] .. "=" .. c[2] end
+  eq(table.concat(names, " "), "FIT=fit FULL=1 SMALL=0.75 TINY=0.5", "options page: FIT, FULL, SMALL, TINY")
 end
 
 -- PRISM on the Game Boy games: where the item goes, and the lens first -Elvie
@@ -2417,7 +2427,7 @@ do
   eq(c.holds("full", { classicNpcs = "community", filter = "off" }, defaults), true, "colors: a look on holds full colour")
   eq(c.holds("full", { classicNpcs = "__off", filter = "gray" }, defaults), true, "colors: the filter counts")
   eq(c.holds("game", { classicNpcs = "community" }, defaults), false, "colors: GAME never holds")
-  eq(c.holds("full", { classicSize = "0.5" }, defaults), false, "colors: PICTURE SIZE alone doesn't count")
+  eq(c.holds("full", { classicSize = "0.5" }, defaults), false, "colors: a SIZE row alone doesn't count")
 end
 
 -- Gen 2 BATTLE UI in wide battles: FireRed's text, HP bar and colours -Elvie
