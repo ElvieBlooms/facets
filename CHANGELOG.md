@@ -19,7 +19,7 @@ Facets now covers all eleven of gen1recomp's games: Red, Blue, Yellow, Gold, Sil
 - **WINDOWS:** FireRed's ten frames and its text box, or a TITO style, for every box in the game; the FACETS page shows the style on its own row.
 - **COLORS** keeps the game in its full-colour mode while anything in Facets is on, and gives your own choice back when it's off.
 - **The GB filter**, shared with the Gen 3 games.
-- **Achievements** count on the Game Boy games, with a new one, **Advanced Class**.
+- **Achievements** count on the Game Boy games, with six of their own: **Advanced Class**, **Crystal Clear**, **Pika Pika!**, **Window Shopping**, **The Big Picture** and **Roll the Credits**. Each achievement only shows in the games it can be earned in.
 
 ### The Gen 3 games
 

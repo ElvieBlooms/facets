@@ -31,6 +31,9 @@ credits.DIRS = {
 -- Choices read from the player's own games, not shipped -Elvie
 local OWN = { firered = true, emerald = true, crystal = true, fr = true, gbc = true }
 
+-- Called once the last line is on screen (Roll the Credits) -Elvie
+credits.onEnd = nil
+
 credits.MINIDEX = "Kanto and Johto icons from the Minidex 001-251, by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25, used with credit"
 credits.OWN_GAMES = "FIRERED, EMERALD and CRYSTAL choices are read while you play from the games you imported yourself (Nintendo / Game Freak). None of it is included with Facets."
 
@@ -162,6 +165,12 @@ function credits.screen(mod, game, rows)
   local lines = credits.lines(credits.entries(rows, read, fills), W)
   local self = { isOpaque = true, scroll = 0 }
   local last = math.max(0, #lines - ROWS)
+  local ended = false
+  local function reached()
+    if ended or self.scroll < last then return end
+    ended = true
+    if type(credits.onEnd) == "function" then pcall(credits.onEnd) end
+  end
 
   function self:update()
     local input = game.input
@@ -171,6 +180,7 @@ function credits.screen(mod, game, rows)
     elseif input:wasPressed("down") then self.scroll = math.min(last, self.scroll + 1)
     elseif input:wasPressed("left") then self.scroll = math.max(0, self.scroll - ROWS)
     elseif input:wasPressed("right") then self.scroll = math.min(last, self.scroll + ROWS) end
+    reached()
   end
 
   function self:draw()
