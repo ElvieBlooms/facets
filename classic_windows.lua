@@ -31,6 +31,29 @@ windows.textBoxAt = nil
 -- Whether WINDOWS changes anything, once init has run -Elvie
 function windows.styled() return false end
 
+-- The text box drawn last with a coloured inside (TITO's WOODY and the
+-- like): { x, y, w, h, fill = {r, g, b} 0-255, at = time, calls = draw
+-- calls }. Gold/Silver/Crystal print letters on a white tile, so text in
+-- it takes that colour instead -Elvie
+windows.paper = nil
+
+-- Whether pixel x, y is inside the paper box drawn this frame. Boxes are
+-- drawn again every frame, so one from before the last present is stale:
+-- the draw call count starts again from nothing then -Elvie
+function windows.paperAt(paper, x, y, now, calls)
+  if type(paper) ~= "table" or type(x) ~= "number" or type(y) ~= "number" then return nil end
+  if now and paper.at and now - paper.at > 0.012 then return nil end
+  if calls and paper.calls and calls < paper.calls then return nil end
+  if x < paper.x or y < paper.y or x >= paper.x + paper.w or y >= paper.y + paper.h then return nil end
+  return paper.fill
+end
+
+-- A palette with its paper (colour 0) as fill, as a new table -Elvie
+function windows.onPaper(pal, fill)
+  if type(pal) ~= "table" or type(fill) ~= "table" then return pal end
+  return { { fill[1], fill[2], fill[3] }, pal[2], pal[3], pal[4] }
+end
+
 -- A WINDOWS value: "fr:<n>" for FireRed's frame n, "<set>:<n>" for a
 -- set's style n. Returns kind, key, n -Elvie
 function windows.parse(value)
@@ -227,6 +250,17 @@ function windows.init(mod, rows)
         windows.frameCells(tx, ty, tw, th, function(i, cx, cy) G.draw(img, quad(img, i), cx * T, cy * T) end)
       end
       if shader then G.setShader(shader) end
+      if kind == "dialogue" then
+        local c = a.fill
+        if c[1] < 1 or c[2] < 1 or c[3] < 1 then
+          local stats = G.getStats and G.getStats()
+          windows.paper = { x = tx * T, y = ty * T, w = tw * T, h = th * T,
+            fill = { math.floor(c[1] * 255 + 0.5), math.floor(c[2] * 255 + 0.5), math.floor(c[3] * 255 + 0.5) },
+            at = love.timer and love.timer.getTime() or nil, calls = stats and stats.drawcalls or nil }
+        else
+          windows.paper = nil
+        end
+      end
       -- Red/Blue/Yellow recolour the screen afterwards: the box keeps its
       -- own colours, as full-colour pictures do, but in the Game Boy greys
       -- (CLASSIC, OG) -Elvie
@@ -234,6 +268,92 @@ function windows.init(mod, rows)
         pcall(PaletteFX.markTrueColor, tx * T, ty * T, tw * T, th * T)
       end
       G.setColor(r, g, b, al)
+    end
+
+    -- Gold/Silver/Crystal's letters (and the cursor and the more arrow)
+    -- carry their own white paper; in a coloured text box it's the box's
+    -- colour instead -Elvie
+    local okC, Chrome = false, nil
+    if require("mods.facets.classic").generation() == 2 then
+      okC, Chrome = pcall(require, table.concat({ "src", "ui", "gen2", "Chrome" }, "."))
+    end
+    if okC and type(Chrome) == "table" and type(Chrome.paletteGlyphs) == "function" then
+      local G = love.graphics
+      local function fillAt(x, y)
+        local paper = windows.paper
+        if not paper then return nil end
+        local stats = G.getStats and G.getStats()
+        return windows.paperAt(paper, x, y, love.timer and love.timer.getTime() or nil, stats and stats.drawcalls or nil)
+      end
+      local onFill = nil
+      local ownThrough, ownRaw = Chrome.throughPalette, Chrome.rawPalette
+      Chrome.throughPalette = function(...)
+        local pal = ownThrough(...)
+        return onFill and windows.onPaper(pal, onFill) or pal
+      end
+      Chrome.rawPalette = function(...)
+        local pal = ownRaw(...)
+        return onFill and windows.onPaper(pal, onFill) or pal
+      end
+      -- text and the cursor printed at a tile -Elvie
+      local function atTile(own)
+        return function(text, tx, ty, ...)
+          local fill = type(tx) == "number" and type(ty) == "number" and fillAt(tx * T, ty * T)
+          if not fill then return own(text, tx, ty, ...) end
+          onFill = fill
+          local results = { pcall(own, text, tx, ty, ...) }
+          onFill = nil
+          if not results[1] then error(results[2], 0) end
+          return unpack(results, 2)
+        end
+      end
+      if type(Chrome.printThrough) == "function" then Chrome.printThrough = atTile(Chrome.printThrough) end
+      if type(Chrome.cursorThrough) == "function" then
+        local ownCursor = Chrome.cursorThrough
+        Chrome.cursorThrough = function(tx, ty, ...)
+          return atTile(function(_, x, y, ...) return ownCursor(x, y, ...) end)(nil, tx, ty, ...)
+        end
+      end
+      -- the text box's letters, placed one by one -Elvie
+      local ownGlyphs = Chrome.paletteGlyphs
+      Chrome.paletteGlyphs = function(palette, invert, raw, ...)
+        local previous = G.getShader and G.getShader() or nil
+        local pal, drawGlyph, finish = ownGlyphs(palette, invert, raw, ...)
+        if not pal or not windows.paper then return pal, drawGlyph, finish end
+        local okG, GbcPalette = pcall(require, "src.render.GbcPalette")
+        local okFont, Font2 = pcall(require, "src.render.Font")
+        if not (okG and okFont) then return pal, drawGlyph, finish end
+        local ours = false
+        local function glyph(code, x, y)
+          local fill = code < (Font2.TTF_BASE or math.huge) and fillAt(x, y)
+          if not fill then return drawGlyph(code, x, y) end
+          G.setColor(1, 1, 1, 1)
+          GbcPalette.useRaw(windows.onPaper(pal, fill))
+          Font2.drawCode(code, x, y)
+          -- back to the game's own, for its next letter -Elvie
+          GbcPalette.useRaw(pal)
+          ours = true
+        end
+        local function done()
+          finish()
+          if ours then G.setShader(previous) end
+        end
+        return pal, glyph, done
+      end
+      -- the more arrow's square -Elvie
+      if type(Chrome.paletteFill) == "function" then
+        local ownFill = Chrome.paletteFill
+        Chrome.paletteFill = function(px, py, pw, ph, palette, ...)
+          local fill = type(pw) == "number" and pw <= T and ph == T and fillAt(px, py)
+          if not fill then return ownFill(px, py, pw, ph, palette, ...) end
+          local shader = G.getShader and G.getShader() or nil
+          if shader then G.setShader() end
+          G.setColor(fill[1] / 255, fill[2] / 255, fill[3] / 255, 1)
+          G.rectangle("fill", px, py, pw, ph)
+          if shader then G.setShader(shader) end
+          G.setColor(0, 0, 0, 1)
+        end
+      end
     end
 
     -- Red/Blue/Yellow's battle draws its text box into a grey layer and

@@ -2271,6 +2271,14 @@ do
   eq(w.boxKind(12, 5, 4), "frame", "windows: too narrow for the text box")
   w.textBoxAt = nil
   eq(w.boxKind(12, 20, 4), "frame", "windows: only while the page marks it")
+  local paper = { x = 0, y = 96, w = 160, h = 48, fill = { 248, 200, 120 }, at = 10, calls = 50 }
+  eq(w.paperAt(paper, 8, 112, 10.001, 60), paper.fill, "windows: text in a coloured text box takes its colour")
+  eq(w.paperAt(paper, 8, 80, 10.001, 60), nil, "windows: text above it keeps its white")
+  eq(w.paperAt(paper, 8, 112, 10.5, 60), nil, "windows: a box from an earlier frame doesn't count")
+  eq(w.paperAt(paper, 8, 112, 10.001, 3), nil, "windows: nor one from before the last present")
+  local pal = w.onPaper({ { 255, 255, 255 }, { 1, 1, 1 }, { 2, 2, 2 }, { 0, 0, 0 } }, paper.fill)
+  eq(table.concat(pal[1], ","), "248,200,120", "windows: the letters' paper is the box's colour")
+  eq(pal[4][1], 0, "windows: the ink stays")
 end
 
 -- Emerald's cable car takes 15 colours at most: a sheet with more is cut
