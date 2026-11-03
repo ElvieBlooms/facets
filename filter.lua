@@ -17,8 +17,9 @@
 local filter = {}
 
 filter.ID = "facets_filter"
-filter.LOOKS = { { "OFF", "off" }, { "GRAY", "gray" }, { "GREEN", "green" }, { "RUBY", "ruby" },
-  { "SAPPHIRE", "sapphire" }, { "EMERALD", "emerald" }, { "GBC", "gbc" } }
+filter.LOOKS = { { "OFF", "off" }, { "GRAY", "gray" }, { "GREEN", "green" }, { "YELLOW", "yellow" },
+  { "GOLD", "gold" }, { "CRYSTAL", "crystal" }, { "RUBY", "ruby" }, { "SAPPHIRE", "sapphire" },
+  { "EMERALD", "emerald" }, { "GBC", "gbc" } }
 filter.WHERE = { { "SCREEN", "screen" }, { "MAP", "map" } }
 filter.DOTS = { { "OFF", "off" }, { "ON", "on" } }
 filter.STEPS = { { "4", "4" }, { "8", "8" }, { "16", "16" } }
@@ -35,6 +36,20 @@ filter.SHADES = {
   sapphire = { { 226, 236, 252 }, { 112, 152, 228 }, { 32, 60, 156 }, { 8, 14, 44 } },
   -- bluer and deeper than GREEN's Game Boy greens -Elvie
   emerald = { { 222, 248, 236 }, { 92, 200, 150 }, { 14, 118, 80 }, { 4, 32, 24 } },
+  -- YELLOW, GOLD and CRYSTAL, for the Game Boy games. Red, Blue and Silver
+  -- would sit too close to RUBY, SAPPHIRE and GRAY. YELLOW is Pikachu's
+  -- lemon, GOLD a warmer brown-gold, CRYSTAL ice blue down to indigo -Elvie
+  yellow = { { 252, 248, 214 }, { 236, 204, 56 }, { 150, 112, 10 }, { 44, 34, 6 } },
+  gold = { { 248, 238, 214 }, { 212, 170, 86 }, { 132, 90, 30 }, { 40, 24, 8 } },
+  crystal = { { 232, 248, 252 }, { 132, 206, 226 }, { 70, 100, 170 }, { 22, 20, 62 } },
+}
+
+-- What each FILTER choice does, for its info line -Elvie
+filter.ABOUT = {
+  off = "The game's own colours.", gray = "Four Game Boy greys.", green = "Four Game Boy greens.",
+  yellow = "Shades of yellow.", gold = "Shades of gold.", crystal = "Shades of crystal.",
+  ruby = "Shades of ruby.", sapphire = "Shades of sapphire.", emerald = "Shades of emerald.",
+  gbc = "Game Boy Color colours.",
 }
 
 -- Brightness cut-offs between the four shades. Gen 3 is bright: half of a
@@ -306,13 +321,7 @@ function filter.init(mod, rows, menu)
       preview = function(who)
         local look, where, dots = filter.settings(get)
         if who == "filter" then
-          if look == "gray" then return { lines = { { text = "Four Game Boy greys." } } } end
-          if look == "green" then return { lines = { { text = "Four Game Boy greens." } } } end
-          if look == "ruby" then return { lines = { { text = "Shades of ruby." } } } end
-          if look == "sapphire" then return { lines = { { text = "Shades of sapphire." } } } end
-          if look == "emerald" then return { lines = { { text = "Shades of emerald." } } } end
-          if look == "gbc" then return { lines = { { text = "Game Boy Color colours." } } } end
-          return { lines = { { text = "The game's own colours." } } }
+          return { lines = { { text = filter.ABOUT[look] or filter.ABOUT.off } } }
         elseif who == "where" then
           if where == "map" then return { lines = { { text = "The map; menus and battles" }, { text = "keep their colours." } } } end
           return { lines = { { text = "The whole screen." } } }
