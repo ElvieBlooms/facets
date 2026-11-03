@@ -1496,7 +1496,7 @@ do
   eq(table.concat(keys, ","), "sectionScreen=_,filter=off,filterOn=screen,dots=off,shades=4", "filter: SCREEN rows and defaults")
   local looks = {}
   for _, c in ipairs(rows[2].choices) do looks[#looks + 1] = c[1] end
-  eq(table.concat(looks, ","), "OFF,GRAY,GREEN,RUBY,SAPPHIRE,EMERALD,GBC", "filter: the looks")
+  eq(table.concat(looks, ","), "OFF,GRAY,GREEN,YELLOW,GOLD,CRYSTAL,RUBY,SAPPHIRE,EMERALD,GBC", "filter: the looks")
   for _, k in ipairs({ "gray", "green", "ruby", "sapphire", "emerald" }) do
     check(filter.SHADES[k] and #filter.SHADES[k] == 4, "filter: " .. k .. " has four shades, lightest first")
   end
