@@ -32,6 +32,55 @@ end
 -- ctx comes from npcs.lua: { setKeys, npcsDir }, with setKeys in fallback
 -- order, the selected set first. nil means OFF: everything is the game's
 -- own. Returns a handle whose configure(ctx) changes the choice later. -Elvie
+-- A copy of a sheet with at most 15 colours (the GBA's 4-bit palette
+-- less see-through): the 15 most used stay, each other colour takes the
+-- nearest of them. Colours are compared at the GBA's 5 bits -Elvie
+function gen3.fifteen(src)
+  local w, h = src:getDimensions()
+  local function key(r, g, b)
+    return math.floor(r * 31 + 0.5) * 1024 + math.floor(g * 31 + 0.5) * 32 + math.floor(b * 31 + 0.5)
+  end
+  local count = {}
+  for y = 0, h - 1 do
+    for x = 0, w - 1 do
+      local r, g, b, a = src:getPixel(x, y)
+      if a > 0 then local k = key(r, g, b); count[k] = (count[k] or 0) + 1 end
+    end
+  end
+  local all = {}
+  for k, n in pairs(count) do all[#all + 1] = { k, n } end
+  if #all <= 15 then return src end
+  table.sort(all, function(p, q) if p[2] ~= q[2] then return p[2] > q[2] end return p[1] < q[1] end)
+  local keep = {}
+  for i = 1, 15 do keep[i] = all[i][1] end
+  local function rgb(k) return math.floor(k / 1024), math.floor(k / 32) % 32, k % 32 end
+  local near = {}
+  local function nearest(k)
+    local hit = near[k]
+    if hit then return hit end
+    local r, g, b = rgb(k)
+    local best, bestD = keep[1], math.huge
+    for _, c in ipairs(keep) do
+      local cr, cg, cb = rgb(c)
+      local d = (r - cr) ^ 2 * 3 + (g - cg) ^ 2 * 4 + (b - cb) ^ 2 * 2
+      if d < bestD then best, bestD = c, d end
+    end
+    near[k] = best
+    return best
+  end
+  local out = love.image.newImageData(w, h)
+  for y = 0, h - 1 do
+    for x = 0, w - 1 do
+      local r, g, b, a = src:getPixel(x, y)
+      if a > 0 then
+        local cr, cg, cb = rgb(nearest(key(r, g, b)))
+        out:setPixel(x, y, cr / 31, cg / 31, cb / 31, 1)
+      end
+    end
+  end
+  return out
+end
+
 function gen3.init(mod, ctx)
   local GameVersion = require("src.core.GameVersion")
   local version = GameVersion.get()
@@ -210,6 +259,34 @@ function gen3.init(mod, ctx)
     return record or vanilla
   end
 
+  -- Scenes drawn the GBA way (Emerald's cable car) build a 4-bit sheet
+  -- from OwSprites.get and refuse one with more than 15 colours, which
+  -- most sets' art has. A sheet they refuse is handed over again cut
+  -- down to 15 (gen3.fifteen), for that scene only -Elvie
+  -- ---------------------------------------------
+  local okSheet, OwSheet = pcall(require, "src.ui.game3.rse.ow_sheet")
+  if okSheet and type(OwSheet) == "table" and type(OwSheet.build) == "function" then
+    local ownBuild = OwSheet.build
+    OwSheet.build = function(graphicsId, ...)
+      local ok, got = pcall(ownBuild, graphicsId, ...)
+      if ok then return got end
+      if not tostring(got):find("more than 15 colours", 1, true) then error(got, 0) end
+      local get = OwSprites.get
+      OwSprites.get = function(id, ...)
+        local spr = get(id, ...)
+        if id ~= graphicsId or type(spr) ~= "table" or not spr.imageData then return spr end
+        local copy = {}
+        for k, v in pairs(spr) do copy[k] = v end
+        copy.imageData = gen3.fifteen(spr.imageData)
+        return copy
+      end
+      local ok2, again = pcall(ownBuild, graphicsId, ...)
+      OwSprites.get = get
+      if not ok2 then error(again, 0) end
+      return again
+    end
+  end
+
   -- Engine caches
   -- Reflections are recoloured from the drawn sprite and kept per id, and
   -- a palette override keeps its own copy. On a change of set these are
@@ -223,6 +300,8 @@ function gen3.init(mod, ctx)
       if type(ov) == "table" then ov.spr = nil end
       if type(fxRse) == "table" and type(fxRse._images) == "table" then fxRse._images[id] = nil end
     end
+    local sheets = package.loaded["src.ui.game3.rse.ow_sheet"]
+    if type(sheets) == "table" and type(sheets.reset) == "function" then pcall(sheets.reset) end
     replaced = {}
   end
 

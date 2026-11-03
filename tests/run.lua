@@ -68,6 +68,12 @@ local function pixelData(w, h)
       assert(x >= 0 and x < w and y >= 0 and y < h, ("setPixel %d,%d outside %dx%d"):format(x, y, w, h))
       px[y * w + x] = { r, g, b, a }
     end,
+    paste = function(self, src, dx, dy, sx, sy, sw, sh)
+      for y = 0, sh - 1 do for x = 0, sw - 1 do
+        local r, g, b, a = src:getPixel(sx + x, sy + y)
+        if dx + x >= 0 and dx + x < w and dy + y >= 0 and dy + y < h then px[(dy + y) * w + dx + x] = { r, g, b, a } end
+      end end
+    end,
     -- raw RGBA bytes, as ImageData:getString gives them -Elvie
     getString = function()
       local out = {}
@@ -1307,7 +1313,7 @@ for _, version in ipairs({ "firered", "emerald" }) do
   -- hooks first -Elvie
   local lensOpened = 0
   local V = require("mods.facets.prism")
-  local lensEntry = { id = "emerald_lens", label = "EMERALD LENS", short = "LENS",
+  local lensEntry = { id = "emerald_lens", label = "EMERALD LENS", short = "LENS", order = 10,
     value = function() return "KRIS" end, open = function() lensOpened = lensOpened + 1 end }
   local lensPicker = V.picker()
   local base = function() return { { id = "pokedex" }, { id = "mods" }, { id = "exit" } } end
@@ -1919,6 +1925,31 @@ do
   fire("battle.started", { kind = "wild" })
   fire("battle.ended", { result = "win" })
   eq(unlocked.time_traveler, true, "achievements: both looks earn Time Traveler")
+  -- the Game Boy games' own -Elvie
+  local gb = { classic = true, npcs = "__off", trainers = "__off", mons = "gb_crystal", side = "back",
+    look = "off", where = "screen", dots = "off", shades = "4", icons = "crystal", pikachu = "game",
+    windows = "game", size = "fit" }
+  eq(A.earned(gb, "trainer").ids.crystal_clear, true, "achievements: Crystal's Pokemon and icons on Gen 1: Crystal Clear")
+  eq(A.earned(gb, "wild").ids.crystal_clear, nil, "achievements: ...in a trainer battle")
+  gb.icons = "game"
+  eq(A.earned(gb, "trainer").ids.crystal_clear, nil, "achievements: ...with the icons too")
+  gb.pikachu, gb.windows, gb.size = "ash", "tito:10", "1"
+  local g = A.earned(gb, "wild", "cave")
+  eq(tostring(g.pikachu) .. g.windows .. tostring(g.ids.big_picture), "truetito:10true",
+    "achievements: a PIKACHU look, a WINDOWS style and 1X with a scene count")
+  eq(A.earned(gb, "wild").ids.big_picture, nil, "achievements: The Big Picture needs a scene")
+  local byId = {}
+  for _, d in ipairs(A.LIST) do byId[d.id] = d end
+  eq(byId.go_back.games[1], "ruby", "achievements: We have to go Back... is Gen 3's")
+  eq(byId.pika_pika.games[1] .. #byId.pika_pika.games, "yellow1", "achievements: Pika Pika! is Yellow's")
+  local cr = require("mods.facets.classic_credits")
+  local cmod = newMod(ROOT)
+  cmod.find = function(id) return id == "recomp_achievements" and { exports = fake } or nil end
+  A.init(cmod, nil, nil, true)()
+  cr.onEnd()
+  eq(unlocked.roll_credits, true, "achievements: the CREDITS page's end earns Roll the Credits")
+  cr.onEnd = nil
+
   local none = newMod(ROOT)
   none.find = function() return nil end
   A.init(none)()
@@ -1976,6 +2007,468 @@ do
   disk.reset()
 end
 
+
+-- Gen 2 Pokémon pictures: cut, fit, mirror and which file -Elvie
+do
+  local classic = require("mods.facets.classic_mons")
+  local d = love.image.newImageData(64, 64)
+  -- art at x 4..63, y 2..61: 60 wide, 60 tall, a marker at the bottom left -Elvie
+  for y = 2, 61 do for x = 4, 63 do d:setPixel(x, y, 0.5, 0.5, 0.5, 1) end end
+  d:setPixel(4, 61, 1, 0, 0, 1)
+  local x0, y0, x1, y1 = classic.bounds(d)
+  eq(x0 .. "," .. y0 .. "," .. x1 .. "," .. y1, "4,2,63,61", "classic: bounds find the art")
+  eq(classic.bounds(love.image.newImageData(4, 4)), nil, "classic: an empty picture has no bounds")
+  eq(classic.fitScale(40, 40, 56), 1, "classic: small art isn't grown")
+  eq(classic.fitScale(60, 30, 48), 0.8, "classic: big art shrinks by its longer side")
+  local cut = classic.build(d, nil, false)
+  eq(select(1, cut:getDimensions()) .. "x" .. select(2, cut:getDimensions()), "60x60", "classic: cut to the art")
+  local fit = classic.build(d, 56, false)
+  eq(select(1, fit:getDimensions()) .. "x" .. select(2, fit:getDimensions()), "56x56", "classic: fit to the front box")
+  local r = fit:getPixel(0, 55)
+  eq(r, 1, "classic: the bottom row stays the bottom row")
+  local m = classic.build(d, 56, true)
+  eq((m:getPixel(55, 55)), 1, "classic: mirrored")
+  local edged = love.image.newImageData(32, 62)
+  for y = 0, 61 do edged:setPixel(31, y, 0, 0, 1, 1); edged:setPixel(0, y, 0, 1, 0, 1) end
+  local shrunk = classic.build(edged, nil, false, 0.75)
+  eq(select(1, shrunk:getDimensions()) .. "x" .. select(2, shrunk:getDimensions()), "24x47", "classic: 0.75X shrinks by itself")
+  eq(select(3, shrunk:getPixel(23, 20)) .. select(2, shrunk:getPixel(0, 20)), "11", "classic: ...keeping the outline on both sides")
+  local small = love.image.newImageData(20, 30)
+  small:setPixel(0, 29, 1, 0, 0, 1)
+  local sq = classic.square(small, 56)
+  eq(select(1, sq:getDimensions()) .. "x" .. select(2, sq:getDimensions()), "56x56", "classic: a small picture in the box's square")
+  eq((sq:getPixel(18, 55)), 1, "classic: ...centred across, on the bottom row")
+  eq(classic.square(fit, 56), fit, "classic: a full box is left as it is")
+
+  local files = { ["assets/mons/ds/front/006.png"] = true, ["assets/mons/ds/back/006.png"] = true,
+    ["assets/mons/ds/front_shiny/006.png"] = true }
+  local opts = { set = "ds", size = "fit", side = "back", has = function(rel) return files[rel] end }
+  local p = classic.choose(opts, 6, "front", "battle", false)
+  eq(p and p.rel, "assets/mons/ds/front/006.png", "classic: a front")
+  eq(p and p.box, 56, "classic: FIT fits fronts to 56")
+  eq(p and p.path, "facets/classic/ds/front/006@56.png", "classic: its own path")
+  p = classic.choose(opts, 6, "back", "battle", true)
+  eq(p and p.rel, "assets/mons/ds/back/006.png", "classic: no shiny back, the plain one")
+  eq(p and p.box, 48, "classic: FIT fits backs to 48")
+  eq(classic.choose(opts, 6, "front", "battle_anim", false), nil, "classic: animations stay the game's own")
+  local saved = classic.BOX
+  classic.BOX = { front = 56, back = 64, hofBack = 28 }
+  p = classic.choose(opts, 6, "back", "hof", false)
+  eq(p and p.box, 28, "classic: Gen 1's HALL OF FAME back is 28, doubled")
+  p = classic.choose(opts, 6, "front", "summary", false)
+  eq(p and p.box, 56, "classic: a summary front keeps the front box")
+  classic.BOX = saved
+  eq(classic.choose(opts, 7, "front", "battle", false), nil, "classic: a missing Pokemon stays the game's own")
+  eq(classic.choose(opts, nil, "front", "battle", false), nil, "classic: no dex number, the game's own")
+  opts.side = "mirrored"
+  p = classic.choose(opts, 6, "back", "battle", true)
+  eq(p and p.rel, "assets/mons/ds/front_shiny/006.png", "classic: YOUR SIDE uses the front, shiny too")
+  check(p and p.mirror and p.box == 56, "classic: mirrored, at a front's size")
+  p = classic.choose(opts, 6, "back", "summary", false)
+  check(p and p.rel:find("/back/") and not p.mirror, "classic: YOUR SIDE is battle only")
+  opts.size = "0.75"
+  p = classic.choose(opts, 6, "front", "battle", false)
+  check(p and p.scale == 0.75 and p.box == nil and p.path:find("@cut"), "classic: a fixed scale cuts and scales")
+  p = classic.choose(opts, 6, "front", "pokedex", false)
+  check(p and p.scale == nil and p.box == 56, "classic: other screens always fit")
+  opts.set = "__off"
+  eq(classic.choose(opts, 6, "front", "battle", false), nil, "classic: OFF is the game's own")
+  local icons = { ["assets/mons/gbcish/icons/025.png"] = true }
+  local iconHas = function(rel) return icons[rel] end
+  eq(classic.iconFor("minidex", 25, iconHas), "assets/mons/gbcish/icons/025.png", "classic: a Minidex icon")
+  eq(classic.iconFor("minidex", 26, iconHas), nil, "classic: no icon, the game's own")
+  eq(classic.iconFor("game", 25, iconHas), nil, "classic: ICONS on GAME")
+  eq(classic.iconFor("minidex", 300, iconHas), nil, "classic: nothing past Johto")
+  local def = { spriteFront = "f.png", spriteBack = "b.png",
+    letters = { B = { spriteFront = "fb.png", spriteBack = "bb.png" } } }
+  eq(classic.frontFor(def, "b.png"), "f.png", "classic: the game's own front for a back")
+  eq(classic.frontFor(def, "bb.png"), "fb.png", "classic: Unown keeps its letter")
+  eq(classic.frontFor(nil, "b.png"), nil, "classic: no record, no front")
+  local f = require("mods.facets.classic").flip(d)
+  eq((f:getPixel(59, 61)), 1, "classic: flipped, same size")
+end
+
+
+-- Gen 2 trainer pictures: by the Gen 2 class, then the Gen 3 stand-in -Elvie
+do
+  local foes = require("mods.facets.classic_foes")
+  local files = { ["assets/trainers/ds/YOUNGSTER.png"] = true, ["assets/trainers/ds/FALKNER.png"] = true,
+    ["assets/trainers/ds/LEADER_BROCK.png"] = true, ["assets/trainers/ds/RIVAL_EARLY.png"] = true }
+  local opts = { set = "ds", size = "fit", has = function(rel) return files[rel] end }
+  local p = foes.choose(opts, "YOUNGSTER")
+  eq(p and p.rel, "assets/trainers/ds/YOUNGSTER.png", "classic foes: same name")
+  eq(p and p.box, 56, "classic foes: fit to the box")
+  eq(p and p.path, "facets/classic/trainers/ds/YOUNGSTER@56.png", "classic foes: its own path")
+  eq((foes.choose(opts, "BROCK") or {}).rel, "assets/trainers/ds/LEADER_BROCK.png", "classic foes: the Gen 3 name")
+  eq((foes.choose(opts, "FALKNER") or {}).rel, "assets/trainers/ds/FALKNER.png", "classic foes: a Johto file by its own name")
+  eq(foes.choose(opts, "BUGSY"), nil, "classic foes: no art, the game's own")
+  eq(foes.choose(opts, "RIVAL1"), nil, "classic foes: the rival is Crystal Lens's")
+  files["assets/trainers/ds/CAMPER.png"] = true
+  eq((foes.choose(opts, "JR_TRAINER_M") or {}).rel, "assets/trainers/ds/CAMPER.png", "classic foes: Gen 1's Jr. Trainer as a Camper")
+  eq(foes.choose(opts, "RIVAL3"), nil, "classic foes: Gen 1's rival stays too")
+  eq(foes.choose(opts, nil), nil, "classic foes: no class, the game's own")
+  opts.size = "0.5"
+  p = foes.choose(opts, "YOUNGSTER")
+  check(p and p.scale == 0.5 and not p.box, "classic foes: TRAINER SIZE scales")
+  opts.set = "__off"
+  eq(foes.choose(opts, "YOUNGSTER"), nil, "classic foes: OFF")
+  for class, name in pairs(foes.NAMES) do
+    check(io.open(ROOT .. "/assets/trainers/ds/" .. name .. ".png") ~= nil, "classic foes: DS has " .. name .. " for " .. class)
+  end
+end
+
+
+-- Gen 2 NPCs: which sheet, and the 9 frames cut to 6 -Elvie
+do
+  local npcs2 = require("mods.facets.classic_npcs")
+  local names = npcs2.namesFrom({
+    frlg = { YOUNGSTER = { sprite = "youngster" }, BOY = { sprite = "youngster" }, WOMAN_1 = { sprite = "girl" } },
+    rse = { EXPERT_M = { sprite = "sage" }, TEALA = "teacher", CAMPER = { sprite = "youngster" } } })
+  eq(table.concat(names.YOUNGSTER, ","), "YOUNGSTER,BOY,CAMPER", "classic npcs: the same name first, then the rest")
+  eq(table.concat(names.SAGE, ","), "EXPERT_M", "classic npcs: R/S/E names too")
+  eq(table.concat(names.TEACHER, ","), "TEALA", "classic npcs: a plain string entry")
+  eq(table.concat(npcs2.candidates("SPRITE_GIRL", names), ","), "GIRL,WOMAN_1", "classic npcs: its own name, then Gen 3's")
+  eq(table.concat(npcs2.candidates("SPRITE_OFFICER", names), ","), "OFFICER,POLICEMAN", "classic npcs: a stand-in last")
+  eq(npcs2.candidates("SPRITE_CHRIS", names), nil, "classic npcs: the player is Crystal Lens's")
+  local have = { ["assets/npcs/diego/gen3/rse/TEALA.png"] = true, ["assets/npcs/johto_ds/gen3/johto/TEACHER.png"] = true }
+  eq(npcs2.find({ "diego", "johto_ds" }, { "TEACHER", "TEALA" }, function(rel) return have[rel] end),
+    "assets/npcs/johto_ds/gen3/johto/TEACHER.png", "classic npcs: the person's own name in any set beats a stand-in")
+  eq(npcs2.find({ "diego", "johto_ds" }, { "LASS", "TEALA" }, function(rel) return have[rel] end),
+    "assets/npcs/diego/gen3/rse/TEALA.png", "classic npcs: then the stand-ins, chosen set first")
+  eq(table.concat(npcs2.candidates("SPRITE_FISHING_GURU", names, 1), ","), "FISHING_GURU,FISHER", "classic npcs: Kanto's Fishing Guru is FireRed's Fisher")
+  eq(table.concat(npcs2.candidates("SPRITE_FISHING_GURU", names, 2), ","), "FISHING_GURU,FISHERMAN", "classic npcs: Johto's is Emerald's Fisherman")
+  eq(table.concat(npcs2.candidates("SPRITE_WAITER", names), ","), "WAITER,COOK", "classic npcs: the Waiter is Emerald's Cook")
+  eq(npcs2.candidates("SPRITE_MOM", names, 2)[1], "MOM_JOHTO", "classic npcs: Crystal's Mom is Johto's")
+  eq(npcs2.candidates("SPRITE_MOM", names, 1)[1], "MOM", "classic npcs: Red's is Kanto's")
+  eq(npcs2.candidates("SPRITE_RIVAL", names), nil, "classic npcs: so is the rival")
+  eq(npcs2.candidates("YOUNGSTER", names), nil, "classic npcs: not a sprite id")
+  local files = { ["assets/npcs/taiga/gen3/rse/TEALA.png"] = true, ["assets/npcs/diego/gen3/frlg/WOMAN_1.png"] = true,
+    ["assets/npcs/taiga/gen3/frlg/WOMAN_1.png"] = true }
+  local has = function(rel) return files[rel] end
+  eq(npcs2.find({ "diego", "taiga" }, { "GIRL", "WOMAN_1" }, has), "assets/npcs/diego/gen3/frlg/WOMAN_1.png", "classic npcs: the chosen set first")
+  eq(npcs2.find({ "diego", "taiga" }, { "TEACHER", "TEALA" }, has), "assets/npcs/taiga/gen3/rse/TEALA.png", "classic npcs: then the next set, either family")
+  eq(npcs2.find({ "diego" }, { "KURT" }, has), nil, "classic npcs: no sheet, the game's own")
+  local fw, fh = npcs2.frameSize(32, 288)
+  eq(fw .. "x" .. fh, "32x32", "classic npcs: 32x32 frames")
+  fw, fh = npcs2.frameSize(16, 320)
+  eq(fw .. "x" .. fh, "16x32", "classic npcs: an extra frame still 32 tall")
+  local src = love.image.newImageData(16, 288)
+  for f = 0, 8 do src:setPixel(f, f * 32 + 31, 1, 0, 0, 1) end
+  local out = npcs2.sheet(src)
+  eq(select(2, out:getDimensions()), 288, "classic npcs: 6 frames and the 3 second steps")
+  local marks = {}
+  for i = 0, 8 do
+    for x = 0, 15 do
+      local _, _, _, a = out:getPixel(x, i * 32 + 31)
+      if a > 0 then marks[#marks + 1] = x end
+    end
+  end
+  eq(table.concat(marks, ","), "0,1,2,3,5,7,4,6,8", "classic npcs: stand, one step each way, then the second steps")
+end
+
+-- Gen 2 GBA look: FireRed's and Emerald's own pictures, found by name -Elvie
+do
+  local gba = require("mods.facets.classic_gba")
+  check(gba.isChoice("gba_firered") and gba.isChoice("gba_emerald") and not gba.isChoice("ds"), "gba: its two choices")
+  eq(gba.ORDER.gba_emerald[1], "emerald", "gba: EMERALD reads Emerald first")
+  eq(gba.ORDER.gba_firered[2], "leafgreen", "gba: FIRERED reads LeafGreen next")
+  local ids = require("mods.facets.gba_ids")
+  check(ids.firered.ow.NURSE and ids.emerald.ow.NURSE and ids.firered.pics.YOUNGSTER, "gba: the id tables have both games")
+  eq(gba.image(string.rep("\0", 8), 2, 2), nil, "gba: a picture of the wrong size is refused")
+  check(gba.image(string.rep("\0", 16), 2, 2) ~= nil, "gba: raw RGBA becomes a picture")
+  eq(gba.monPicture("gba_firered", 300, "front", false), nil, "gba: nothing past Johto")
+
+  local mons2 = require("mods.facets.classic_mons")
+  local asked
+  local opts = { set = "gba_emerald", size = "fit", side = "back", has = function() return false end,
+    gbaFind = function(choice, dex, face, shiny) asked = { choice, dex, face, shiny }
+      return { game = "emerald", rel = "pokemon/" .. face .. "/" .. dex .. ".rgba", w = 64, h = 64 } end }
+  local p = mons2.choose(opts, 6, "front", "battle", false)
+  eq(p and p.path, "facets/classic/gba_emerald/emerald/pokemon/front/6@56.png", "gba: a Pokémon picture's own path")
+  check(p and type(p.load) == "function", "gba: it's made from the game's cache")
+  eq(asked and table.concat({ asked[1], asked[2], asked[3] }, ","), "gba_emerald,6,front", "gba: asked for the right picture")
+  eq(mons2.choose(opts, 201, "front", "battle", false), nil, "gba: Unown stays the game's own")
+  opts.side = "mirrored"
+  p = mons2.choose(opts, 6, "back", "battle", false)
+  check(p and p.mirror and asked[3] == "front", "gba: YOUR SIDE asks for the front")
+
+  local foes2 = require("mods.facets.classic_foes")
+  local names
+  local fopts = { set = "gba_firered", size = "fit", has = function() return false end,
+    gbaFind = function(choice, list) names = list
+      return { game = "firered", rel = "trainers/front/3.rgba", w = 64, h = 64 } end }
+  p = foes2.choose(fopts, "BROCK")
+  eq(names and names[1], "LEADER_BROCK", "gba: a trainer by the Gen 3 picture name")
+  eq(p and p.path, "facets/classic/trainers/gba_firered/firered/trainers/front/3@56.png", "gba: a trainer picture's own path")
+end
+
+-- Gen 2 battle backgrounds: which scene, and the part the screen shows -Elvie
+do
+  local sc = require("mods.facets.classic_scenes")
+  eq(sc.pick({ map = "VIOLET_GYM", environment = "INDOOR", tileset = "TILESET_FACILITY" }), "gym", "scenes: a gym")
+  eq(sc.pick({ map = "ROUTE_29", environment = "ROUTE", tileset = "TILESET_JOHTO" }), "grass", "scenes: a wild one on a route")
+  eq(sc.pick({ map = "ROUTE_29", environment = "ROUTE", trainer = true }), "route", "scenes: a trainer on a route")
+  eq(sc.pick({ map = "ROUTE_40", environment = "ROUTE", surfing = true }), "sea", "scenes: surfing")
+  eq(sc.pick({ map = "DARK_CAVE_VIOLET_ENTRANCE", environment = "CAVE", tileset = "TILESET_DARK_CAVE" }), "cave", "scenes: a cave")
+  eq(sc.pick({ map = "ICE_PATH_1F", environment = "CAVE", tileset = "TILESET_ICE_PATH" }), "snow_cave", "scenes: the Ice Path")
+  eq(sc.pick({ map = "ILEX_FOREST", environment = "DUNGEON", tileset = "TILESET_FOREST" }), "forest", "scenes: a forest")
+  eq(sc.pick({ map = "SILVER_CAVE_ROOM_3", environment = "CAVE" }), "snow_mountain", "scenes: Mt. Silver")
+  eq(sc.pick({ map = "LANCES_ROOM", environment = "INDOOR", tileset = "TILESET_CHAMPIONS_ROOM" }), "space", "scenes: the champion")
+  eq(sc.pick({ map = "NEW_BARK_TOWN", environment = "TOWN" }), "town", "scenes: a town")
+  eq(sc.pick({ map = "ELMS_LAB", environment = "INDOOR", tileset = "TILESET_LAB" }), "lab", "scenes: a lab")
+  eq(sc.pick({}), "neutral", "scenes: nowhere in particular")
+  local x, y, w, h = sc.crop(240, 112)
+  eq(table.concat({ x, y, w, h }, ","), "40,16,160,96", "scenes: the middle, keeping the ground")
+  x, y, w, h = sc.crop(240, 112, 240)
+  eq(table.concat({ x, y, w, h }, ","), "0,16,240,96", "scenes: the whole width in a wide battle")
+end
+
+-- Gen 2 OPTION menu: the FACETS page's rows and stepping -Elvie
+do
+  local cm = require("mods.facets.classic_menu")
+  local rows = {
+    { key = "sectionClassicNpcs", label = "NPCS", choices = { { "", "_" } } },
+    { key = "classicNpcs", label = "  SET", choices = { { "DIEGO", "diego" }, { "OFF", "__off" } } },
+    { key = "classicSide", label = "  YOUR SIDE", choices = { { "BACK", "back" }, { "FRONT", "front" } } },
+    { key = "classicBattleBg", label = "BATTLE BG", choices = { { "GAME", "game" }, { "SCENERY", "scenery" } } },
+  }
+  local e = cm.entries(rows)
+  eq(#e, 3, "options page: headings aren't rows")
+  eq(e[1].label .. "," .. e[2].label .. "," .. e[3].label, "NPCS,YOUR SIDE,BATTLE BG", "options page: a SET is named by its heading")
+  eq(cm.step(e[1].choices, "diego", 1), "__off", "options page: the next choice")
+  eq(cm.step(e[1].choices, "__off", 1), "diego", "options page: wraps round")
+  eq(cm.step(e[1].choices, "diego", -1), "__off", "options page: and back")
+  local sized = {}
+  require("mods.facets.classic").sizeRow(sized, "classicSize")
+  local se = cm.entries({ { key = "sectionClassicTrainers", label = "TRAINERS", choices = { { "", "_" } } },
+    { key = "classicTrainerSize", label = "  SIZE", choices = sized[1].choices },
+    { key = "sectionClassicMons", label = "POKEMON", choices = { { "", "_" } } },
+    { key = "classicSize", label = "  SIZE", choices = sized[1].choices } })
+  eq(se[1].label .. "," .. se[2].label, "TRAINER SIZE,POKEMON SIZE", "options page: each SIZE named by its heading")
+  local names = {}
+  for _, c in ipairs(sized[1].choices) do names[#names + 1] = c[1] .. "=" .. c[2] end
+  eq(table.concat(names, " "), "FIT=fit FULL=1 SMALL=0.75 TINY=0.5", "options page: FIT, FULL, SMALL, TINY")
+end
+
+-- PRISM on the Game Boy games: where the item goes, and the lens first -Elvie
+do
+  local P = require("mods.facets.prism")
+  local mod = { ui = { push = function() end } }
+  local a = { id = "facets", label = "FACETS", short = "FACETS", order = 20, open = function() end }
+  local b = { id = "crystal_lens", label = "CRYSTAL LENS", short = "LENS", order = 10, open = function() end }
+  local out = P.addStartGb(mod, { { label = "SAVE" }, { label = "OPTION" }, { label = "MODS" }, { label = "QUIT" } }, a, {}, "s")
+  eq(out[3].label .. "," .. out[4].label, "FACETS,MODS", "prism gb: just above MODS")
+  out = P.addStartGb(mod, { { label = "SAVE" }, { label = "QUIT" } }, a, {}, "s")
+  eq(out[2].label, "FACETS", "prism gb: above QUIT with no MODS")
+  out = P.addStartGb(mod, out, b, {}, "t")
+  eq(#out .. "," .. out[2].label .. "," .. out[2].entries[1].label .. "," .. out[2].screen, "3,PRISM,CRYSTAL LENS,s",
+    "prism gb: a second mod makes it PRISM, the lens first, on the first screen")
+  out = P.addStartGb(mod, { { label = "SAVE" }, { label = "LENS", onSelect = function() end }, { label = "MODS" } }, a, {}, "s")
+  eq(out[3].label, "FACETS", "prism gb: just under another mod's own LENS")
+  local rows = P.addOptionGb(mod, { { id = "text_speed" }, { label = "BACK", cancel = true } }, a, {}, "s")
+  eq(rows[2].label .. "," .. rows[3].label, "FACETS,BACK", "prism gb: OPTION row before BACK")
+  rows = P.addOptionGb(mod, rows, b, {}, "t")
+  eq(#rows .. "," .. rows[2].label, "3,PRISM", "prism gb: one PRISM row")
+end
+
+-- Game Boy trainer art in a set's gb/ folder comes first, and Gen 3 never
+-- looks there -Elvie
+do
+  local foes = require("mods.facets.classic_foes")
+  local files = { ["assets/trainers/ds/gb/FALKNER.png"] = true, ["assets/trainers/ds/gb/FIREBREATHER.png"] = true,
+    ["assets/trainers/ds/KINDLER.png"] = true, ["assets/trainers/ds/CAMPER.png"] = true }
+  local opts = { set = "ds", size = "fit", has = function(rel) return files[rel] end }
+  eq(foes.choose(opts, "FALKNER").rel, "assets/trainers/ds/gb/FALKNER.png", "foes: a Johto leader from gb/")
+  eq(foes.choose(opts, "FIREBREATHER").rel, "assets/trainers/ds/gb/FIREBREATHER.png", "foes: gb/ art beats a stand-in")
+  eq(foes.choose(opts, "JR_TRAINER_M").rel, "assets/trainers/ds/CAMPER.png", "foes: stand-ins still work")
+  eq(foes.gen1Class({ picJessieJames = "x" }, "OPP_ROCKET", 42), "JESSIE_JAMES", "foes: Yellow's Jessie and James aren't Grunts")
+  local gopts = { set = "gba_firered", size = "fit", has = opts.has, gbaFind = function() return nil end }
+  eq(foes.choose(gopts, "FALKNER").rel, "assets/trainers/ds/gb/FALKNER.png", "foes: FIRERED falls back to the DS set's gb/")
+  files["assets/trainers/ds/gb_hns/FALKNER.png"] = true
+  files["assets/trainers/ds/gb_hns/SKIER.png"] = true
+  eq(foes.choose(gopts, "FALKNER").rel, "assets/trainers/ds/gb_hns/FALKNER.png", "foes: ...Heart & Soul's GBA-style one first")
+  eq(foes.choose(opts, "FALKNER").rel, "assets/trainers/ds/gb/FALKNER.png", "foes: DS keeps its own")
+  eq(foes.choose(opts, "SKIER").rel, "assets/trainers/ds/gb_hns/SKIER.png", "foes: DS falls back to Heart & Soul")
+  eq(foes.choose(gopts, "NOBODY"), nil, "foes: a class with no picture anywhere stays the game's")
+  eq(foes.gen1Class({ picJessieJames = "x" }, "OPP_ROCKET", 3), "ROCKET", "foes: an ordinary Rocket is")
+  eq(foes.choose(opts, "JESSIE_JAMES"), nil, "foes: no picture of them, so the game's own")
+end
+
+-- Big pictures under Gen 2's move animations: the part outside the box
+-- moves as the box's edge line did -Elvie
+do
+  local b = require("mods.facets.classic_bands")
+  local lines = {}
+  for row = 0, 143 do
+    -- the player's half (rows 48-95) drawn 8 lower, shifted 2 left -Elvie
+    if row >= 56 and row < 104 then lines[#lines + 1] = { src = row - 8, dest = row, dx = -2 }
+    elseif row < 48 or row >= 104 then lines[#lines + 1] = { src = row, dest = row, dx = 0 } end
+  end
+  local dx, dy = b.edge(lines, 48, b.BOX.player, false)
+  eq(dx .. "," .. dy, "-2,8", "bands: above the box moves with the box's top line")
+  dx, dy = b.edge(lines, 0, b.BOX.enemy, false)
+  eq(dx .. "," .. dy, "0,0", "bands: the enemy's box didn't move")
+  eq(b.edge({}, 48, b.BOX.player, false), nil, "bands: nothing of the box shows")
+  local slide = b.slideLines(200, 8)
+  eq(slide[1].dx .. "," .. slide[0x41].dx .. "," .. slide[0x61].dx, "56,-8,0", "bands: the intro slide's three bands")
+  eq(b.signed(0xF8), -8, "bands: a register byte as signed")
+end
+
+-- WINDOWS on the Game Boy games: which art a box gets, and where the
+-- text box's tiles go -Elvie
+do
+  local w = require("mods.facets.classic_windows")
+  eq(w.kind(20, 6), "dialogue", "windows: the six-row box is the text box")
+  eq(w.kind(11, 5), "frame", "windows: other boxes get the frame")
+  eq(w.kind(20, 2), nil, "windows: a box under 3 tiles stays the game's")
+  local k, key, n = w.parse("fr:4")
+  eq(k .. key .. n, "frfr4", "windows: FireRed frame 4")
+  eq(w.parse("fr:11"), nil, "windows: FireRed has ten frames")
+  k, key, n = w.parse("tito:2")
+  eq(k .. key .. n, "settito2", "windows: a set's style")
+  local cells, minX, maxX, minY, maxY = 0, 99, -1, 99, -1
+  w.dialogueCells(0, 12, 20, 6, function(_, cx, cy)
+    cells = cells + 1
+    minX, maxX = math.min(minX, cx), math.max(maxX, cx)
+    minY, maxY = math.min(minY, cy), math.max(maxY, cy)
+  end)
+  eq(table.concat({ minX, maxX, minY, maxY }, ","), "0,19,12,17", "windows: the text box's border fills the box's edge")
+  eq(cells, 2 * 20 + 4 * 4, "windows: two rows of 20, four rows of 4 side tiles")
+  local ring = 0
+  w.frameCells(11, 0, 9, 3, function() ring = ring + 1 end)
+  eq(ring, 2 * 9 + 2 * 1, "windows: a frame round its box's border ring")
+  w.textBoxAt = 12
+  eq(w.boxKind(12, 20, 4), "dialogue", "windows: the WINDOWS row's box is the text box")
+  eq(w.boxKind(8, 20, 4), "frame", "windows: the other rows keep the frame")
+  eq(w.boxKind(12, 5, 4), "frame", "windows: too narrow for the text box")
+  w.textBoxAt = nil
+  eq(w.boxKind(12, 20, 4), "frame", "windows: only while the page marks it")
+  local paper = { x = 0, y = 96, w = 160, h = 48, fill = { 248, 200, 120 }, at = 10, calls = 50 }
+  eq(w.paperAt(paper, 8, 112, 10.001, 60), paper.fill, "windows: text in a coloured text box takes its colour")
+  eq(w.paperAt(paper, 8, 80, 10.001, 60), nil, "windows: text above it keeps its white")
+  eq(w.paperAt(paper, 8, 112, 10.5, 60), nil, "windows: a box from an earlier frame doesn't count")
+  eq(w.paperAt(paper, 8, 112, 10.001, 3), nil, "windows: nor one from before the last present")
+  local pal = w.onPaper({ { 255, 255, 255 }, { 1, 1, 1 }, { 2, 2, 2 }, { 0, 0, 0 } }, paper.fill)
+  eq(table.concat(pal[1], ","), "248,200,120", "windows: the letters' paper is the box's colour")
+  eq(pal[4][1], 0, "windows: the ink stays")
+end
+
+-- Emerald's cable car takes 15 colours at most: a sheet with more is cut
+-- down to 15 for it -Elvie
+do
+  local gen3 = require("mods.facets.gen3")
+  local d = love.image.newImageData(20, 1)
+  for x = 0, 19 do d:setPixel(x, 0, x / 31, 0, 0, 1) end
+  d:setPixel(19, 0, 0, 0, 0, 0)
+  local out = gen3.fifteen(d)
+  local seen, n, clear = {}, 0, true
+  for x = 0, 19 do
+    local r, g, b, al = out:getPixel(x, 0)
+    if al > 0 then
+      local k = math.floor(r * 31 + 0.5)
+      if not seen[k] then seen[k] = true; n = n + 1 end
+    elseif x ~= 19 then clear = false end
+  end
+  eq(n, 15, "cable car: 19 colours become 15")
+  eq(clear and select(4, out:getPixel(19, 0)) == 0, true, "cable car: see-through stays see-through")
+  local few = love.image.newImageData(4, 1)
+  eq(gen3.fifteen(few), few, "cable car: a sheet already under 15 is left alone")
+end
+
+-- The GBA look takes FireRed's small walking sheets too -Elvie
+do
+  local gba = require("mods.facets.classic_gba")
+  eq(gba.walks({ 16, 144, false }), true, "gba: a 16x16 walker (Little Boy)")
+  eq(gba.walks({ 16, 288, false }), true, "gba: a 16x32 walker")
+  eq(gba.walks({ 32, 32, false }), false, "gba: one frame isn't a walker")
+  eq(gba.walks({ 16, 144, true }), false, "gba: a thing isn't a walker")
+  local npcsK = require("mods.facets.classic_npcs")
+  eq(select(2, npcsK.frameSize(16, 160)), 16, "gba: ten 16x16 frames are still 16 tall")
+  eq(select(2, npcsK.frameSize(16, 288)), 32, "gba: a 16x32 sheet is 32 tall")
+end
+
+-- CREDITS on the Game Boy games -Elvie
+do
+  local cr = require("mods.facets.classic_credits")
+  eq(cr.plain("HEART & SOUL theo#7722"), "HEART and SOUL theo-7722", "credits: letters the Game Boy font hasn't got")
+  local lines = cr.wrap("Overworld sprites by PurpleZaffre (Zaffre's Overworlds)", 17)
+  local long = 0
+  for _, l in ipairs(lines) do long = math.max(long, #l) end
+  eq(long <= 17, true, "credits: no line past the box")
+  eq(#cr.wrap(string.rep("x", 40), 17), 3, "credits: a word longer than a line is cut")
+  local metas = {
+    ["assets/npcs/community/meta.json"] = { label = "COMMUNITY", credit = { "By KyleDove" } },
+    ["assets/npcs/hns/meta.json"] = { label = "HEART & SOUL", credit = "Heart & Soul team" },
+    ["assets/windows/tito/meta.json"] = { label = "TITO", credit = { "By Tito" } },
+  }
+  local rows = {
+    { key = "classicNpcs", choices = { { "OFF", "__off" }, { "COMMUNITY", "community" }, { "FIRERED", "firered" } } },
+    { key = "classicWindows", choices = { { "GAME", "game" }, { "FIRERED 1", "fr:1" }, { "TITO 1", "tito:1" }, { "TITO 2", "tito:2" } } },
+  }
+  local got = {}
+  for _, e in ipairs(cr.entries(rows, function(rel) return metas[rel] end)) do
+    if e.heading then got[#got + 1] = e.text end
+  end
+  metas["assets/npcs/kalarie/meta.json"] = { label = "KALARIE", credit = "By kalarie" }
+  local withFills = {}
+  for _, e in ipairs(cr.entries(rows, function(rel) return metas[rel] end, { "hns", "kalarie" })) do
+    if e.heading then withFills[#withFills + 1] = e.text end
+  end
+  eq(withFills[4], "NPCS: KALARIE", "credits: every fill-in set")
+  eq(table.concat(got, "|"), "FACETS|NPCS: COMMUNITY|NPCS: HEART & SOUL|WINDOWS: TITO|YOUR OWN GAMES",
+    "credits: each set once, Heart & Soul with the NPCs, own games last")
+end
+
+-- COLORS on the Game Boy games: when Facets holds the full-colour mode -Elvie
+do
+  local c = require("mods.facets.classic_colors")
+  local defaults = { classicNpcs = "__off", filter = "off", classicSize = "fit" }
+  eq(c.holds("full", { classicNpcs = "__off", filter = "off" }, defaults), false, "colors: nothing on, the game's own")
+  eq(c.holds("full", { classicNpcs = "community", filter = "off" }, defaults), true, "colors: a look on holds full colour")
+  eq(c.holds("full", { classicNpcs = "__off", filter = "gray" }, defaults), true, "colors: the filter counts")
+  eq(c.holds("game", { classicNpcs = "community" }, defaults), false, "colors: GAME never holds")
+  eq(c.holds("full", { classicSize = "0.5" }, defaults), false, "colors: a SIZE row alone doesn't count")
+end
+
+-- Gen 2 BATTLE UI in wide battles: FireRed's text, HP bar and colours -Elvie
+do
+  local hud = require("mods.facets.classic_hud")
+  eq(table.concat(hud.glyphs("Ab9"), ","), table.concat({ 0xBB, 0xD6, 0xAA }, ","), "battle ui: letters and digits in FireRed's charmap")
+  eq(#hud.glyphs("A\xe2\x99\x82"), 2, "battle ui: the male mark is one glyph")
+  eq(#hud.glyphs("A~B"), 2, "battle ui: anything else is left out")
+  local px, colour = hud.hpBar(100, 100)
+  eq(px .. colour, "48green", "battle ui: full HP")
+  px, colour = hud.hpBar(40, 100)
+  eq(px .. colour, "19yellow", "battle ui: under half is yellow")
+  px, colour = hud.hpBar(1, 200)
+  eq(px .. colour, "1red", "battle ui: never less than a pixel")
+  px, colour = hud.hpBar(0, 100)
+  eq(px .. colour, "0red", "battle ui: fainted")
+  local c = hud.colours({ palettes = { healthbox = { from = { 0, 8456, 28671, 23387 }, to = { 0, 32767, 0, 31 } } } })
+  eq(("%d,%d,%d"):format(c.text[1], c.cream[1], c.shadow[1]), "1,0,1", "battle ui: a set's palette recolours the text")
+  c = hud.colours({})
+  eq(math.floor(c.cream[3] * 31 + 0.5), 27, "battle ui: FireRed's own cream without one")
+end
+
+-- Achievements on the Game Boy games -Elvie
+do
+  local a = require("mods.facets.achievements")
+  local opts = { classicNpcs = "community", classicTrainers = "ds", classicMons = "ds", classicSide = "mirrored",
+    filter = "off" }
+  local s = a.readClassic(function(k) return opts[k] end)
+  check(s.classic and s.side == "front", "achievements: Gen 1/2 settings, MIRRORED counts as front")
+  local e = a.earned(s, "trainer", nil)
+  check(e.ids.to_the_future and not e.ids.advanced_class, "achievements: To the Future! without battle boxes on Gen 1/2")
+  opts.classicNpcs, opts.classicTrainers, opts.classicMons = "gba_firered", "gba_emerald", "gba_firered"
+  s = a.readClassic(function(k) return opts[k] end)
+  e = a.earned(s, "trainer", "grass")
+  check(e.ids.advanced_class and not e.ids.to_the_future, "achievements: Advanced Class with the GBA look")
+  eq(e.scene, "grass", "achievements: the scene counts for Scenic Route")
+  check(not a.earned(s, "wild", nil).ids.advanced_class, "achievements: a trainer battle only")
+  local listed = false
+  for _, row in ipairs(a.LIST) do if row.id == "advanced_class" then listed = true end end
+  check(listed, "achievements: Advanced Class is registered")
+end
 
 -- Fixes from Emerald Lens: meta.json with a BOM or \u escapes, and the red
 -- info line kept when room is short -Elvie

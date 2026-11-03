@@ -71,10 +71,17 @@ function menu.new(mod, opts)
     if Runtime and Runtime.safeMode then return end
     game = liveGame(game)
     if not game then return end
-    if type(game.options) == "table" then
-      game.options.modOptions = game.options.modOptions or {}
-      game.options.modOptions[mod.id] = game.options.modOptions[mod.id] or {}
-      game.options.modOptions[mod.id][key] = value
+    -- The settings that get saved: game.options in Gold/Silver/Crystal and
+    -- the Gen 3 games, game.save.options in Red/Blue/Yellow (the same table
+    -- in Gold/Silver/Crystal), as the Mods manager writes them -Elvie
+    local saved = {}
+    if type(game.options) == "table" then saved[#saved + 1] = game.options end
+    local fromSave = type(game.save) == "table" and game.save.options
+    if type(fromSave) == "table" and fromSave ~= game.options then saved[#saved + 1] = fromSave end
+    for _, t in ipairs(saved) do
+      t.modOptions = t.modOptions or {}
+      t.modOptions[mod.id] = t.modOptions[mod.id] or {}
+      t.modOptions[mod.id][key] = value
     end
     local loader = game.mods
     if type(loader) == "table" then
@@ -186,6 +193,7 @@ function menu.new(mod, opts)
     local entry = { id = "facets", label = "FACETS", short = "FACETS",
       about = "The look of everything else.",
       colour = { 130, 60, 170 }, -- amethyst -Elvie
+      order = 20, -- under the lens mods in PRISM -Elvie
       draw = function(area, clock) M.drawPreview(area, clock) end,
       value = function()
         local first = M.rows()[1]
@@ -200,7 +208,7 @@ function menu.new(mod, opts)
       if #page.parts > 0 and type(page.entry) == "table" then
         local pageScreen = require("mods.facets.screen").new(mod, page)
         page.screen = pageScreen
-        local e = {}
+        local e = { order = 22 }
         for k, v in pairs(page.entry) do e[k] = v end
         e.open = function(g) pageScreen.open(liveGame(g)) end
         e.value = e.value or function()
@@ -217,7 +225,7 @@ function menu.new(mod, opts)
       M.performance = perfScreen
       entries[#entries + 1] = { id = "facets_performance", label = "PERFORMANCE", short = "PERFORMANCE",
         about = "Facets, built ahead of time.",
-        colour = prebuild.COLOUR,
+        colour = prebuild.COLOUR, order = 21,
         draw = function(area) perf.drawPreview(area) end,
         value = function() return perf.value() end,
         open = function(g) perfScreen.open(liveGame(g)) end,

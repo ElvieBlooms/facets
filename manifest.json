@@ -1,11 +1,11 @@
 {
   "id": "facets",
   "name": "Facets",
-  "version": "0.7.0",
+  "version": "1.0.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
-  "game_version": ">=0.3.91",
+  "game_version": ">=0.3.98",
   "category": "GRAPHICS",
   "priority": 100,
   "dependencies": [],
@@ -16,7 +16,7 @@
   "permissions": [
     "engine_internals"
   ],
-  "description": "New looks for FireRed, LeafGreen, Ruby, Sapphire and Emerald: NPC overworld sprites, Pokémon pictures, icons and animations, and Game Boy screen filters. Companion to Emerald Lens: it leaves the player and the rival alone.",
+  "description": "New looks for FireRed, LeafGreen, Ruby, Sapphire and Emerald, and for Red, Blue, Yellow, Gold, Silver and Crystal: NPC overworld sprites, trainer and Pokémon pictures, battle scenes and boxes, and Game Boy screen filters. Companion to Emerald Lens and Crystal Lens: it leaves the player and the rival alone.",
   "github": "ElvieBlooms/facets",
-  "games": ["gen3"]
+  "games": ["gen3", "gen2", "gen1"]
 }

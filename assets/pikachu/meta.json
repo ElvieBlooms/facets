@@ -1,0 +1,40 @@
+{
+  "looks": [
+    {
+      "key": "hat",
+      "label": "HAT",
+      "credit": "Pikachu Hat overworld by vitorluiscolnago (DeviantArt), free to use with credit"
+    },
+    {
+      "key": "belle",
+      "label": "BELLE",
+      "credit": "Cosplay Pikachu Belle overworld by piphybuilder88 (DeviantArt), free to use with credit"
+    },
+    {
+      "key": "rock_star",
+      "label": "ROCK STAR",
+      "credit": "Cosplay Pikachu Rock Star overworld by piphybuilder88 (DeviantArt), free to use with credit"
+    },
+    {
+      "key": "phd",
+      "label": "PHD",
+      "credit": "Cosplay Pikachu Ph.D. overworld by piphybuilder88 (DeviantArt), free to use with credit"
+    },
+    {
+      "key": "pop_star",
+      "label": "POP STAR",
+      "credit": "Cosplay Pikachu Pop Star overworld by piphybuilder88 (DeviantArt), free to use with credit"
+    },
+    {
+      "key": "libre",
+      "label": "LIBRE",
+      "credit": "Cosplay Pikachu Libre overworld by piphybuilder88 (DeviantArt), free to use with credit"
+    },
+    {
+      "key": "cosplay",
+      "label": "COSPLAY",
+      "credit": "Cosplay Pikachu overworld by piphybuilder88 (DeviantArt), free to use with credit"
+    }
+  ],
+  "battleCredit": "Battle front and back sprites (HAT, COSPLAY, ROCK STAR, BELLE, POP STAR, PHD, LIBRE) by leParagon (Smogon), used with credit"
+}

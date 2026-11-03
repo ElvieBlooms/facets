@@ -61,6 +61,11 @@ function gb.roots()
       roots.monData = AnimData.FRONT:match("^(.*/)[^/]+$")
     end
   end
+  -- The Game Boy games can't load Gen 3's modules; the GBA cache's own
+  -- folder sits in the same data folder -Elvie
+  if not roots.data and okE and type(Extract) == "table" and type(Extract.CACHE_ROOT) == "string" then
+    roots.data = Extract.CACHE_ROOT:match("^(.-)gba/?$")
+  end
   return roots
 end
 function gb.resetRoots() roots = nil end

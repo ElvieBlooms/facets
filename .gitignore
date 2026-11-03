@@ -12,6 +12,14 @@ assets/npcs/*
 !assets/npcs/diego/
 !assets/npcs/zaffre/
 !assets/npcs/community/
+# HEART & SOUL: Johto's people from Pokémon Heart & Soul, credited -Elvie
+!assets/npcs/hns/
+# KALARIE: Yellow's Jessie, James and Officer Jenny by kalarie, credited -Elvie
+!assets/npcs/kalarie/
+# DIONYUS1: DS-style Jessie, James and Officer Jenny by Dionyus1, credited -Elvie
+!assets/npcs/dionyus1/
+# JOHTO DS: DS-style Johto and Kanto people by Jext, KyleDove and figyberries -Elvie
+!assets/npcs/johto_ds/
 # GBC is a name map only: its sprites come from the player's own install. -Elvie
 !assets/npcs/gbc/
 !assets/npcs/gbc_2x/
