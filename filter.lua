@@ -44,6 +44,14 @@ filter.SHADES = {
   crystal = { { 232, 248, 252 }, { 132, 206, 226 }, { 70, 100, 170 }, { 22, 20, 62 } },
 }
 
+-- What each FILTER choice does, for its info line -Elvie
+filter.ABOUT = {
+  off = "The game's own colours.", gray = "Four Game Boy greys.", green = "Four Game Boy greens.",
+  yellow = "Shades of yellow.", gold = "Shades of gold.", crystal = "Shades of crystal.",
+  ruby = "Shades of ruby.", sapphire = "Shades of sapphire.", emerald = "Shades of emerald.",
+  gbc = "Game Boy Color colours.",
+}
+
 -- Brightness cut-offs between the four shades. Gen 3 is bright: half of a
 -- typical scene is brighter than 0.85, so the cuts sit high, or nearly
 -- everything would land in the lightest shade. -Elvie
@@ -313,16 +321,7 @@ function filter.init(mod, rows, menu)
       preview = function(who)
         local look, where, dots = filter.settings(get)
         if who == "filter" then
-          if look == "gray" then return { lines = { { text = "Four Game Boy greys." } } } end
-          if look == "green" then return { lines = { { text = "Four Game Boy greens." } } } end
-          if look == "yellow" then return { lines = { { text = "Shades of yellow." } } } end
-          if look == "gold" then return { lines = { { text = "Shades of gold." } } } end
-          if look == "crystal" then return { lines = { { text = "Shades of crystal." } } } end
-          if look == "ruby" then return { lines = { { text = "Shades of ruby." } } } end
-          if look == "sapphire" then return { lines = { { text = "Shades of sapphire." } } } end
-          if look == "emerald" then return { lines = { { text = "Shades of emerald." } } } end
-          if look == "gbc" then return { lines = { { text = "Game Boy Color colours." } } } end
-          return { lines = { { text = "The game's own colours." } } }
+          return { lines = { { text = filter.ABOUT[look] or filter.ABOUT.off } } }
         elseif who == "where" then
           if where == "map" then return { lines = { { text = "The map; menus and battles" }, { text = "keep their colours." } } } end
           return { lines = { { text = "The whole screen." } } }
