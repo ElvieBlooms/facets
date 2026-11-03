@@ -2028,6 +2028,11 @@ do
   eq(r, 1, "classic: the bottom row stays the bottom row")
   local m = classic.build(d, 56, true)
   eq((m:getPixel(55, 55)), 1, "classic: mirrored")
+  local edged = love.image.newImageData(32, 62)
+  for y = 0, 61 do edged:setPixel(31, y, 0, 0, 1, 1); edged:setPixel(0, y, 0, 1, 0, 1) end
+  local shrunk = classic.build(edged, nil, false, 0.75)
+  eq(select(1, shrunk:getDimensions()) .. "x" .. select(2, shrunk:getDimensions()), "24x47", "classic: 0.75X shrinks by itself")
+  eq(select(3, shrunk:getPixel(23, 20)) .. select(2, shrunk:getPixel(0, 20)), "11", "classic: ...keeping the outline on both sides")
   local small = love.image.newImageData(20, 30)
   small:setPixel(0, 29, 1, 0, 0, 1)
   local sq = classic.square(small, 56)
