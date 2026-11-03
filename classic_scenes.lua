@@ -224,17 +224,50 @@ function scenes.init(mod, rows)
       end
       return self._facetsScene or nil
     end
+    local function drawScene(s, wide)
+      love.graphics.setColor(1, 1, 1, 1)
+      if wide then
+        love.graphics.draw(s.image, s.wide, s.wideX, 0)
+      else
+        love.graphics.draw(s.image, s.quad, 0, 0)
+      end
+    end
+
+    -- A move's animation (and the intro slide) draws the battle into a
+    -- canvas and copies it to the screen in bands, each shifted on its own,
+    -- as the Game Boy scrolls the attacker's half. A scene painted in there
+    -- would tear with them, so while the canvas is drawn it's left
+    -- see-through, and the scene goes under the bands instead, where the
+    -- game fills its own white, and stays still -Elvie
+    local baking, pending = false, nil
+    local okV, AnimView = pcall(require, "src.ui.gen2.BattleAnimView")
+    if okV and type(AnimView) == "table" and type(AnimView.bake) == "function"
+        and type(AnimView.fillBackground) == "function" then
+      local ownBake, ownFill = AnimView.bake, AnimView.fillBackground
+      AnimView.bake = function(...)
+        baking, pending = true, nil
+        local ok, err = pcall(ownBake, ...)
+        baking = false
+        if not ok then error(err, 0) end
+      end
+      AnimView.fillBackground = function(...)
+        local results = { ownFill(...) }
+        if pending then drawScene(pending.s, pending.wide) end
+        pending = nil
+        return unpack(results)
+      end
+    end
+
     -- runs fn with Chrome.clear painting the scene after it clears -Elvie
     local function painted(s, wide, fn, ...)
       local clear = Chrome.clear
       Chrome.clear = function(...)
-        clear(...)
-        love.graphics.setColor(1, 1, 1, 1)
-        if wide then
-          love.graphics.draw(s.image, s.wide, s.wideX, 0)
-        else
-          love.graphics.draw(s.image, s.quad, 0, 0)
+        if baking then
+          pending = { s = s, wide = wide }
+          return
         end
+        clear(...)
+        drawScene(s, wide)
       end
       local ok, err = pcall(fn, ...)
       Chrome.clear = clear
