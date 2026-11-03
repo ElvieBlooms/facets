@@ -41,20 +41,25 @@ function classic.fitScale(w, h, box)
 end
 
 -- The art cut to its edge, shrunk to fit box (nearest pixel) when there is
--- one, and flipped when mirror is set. Returns new ImageData, or nil for
--- an empty picture. -Elvie
-function classic.build(src, box, mirror)
+-- one, or by shrink (PICTURE SIZE under 1X), and flipped when mirror is
+-- set. A shrunk picture keeps its first and last row and column, so the
+-- outline round the edges stays. Returns new ImageData, or nil for an
+-- empty picture. -Elvie
+function classic.build(src, box, mirror, shrink)
   local x0, y0, x1, y1 = classic.bounds(src)
   if not x0 then return nil end
   local w, h = x1 - x0 + 1, y1 - y0 + 1
-  local s = classic.fitScale(w, h, box)
+  local s = shrink and math.min(1, shrink) or classic.fitScale(w, h, box)
   local ow, oh = math.max(1, math.floor(w * s + 0.5)), math.max(1, math.floor(h * s + 0.5))
+  local function at(o, n, size)
+    if n <= 1 then return 0 end
+    return math.floor(o * (size - 1) / (n - 1) + 0.5)
+  end
   local out = love.image.newImageData(ow, oh)
   for oy = 0, oh - 1 do
-    -- sample from the bottom up, so the feet stay on the ground line -Elvie
-    local sy = y1 - math.min(h - 1, math.floor((oh - 1 - oy + 0.5) / s))
+    local sy = y0 + at(oy, oh, h)
     for ox = 0, ow - 1 do
-      local sx = x0 + math.min(w - 1, math.floor((ox + 0.5) / s))
+      local sx = x0 + at(ox, ow, w)
       local r, g, b, a = src:getPixel(sx, sy)
       if a > 0 then out:setPixel(mirror and (ow - 1 - ox) or ox, oy, r, g, b, a) end
     end
@@ -182,6 +187,17 @@ function classic.setup(mod)
     return got
   end
   function pics.picture(pick)
+    -- PICTURE SIZE under 1X is shrunk here, not by the engine, so no edge
+    -- is lost -Elvie
+    local shrink = not pick.raw and tonumber(pick.scale) and pick.scale < 1 and pick.scale or nil
+    if shrink then
+      local copy = {}
+      for k, v in pairs(pick) do copy[k] = v end
+      copy.path = pick.path:gsub("%.png$", "") .. "x" .. tostring(shrink) .. ".png"
+      copy.scale = 1
+      copy.shrink = shrink
+      pick = copy
+    end
     if not made[pick.path] then
       made[pick.path] = true
       Assets.compose(pick.path, function()
@@ -189,7 +205,7 @@ function classic.setup(mod)
         local ok, src
         if pick.load then ok, src = pcall(pick.load) else ok, src = pcall(love.image.newImageData, mod.assets:path(pick.rel)) end
         -- raw: already laid out (an animation's still frame) -Elvie
-        local out = ok and src and (pick.raw and src or classic.build(src, pick.box, pick.mirror))
+        local out = ok and src and (pick.raw and src or classic.build(src, pick.box, pick.mirror, pick.shrink))
         if out and pick.square then out = classic.square(out, pick.box) end
         if out then return out end
         mod.log:warn("%s couldn't be read", pick.rel)
