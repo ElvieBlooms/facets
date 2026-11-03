@@ -215,6 +215,15 @@ function classic.init(mod, rows)
       return sheets[path]
     end
     if not gen1 then
+      -- pictures bigger than their box under the move animations -Elvie
+      local okBands, bands = pcall(require, "mods.facets.classic_bands")
+      if okBands and type(bands) == "table" then
+        local done = bands.install(function()
+          local m, t = mod.options:get("classicMons"), mod.options:get("classicTrainers")
+          return (m ~= nil and m ~= OFF) or (t ~= nil and t ~= OFF)
+        end)
+        if not done then mod.log:warn("the battle animation view wasn't found; big pictures may tear in animations") end
+      end
       local okB, BattleState = pcall(require, "src.ui.gen2.BattleState")
       if okB and type(BattleState) == "table" and type(BattleState.animData) == "function" then
         local own = BattleState.animData
