@@ -1919,6 +1919,31 @@ do
   fire("battle.started", { kind = "wild" })
   fire("battle.ended", { result = "win" })
   eq(unlocked.time_traveler, true, "achievements: both looks earn Time Traveler")
+  -- the Game Boy games' own -Elvie
+  local gb = { classic = true, npcs = "__off", trainers = "__off", mons = "gb_crystal", side = "back",
+    look = "off", where = "screen", dots = "off", shades = "4", icons = "crystal", pikachu = "game",
+    windows = "game", size = "fit" }
+  eq(A.earned(gb, "trainer").ids.crystal_clear, true, "achievements: Crystal's Pokemon and icons on Gen 1: Crystal Clear")
+  eq(A.earned(gb, "wild").ids.crystal_clear, nil, "achievements: ...in a trainer battle")
+  gb.icons = "game"
+  eq(A.earned(gb, "trainer").ids.crystal_clear, nil, "achievements: ...with the icons too")
+  gb.pikachu, gb.windows, gb.size = "ash", "tito:10", "1"
+  local g = A.earned(gb, "wild", "cave")
+  eq(tostring(g.pikachu) .. g.windows .. tostring(g.ids.big_picture), "truetito:10true",
+    "achievements: a PIKACHU look, a WINDOWS style and 1X with a scene count")
+  eq(A.earned(gb, "wild").ids.big_picture, nil, "achievements: The Big Picture needs a scene")
+  local byId = {}
+  for _, d in ipairs(A.LIST) do byId[d.id] = d end
+  eq(byId.go_back.games[1], "ruby", "achievements: We have to go Back... is Gen 3's")
+  eq(byId.pika_pika.games[1] .. #byId.pika_pika.games, "yellow1", "achievements: Pika Pika! is Yellow's")
+  local cr = require("mods.facets.classic_credits")
+  local cmod = newMod(ROOT)
+  cmod.find = function(id) return id == "recomp_achievements" and { exports = fake } or nil end
+  A.init(cmod, nil, nil, true)()
+  cr.onEnd()
+  eq(unlocked.roll_credits, true, "achievements: the CREDITS page's end earns Roll the Credits")
+  cr.onEnd = nil
+
   local none = newMod(ROOT)
   none.find = function() return nil end
   A.init(none)()

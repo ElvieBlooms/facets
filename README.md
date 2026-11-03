@@ -469,8 +469,15 @@ With [Recomp Achievements](https://github.com/ElvieBlooms/recomp_achievements) i
 | **Scenic Route** | 15 | Win battles in 8 different SCENERY backgrounds. |
 | **Built to Last** | 5 | Let PREBUILD build and keep everything your settings need. |
 | **Advanced Class** | 10 | Win a trainer battle in Red, Blue, Yellow, Gold, Silver or Crystal with FIRERED or EMERALD people, trainers and Pokémon. |
+| **Crystal Clear** | 10 | Win a trainer battle in Red, Blue or Yellow with POKEMON and ICONS on CRYSTAL. |
+| **Pika Pika!** | 15 | Win 10 battles in Yellow with your Pikachu in one of its PIKACHU looks. |
+| **Window Shopping** | 15 | Win battles in 5 different WINDOWS styles. |
+| **The Big Picture** | 10 | Win a battle with PICTURE SIZE on 1X and SCENERY behind it. |
+| **Roll the Credits** | 5 | Read the FACETS page's CREDITS all the way to the end. |
 
-On the Game Boy games, To the Future! needs DS-era people, DS trainers and DS Pokémon (there are no battle boxes to change outside wide battles), and the filters, YOUR SIDE and SCENERY count there too. Catching a wild Pokémon counts as a win. The scenes and filters you've won in are kept with your save, so Gem Collector and Scenic Route carry on where they left off.
+We have to go Back..., Time Traveler and Built to Last are the Gen 3 games' own. Advanced Class, Window Shopping, The Big Picture and Roll the Credits are Red, Blue, Yellow, Gold, Silver and Crystal's, Crystal Clear is Red, Blue and Yellow's, and Pika Pika! is Yellow's. Each only shows in the games it can be earned in.
+
+On the Game Boy games, To the Future! needs DS-era people, DS trainers and DS Pokémon (there are no battle boxes to change outside wide battles), and the filters, YOUR SIDE and SCENERY count there too. Catching a wild Pokémon counts as a win. The scenes, filters and window styles you've won in are kept with your save, so Gem Collector, Scenic Route and Window Shopping carry on where they left off.
 
 ## Tools
 
