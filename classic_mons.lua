@@ -25,6 +25,7 @@ classic.SIZES = shared.SIZES
 classic.bounds = shared.bounds
 classic.fitScale = shared.fitScale
 classic.build = shared.build
+classic.square = shared.square
 -- Emerald's two frames in the slots order asks for: ImageData, side -Elvie
 function classic.layOut(f0, f1, order, box)
   return shared.sheet({ f0, f1 }, order, box)
@@ -102,10 +103,14 @@ function classic.choose(opts, dex, side, kind, shiny)
     end
     raw = true
   end
+  -- outside battle Gold/Silver/Crystal place a picture by its width, so
+  -- it goes in the box's square -Elvie
+  local square = not battle and box ~= nil and not raw and shared.generation() == 2
   local stem = load and rel or rel:sub(#MONS_DIR + 2)
   return { rel = rel, load = load, raw = raw, grey = grey, box = box, mirror = mirror, scale = scale,
+    square = square or nil,
     path = PREFIX .. stem:gsub("%.png$", "")
-      .. (box and ("@" .. box) or "@cut") .. (mirror and "m" or "") .. ".png" }
+      .. (box and ("@" .. box) or "@cut") .. (mirror and "m" or "") .. (square and "sq" or "") .. ".png" }
 end
 
 -- The game's own front for the back picture it asked for, Unown's letter

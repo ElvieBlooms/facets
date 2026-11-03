@@ -62,6 +62,20 @@ function classic.build(src, box, mirror)
   return out
 end
 
+-- A picture in a box x box square, centred across and on the bottom row,
+-- as the game pads its own small pictures. Gold/Silver/Crystal's POKéDEX
+-- and summary place a picture by its width in tiles, so one cut to its
+-- edge landed in a corner. Returns the picture as it was when it's
+-- bigger than the box -Elvie
+function classic.square(data, box)
+  if not (data and box) then return data end
+  local w, h = data:getDimensions()
+  if w > box or h > box or (w == box and h == box) then return data end
+  local out = love.image.newImageData(box, box)
+  out:paste(data, math.floor((box - w) / 2), box - h, 0, 0, w, h)
+  return out
+end
+
 -- An animation's frames as one sheet: every frame cut to the edge of all
 -- of them together and shrunk by the same amount, so nothing jumps when
 -- the frame changes. Each sits in a square, centred and on the bottom
@@ -176,6 +190,7 @@ function classic.setup(mod)
         if pick.load then ok, src = pcall(pick.load) else ok, src = pcall(love.image.newImageData, mod.assets:path(pick.rel)) end
         -- raw: already laid out (an animation's still frame) -Elvie
         local out = ok and src and (pick.raw and src or classic.build(src, pick.box, pick.mirror))
+        if out and pick.square then out = classic.square(out, pick.box) end
         if out then return out end
         mod.log:warn("%s couldn't be read", pick.rel)
         return love.image.newImageData(1, 1)
