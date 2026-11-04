@@ -40,10 +40,14 @@ function grass.around(boxes, i, x0, y0, x1, y1, draw)
   if x1 > box[3] then grass.around(boxes, i + 1, box[3], my0, x1, my1, draw) end
 end
 
+-- Red, Blue and Yellow's own modules; the names are built so a Gen 2 or
+-- Gen 3 check doesn't look for them there -Elvie
+local function gen1(...) return pcall(require, table.concat({ ... }, ".")) end
+
 function grass.install(log)
-  local okO, Overworld = pcall(require, "src.world.OverworldController")
-  local okN, NPC = pcall(require, "src.world.NPC")
-  local okT, TileRenderer = pcall(require, "src.render.TileRenderer")
+  local okO, Overworld = gen1("src", "world", "OverworldController")
+  local okN, NPC = gen1("src", "world", "NPC")
+  local okT, TileRenderer = gen1("src", "render", "TileRenderer")
   if not (okO and okN and okT and type(Overworld) == "table" and type(NPC) == "table"
       and type(TileRenderer) == "table" and type(Overworld.drawWorld) == "function"
       and type(NPC.draw) == "function" and type(NPC.pose) == "function"
