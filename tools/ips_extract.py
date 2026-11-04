@@ -533,6 +533,40 @@ def survey(vanilla, patched, records, syms):
     return found
 
 
+def layout_sizes(found, patched, syms):
+    """A map's blocks and border run as far as the patched layout header
+    says, not FireRed's size: patches often make maps bigger -Elvie"""
+    for name in list(found):
+        if not name.endswith("_Layout"):
+            continue
+        at = found[name]["start"]
+        if at + 0x1A > len(patched):
+            continue
+        w, h = struct.unpack_from("<ii", patched, at)
+        border, blocks = u32(patched, at + 8), u32(patched, at + 12)
+        bw, bh = patched[at + 0x18] or 2, patched[at + 0x19] or 2
+        if not (0 < w <= 1024 and 0 < h <= 1024):
+            continue
+        # only a real header: both its tilesets are tileset structs. A
+        # patch that moves the layout table can leave a name on the wrong
+        # bytes -Elvie
+        tilesets = [u32(patched, at + 16), u32(patched, at + 20)]
+        def is_tileset(ptr):
+            row = syms.by_start.get(ptr - GBA) if syms else None
+            return bool(row) and row[2].startswith("gTileset_")
+        if syms and not all(is_tileset(p) for p in tilesets):
+            continue
+        for part, ptr, cells in (("_Blockdata", blocks, w * h), ("_Border", border, bw * bh)):
+            if not (GBA <= ptr < GBA + len(patched)):
+                continue
+            start = ptr - GBA
+            if name + part in found:
+                found[name + part].update(start=start, end=start + cells * 2)
+            else:
+                found[name + part] = {"kind": kind_of(name + part), "how": "edited",
+                                      "start": start, "end": start + cells * 2}
+
+
 GFX = re.compile(r"(Tiles|Gfx|Pic|Icon|Glyphs|Image|Sheet)(_|$)")
 PAL = re.compile(r"(Pal|Palette|Palettes)(_|$)")
 
@@ -772,6 +806,7 @@ def main():
                 print("skip %s: %s" % (source, e))
                 continue
             found = survey(vanilla, rom, patch_records(patch), syms)
+            layout_sizes(found, rom, syms)
             if not found:
                 print("%s: changes nothing" % source)
                 continue

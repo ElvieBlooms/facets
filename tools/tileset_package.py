@@ -5,6 +5,10 @@ block or cell needing one, is left out and marked.
 
   python3 tileset_package.py <extracted/patch> <pokefirered layouts.json>
       <out folder> <your FireRed import: .../firered/data/generated/gba>
+      [--changed-maps-only]
+
+--changed-maps-only leaves out maps laid out as FireRed's: for a patch
+that is a tile resource, whose blocks don't fit FireRed's maps.
 
 layouts.json is pret's pokefirered data/layouts/layouts.json. The FireRed
 import is only read, to know FireRed's own tiles and maps."""
@@ -12,6 +16,8 @@ import json, os, struct, sys
 from PIL import Image, ImageDraw
 
 EXT, LAYOUTS, OUT, FR = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+CHANGED_ONLY = "--changed-maps-only" in sys.argv[5:]
+PRET = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(LAYOUTS))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fr_tiles as frtiles
 FR_TILES = frtiles.load(os.path.join(FR, "map_tree", "tilesets"))
@@ -71,6 +77,23 @@ PRIMARY_TILES = 640
 PRIMARY_PALS = 7
 layouts = [l for l in json.load(open(LAYOUTS))["layouts"]
            if l.get("primary_tileset", "NULL") != "NULL" and l.get("secondary_tileset", "NULL") != "NULL"]
+# the patch's own map headers, when they were extracted: patches often
+# resize maps, and can point them at other tilesets (relabel.py's
+# slots.json says which struct is which) -Elvie
+slots_path = os.path.join(TS, "slots.json")
+slots = json.load(open(slots_path)) if os.path.exists(slots_path) else {}
+for l in layouts:
+    hp = os.path.join(MS, l.get("name", "") + ".bin")
+    if not os.path.exists(hp): continue
+    hb = open(hp, "rb").read()
+    if len(hb) < 24: continue
+    pw, ph, _, _, pp, ps = struct.unpack("<iiIIII", hb[:24])
+    # only a header whose tilesets are both known structs: a patch that
+    # moves the layout table can leave a name on the wrong bytes -Elvie
+    if not ("0x%06X" % pp in slots and "0x%06X" % ps in slots): continue
+    if 0 < pw <= 1024 and 0 < ph <= 1024:
+        l["width"], l["height"] = pw, ph
+    l["primary_tileset"], l["secondary_tileset"] = slots["0x%06X" % pp], slots["0x%06X" % ps]
 by_name = {l["name"]: l for l in layouts if "name" in l}
 cache = {}
 def tileset(sym):
@@ -157,6 +180,7 @@ for sym in sorted({l["primary_tileset"] for l in layouts} | {l["secondary_tilese
         if img: atlas.paste(img, ((i % 8) * 16, (i // 8) * 16))
         info.append({"block": bid, "included": img is not None,
                      "behavior": (ts["attrs"][i] if ts["attrs"] and i < len(ts["attrs"]) else None)})
+    if not any(b["included"] for b in info): continue  # none of it the patch's -Elvie
     atlas.save(os.path.join(OUT, "blocks", ts["name"] + ".png"))
     json.dump({"tileset": ts["name"], "primary": primary, "drawn_with": short(prim_sym),
                "blocks": info}, open(os.path.join(OUT, "blocks", ts["name"] + ".json"), "w"), indent=1)
@@ -175,14 +199,20 @@ for f in sorted(os.listdir(MS)):
     b = open(os.path.join(MS, f), "rb").read()
     if len(b) < w * h * 2: continue
     cells = struct.unpack("<%dH" % (w * h), b[:w * h * 2])
-    # a map the patch leaves as FireRed's is left out -Elvie
+    # a map laid out as FireRed's still counts when the patch redraws its
+    # blocks; it's marked, and left out only if none of it is the patch's -Elvie
+    same_layout = False
+    pret_map = os.path.join(PRET, lay.get("blockdata_filepath", "-"))
     fr_path = os.path.join(FR_LAYOUTS, lay["id"].replace("LAYOUT_", "FR_") + ".mid")
-    if os.path.exists(fr_path):
+    if os.path.isfile(pret_map) and os.path.getsize(pret_map) == w * h * 2:
+        ids = struct.unpack("<%dH" % (w * h), open(pret_map, "rb").read())
+        same_layout = [v & 0x3FF for v in ids] == [v & 0x3FF for v in cells]
+    elif os.path.exists(fr_path):
         fb = open(fr_path, "rb").read()
         if fb[:4] == b"SVML" and len(fb) >= 24 + w * h * 4:
             ids = struct.unpack("<%dH" % (w * h * 2), fb[24:24 + w * h * 4])[0::2]
-            if list(ids) == [v & 0x3FF for v in cells]:
-                continue
+            same_layout = list(ids) == [v & 0x3FF for v in cells]
+    if same_layout and CHANGED_ONLY: continue
     border = None
     bp = os.path.join(MS, name + "_Border.bin")
     if os.path.exists(bp):
@@ -196,13 +226,16 @@ for f in sorted(os.listdir(MS)):
         if bimg: img.paste(bimg, (x, y)); have += 1
         else: img.paste(hatch, (x, y))
     if have == 0: continue
+    # a map still laid out as FireRed's only when the patch draws most of it -Elvie
+    if same_layout and have * 2 < w * h: continue
     img.save(os.path.join(OUT, "previews", name.replace("_Layout", "") + ".png"))
     json.dump({"layout": lay["id"], "name": name, "width": w, "height": h,
                "primary_tileset": short(prim), "secondary_tileset": short(sec),
                "blocks": [v & 0x3FF for v in cells],
                "collision": [(v >> 10) & 3 for v in cells],
                "elevation": [v >> 12 for v in cells],
-               "border": border, "cells_from_the_patch": have},
+               "border": border, "cells_from_the_patch": have,
+               "layout_as_firered": same_layout},
               open(os.path.join(OUT, "maps", name.replace("_Layout", "") + ".json"), "w"))
     report.append((name.replace("_Layout", ""), w * h, have, short(prim), short(sec)))
 
