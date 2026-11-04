@@ -6,7 +6,7 @@ New looks for everyone but you, in all eleven of gen1recomp's games: FireRed, Le
 
 Facets leaves the player and the rival alone: [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens) draws them in the Gen 3 games and [Crystal Lens](https://github.com/dburton95/crystal) in the Game Boy games. They never touch the same sprites, so they work together in either load order, and share one **PRISM** item on the START and OPTION menus.
 
-**Status: 1.0.0.** Needs gen1recomp 0.3.98 or newer. What's new is in [CHANGELOG.md](CHANGELOG.md).
+**Status: 1.0.1.** Needs gen1recomp 0.3.98 or newer. What's new is in [CHANGELOG.md](CHANGELOG.md).
 
 | | Gen 3 (FireRed, LeafGreen, Ruby, Sapphire, Emerald) | Game Boy (Red, Blue, Yellow, Gold, Silver, Crystal) |
 | --- | --- | --- |
