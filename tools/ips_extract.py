@@ -3,10 +3,11 @@
 using your own FireRed 1.0 ROM. Nothing is patched on disk: each patch
 is applied to a copy in memory.
 
-  python3 ips_extract.py <FireRed 1.0 ROM> <mod folder> <patch.ips | folder | .zip> [...]
+  python3 ips_extract.py <FireRed 1.0 ROM> <mod folder> <patch.ips | .ups | folder | .zip> [...]
       [--out <folder>] [--sym <pokefirered.sym>]
 
-A folder or .zip is searched for .ips files (zips inside folders too).
+A folder or .zip is searched for .ips and .ups files (zips inside
+folders too).
 For each patch, every changed piece of the ROM is named with pret's
 FireRed symbols (pokefirered.sym: downloaded from GitHub the first
 time and kept beside this tool, or given with --sym) and sorted:
@@ -407,6 +408,72 @@ def changed_runs(vanilla, patched, records):
     return merged
 
 
+def ups_varint(patch, i):
+    """A UPS number and where the next byte is. -Elvie"""
+    value, shift = 0, 1
+    while True:
+        x = patch[i]
+        i += 1
+        value += (x & 0x7F) * shift
+        if x & 0x80:
+            return value, i
+        shift <<= 7
+        value += shift
+
+
+def apply_ups(rom, patch):
+    """A UPS patch on rom (bytearray, patched in place): runs of bytes
+    XORed in, each after a gap, ending at the 12-byte checksums -Elvie"""
+    if patch[:4] != b"UPS1":
+        raise ValueError("not a UPS patch")
+    i = 4
+    _, i = ups_varint(patch, i)
+    size, i = ups_varint(patch, i)
+    if len(rom) < size:
+        rom.extend(b"\x00" * (size - len(rom)))
+    pos, end = 0, len(patch) - 12
+    while i < end:
+        gap, i = ups_varint(patch, i)
+        pos += gap
+        while i < end and patch[i] != 0:
+            if pos < len(rom):
+                rom[pos] ^= patch[i]
+            pos += 1
+            i += 1
+        i += 1
+        pos += 1
+    del rom[size:]
+    return rom
+
+
+def ups_records(patch):
+    """(offset, length) of each run a UPS patch changes -Elvie"""
+    out, i = [], 4
+    _, i = ups_varint(patch, i)
+    _, i = ups_varint(patch, i)
+    pos, end = 0, len(patch) - 12
+    while i < end:
+        gap, i = ups_varint(patch, i)
+        pos += gap
+        start = pos
+        while i < end and patch[i] != 0:
+            pos += 1
+            i += 1
+        if pos > start:
+            out.append((start, pos - start))
+        i += 1
+        pos += 1
+    return out
+
+
+def apply_patch(rom, patch):
+    return apply_ups(rom, patch) if patch[:4] == b"UPS1" else apply_ips(rom, patch)
+
+
+def patch_records(patch):
+    return ups_records(patch) if patch[:4] == b"UPS1" else ips_records(patch)
+
+
 def ips_records(patch):
     out, i = [], 5
     while i + 3 <= len(patch) and patch[i:i + 3] != b"EOF":
@@ -629,7 +696,7 @@ def export(out_root, patch_name, found, patched, syms, source=""):
 # --------------------------------------------------
 
 def patches_in(path):
-    """(name, bytes, [(file, text)] beside it) for every .ips. -Elvie"""
+    """(name, bytes, [(file, text)] beside it) for every .ips or .ups -Elvie"""
     def from_zip(zbytes, where):
         try:
             z = zipfile.ZipFile(io.BytesIO(zbytes))
@@ -645,7 +712,7 @@ def patches_in(path):
                     pass
         for n in names:
             low = n.lower()
-            if low.endswith(".ips"):
+            if low.endswith((".ips", ".ups")):
                 folder = os.path.dirname(n)
                 beside = [(t, s) for t, s in texts.items() if os.path.dirname(t) == folder
                           or os.path.dirname(t) == os.path.dirname(folder)]
@@ -656,7 +723,7 @@ def patches_in(path):
     if os.path.isfile(path):
         if path.lower().endswith(".zip"):
             yield from from_zip(open(path, "rb").read(), os.path.basename(path))
-        elif path.lower().endswith(".ips"):
+        elif path.lower().endswith((".ips", ".ups")):
             folder = os.path.dirname(path)
             beside = []
             for t in os.listdir(folder or "."):
@@ -666,7 +733,7 @@ def patches_in(path):
         return
     for root, _, files in os.walk(path):
         for f in sorted(files):
-            if f.lower().endswith((".ips", ".zip")):
+            if f.lower().endswith((".ips", ".ups", ".zip")):
                 yield from patches_in(os.path.join(root, f))
 
 
@@ -700,11 +767,11 @@ def main():
     for path in args[2:]:
         for name, patch, beside, source in patches_in(path):
             try:
-                rom = apply_ips(bytearray(vanilla), patch)
+                rom = apply_patch(bytearray(vanilla), patch)
             except Exception as e:
                 print("skip %s: %s" % (source, e))
                 continue
-            found = survey(vanilla, rom, ips_records(patch), syms)
+            found = survey(vanilla, rom, patch_records(patch), syms)
             if not found:
                 print("%s: changes nothing" % source)
                 continue
