@@ -43,11 +43,13 @@ assets/trainers/*
 !assets/trainers/gameboy/
 # DS: trainer sprites by KyleDove, Mr. Gela, Jext and figyberries, used with credit. -Elvie
 !assets/trainers/ds/
-# Window sets: Tito Seich's ship (used with credit). Sets made with
-# tools/ips_extract.py stay on your machine, and LibertyTwins' until it's
-# confirmed the frames are their own drawings. -Elvie
+# Window sets: Tito Seich's and LibertyTwins' ship (used with credit;
+# LibertyTwins' thread calls theirs "our own custom frames, inspired by
+# the DS games"). Sets made with tools/ips_extract.py stay on your
+# machine. -Elvie
 assets/windows/*
 !assets/windows/tito/
+!assets/windows/libertytwins/
 # tools/ips_extract.py's output, and pret's symbol file it fetches -Elvie
 extracted/
 tools/pokefirered.sym

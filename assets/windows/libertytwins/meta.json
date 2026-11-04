@@ -1,0 +1,168 @@
+{
+  "label": "LIBERTY",
+  "credit": [
+    "Text boxes by LibertyTwins (Custom Text Boxes FR), used with credit"
+  ],
+  "styles": [
+    {
+      "name": "1",
+      "frame": "frame_1.png",
+      "dialogue": "dialogue.png",
+      "fill": [
+        248,
+        248,
+        248
+      ],
+      "sign": "sign.png",
+      "signFill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "2",
+      "frame": "frame_2.png",
+      "dialogue": "dialogue.png",
+      "fill": [
+        248,
+        248,
+        248
+      ],
+      "sign": "sign.png",
+      "signFill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "3",
+      "frame": "frame_3.png",
+      "dialogue": "dialogue.png",
+      "fill": [
+        248,
+        248,
+        248
+      ],
+      "sign": "sign.png",
+      "signFill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "4",
+      "frame": "frame_4.png",
+      "dialogue": "dialogue.png",
+      "fill": [
+        248,
+        248,
+        248
+      ],
+      "sign": "sign.png",
+      "signFill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "5",
+      "frame": "frame_5.png",
+      "dialogue": "dialogue.png",
+      "fill": [
+        248,
+        248,
+        248
+      ],
+      "sign": "sign.png",
+      "signFill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "6",
+      "frame": "frame_6.png",
+      "dialogue": "dialogue.png",
+      "fill": [
+        248,
+        248,
+        248
+      ],
+      "sign": "sign.png",
+      "signFill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "7",
+      "frame": "frame_7.png",
+      "dialogue": "dialogue.png",
+      "fill": [
+        248,
+        248,
+        248
+      ],
+      "sign": "sign.png",
+      "signFill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "8",
+      "frame": "frame_8.png",
+      "dialogue": "dialogue.png",
+      "fill": [
+        248,
+        248,
+        248
+      ],
+      "sign": "sign.png",
+      "signFill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "9",
+      "frame": "frame_9.png",
+      "dialogue": "dialogue.png",
+      "fill": [
+        248,
+        248,
+        248
+      ],
+      "sign": "sign.png",
+      "signFill": [
+        248,
+        248,
+        248
+      ]
+    },
+    {
+      "name": "10",
+      "frame": "frame_10.png",
+      "dialogue": "dialogue.png",
+      "fill": [
+        248,
+        248,
+        248
+      ],
+      "sign": "sign.png",
+      "signFill": [
+        248,
+        248,
+        248
+      ]
+    }
+  ]
+}

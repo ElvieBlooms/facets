@@ -1732,7 +1732,9 @@ do
   eq(st and table.concat(st.fill, ","), "248,200,120", "gbc ui: ...filled with its colour 1")
   eq(G.settings(function(k) return k == "gbcFrame" and "tito:3" or nil end), "tito:3", "gbc ui: a set's style is a WINDOWS value")
   eq(G.settings(function(k) return k == "gbcFrame" and "nope:3" or nil end), "game", "gbc ui: an unknown one is GAME")
-  for _, key in ipairs({ "tito" }) do
+  check(G.SETS.libertytwins, "gbc ui: LibertyTwins' window set is found")
+  eq(seen["libertytwins:1"] .. "," .. seen["libertytwins:10"], "LIBERTY 1,LIBERTY 10", "gbc ui: LIBERTY's ten frames")
+  for _, key in ipairs({ "tito", "libertytwins" }) do
     for _, style in ipairs(G.SETS[key].styles) do
       for _, kind in ipairs({ "frame", "dialogue", "sign" }) do
         if style[kind] then check(lfs.attributes(ROOT .. "/assets/windows/" .. key .. "/" .. style[kind]), "gbc ui: " .. key .. " ships " .. style[kind]) end

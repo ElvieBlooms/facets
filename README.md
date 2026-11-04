@@ -16,7 +16,7 @@ Facets leaves the player and the rival alone: [Emerald Lens](https://github.com/
 | Your side | YOUR SIDE: your Pokémon by their front | The same |
 | Party icons | GBC-ISH's Game Boy icons | MINIDEX; CRYSTAL on Red, Blue and Yellow |
 | Battle | SCENERY and WHITE scenes, battle box sets, GBC boxes | SCENERY and battle box sets (box sets in wide battles; on Red, Blue and Yellow, scenes too) |
-| Windows | GBC frames, TITO and other window sets | FireRed's frames, TITO |
+| Windows | GBC frames, TITO, LIBERTY and other window sets | FireRed's frames, TITO, LIBERTY |
 | Screen | The GB filter | The GB filter; COLORS keeps the game in full colour |
 | Yellow's Pikachu | | Seven looks, in battle too |
 
@@ -124,6 +124,7 @@ A battle box set is a folder in `assets/battleui/` with the pictures (laid out t
 A window set is a folder in `assets/windows/` with Gen 3-format window art: menu frames (24x24, 3x3 tiles), a dialogue box (18 tiles) and a signpost box (19 tiles), plus a meta.json naming its styles. Each style shows in WINDOWS as the set's label and the style's name. Its frame replaces menus, yes/no boxes and the FACETS screens' windows, and its dialogue box the text box and signs, drawn exactly the way Gen 3 draws its own; anything a style doesn't have stays the game's. Battle boxes stay the game's own with a set.
 
 * **TITO** (included): ten dialogue boxes by **Tito Seich / Sage** (Checkered, Cool Red, Emerald, Hoenn, Orange, Red, Silver, Sky Blue, Square Red and Woody), used with credit. Menus keep the game's own frames.
+* **LIBERTY** (included): ten DS-inspired window frames by **LibertyTwins** (Custom Text Boxes FR), with their dialogue and sign boxes, used with credit. Their [thread](https://www.pokecommunity.com/threads/custom-text-boxes-patch-for-fire-red.528772/) calls them "our own custom frames, inspired by the DS games".
 
 Sets are built from a pack's own images with:
 
@@ -131,7 +132,7 @@ Sets are built from a pack's own images with:
 python3 tools/make_window_set.py tools/recipes/windows_tito.json . "<The Textbox of Tito Seich folder>"
 ```
 
-`tools/recipes/windows_libertytwins.json` builds **LIBERTY** from LibertyTwins' Custom Text Boxes FR the same way: ten frames with their dialogue and sign boxes. It doesn't ship until it's confirmed the frames are LibertyTwins' own drawings, so it stays on your machine (`.gitignore`).
+`tools/recipes/windows_libertytwins.json` builds **LIBERTY** from LibertyTwins' Custom Text Boxes FR the same way, with its `Resources` folder as the pack folder.
 
 ##### From IPS patches
 
@@ -434,7 +435,7 @@ Red, Blue and Yellow show pictures on some screens (summary, Hall of Fame, Poké
 
 ### Windows
 
-**WINDOWS** puts every text box and menu in a Gen 3 frame: **FIRERED 1-10** (FireRed's OPTION frames, with FireRed's own text box at the bottom, read from your imported FireRed, LeafGreen or Emerald) or a **TITO** style (its text box, with FireRed's first frame round everything else). Boxes keep the game's sizes and the Game Boy's font, and ones under three tiles stay the game's. On the FACETS page the WINDOWS row itself is drawn in the style's text box, so you can see it while you pick.
+**WINDOWS** puts every text box and menu in a Gen 3 frame: **FIRERED 1-10** (FireRed's OPTION frames, with FireRed's own text box at the bottom, read from your imported FireRed, LeafGreen or Emerald) a **TITO** style (its text box, with FireRed's first frame round everything else) or a **LIBERTY** style (its frame round every window, with its own text and sign boxes). Boxes keep the game's sizes and the Game Boy's font, and ones under three tiles stay the game's. On the FACETS page the WINDOWS row itself is drawn in the style's text box, so you can see it while you pick.
 
 ### Colours and the screen
 
@@ -558,6 +559,7 @@ Battle and windows:
 - **BATTLE BG: SCENERY:** battle backgrounds by LibertyTwins, princess-phoenix, carchagui, aveontrainer, WesleyFG, kWharever, worldslayer608 and knizz (Battle Backgrounds Patch FR).
 - **BATTLE UI:** XY and B2W2 by Verloren 5; DP by Dinisk, Prof. Leon Dias, Neon Skylar and Verloren 5; PLATINUM by Omega Zero and Verloren 5; HGSS by YoY-X, Neon Skylar, Jaizu and Verloren 5; BW by Vytron and Verloren 5; B2W2 BLACK and WHITE by Verloren 5; GAIA by YoY-X and Spherical Ice; TEX BOX by Cesar Alarcon; PLAIN by Neon Skylar; the ZEKE recolours by Zeke.
 - **WINDOWS: TITO:** text boxes by Tito Seich / Sage, on the Game Boy games too.
+- **WINDOWS: LIBERTY:** window frames, text boxes and sign boxes by LibertyTwins (Custom Text Boxes FR).
 
 ### Read from your own games
 

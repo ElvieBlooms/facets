@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **WINDOWS: LIBERTY** now ships: LibertyTwins' ten DS-inspired window frames from Custom Text Boxes FR, with their text and sign boxes. Their thread confirms the frames are their own drawings.
+
 ## 1.0.1
 
 - Red, Blue and Yellow: tall grass no longer gets drawn across a set's taller people when someone in the grass stands right behind them (Oak walking you out of Pallet Town's grass).
