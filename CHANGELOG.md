@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Red, Blue and Yellow: tall grass no longer gets drawn across a set's taller people when someone in the grass stands right behind them (Oak walking you out of Pallet Town's grass).
+
 ## 1.0.0
 
 Facets now covers all eleven of gen1recomp's games: Red, Blue, Yellow, Gold, Silver and Crystal join FireRed, LeafGreen, Ruby, Sapphire and Emerald. Facets, Emerald Lens and Crystal Lens all move to 1.0.0 together. Needs gen1recomp 0.3.98 or newer.

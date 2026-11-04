@@ -2314,6 +2314,45 @@ do
   eq(b.signed(0xF8), -8, "bands: a register byte as signed")
 end
 
+-- Tall grass on Red, Blue and Yellow: strips go round tall people -Elvie
+do
+  local g = require("mods.facets.classic_grass")
+  eq(g.body({ frameWidth = 16, frameHeight = 16 }, 0, 0), nil, "grass: a Game Boy sprite gets no box")
+  local b = g.body({ frameWidth = 32, frameHeight = 32 }, 64, 64)
+  eq(table.concat(b, ","), "56,44,88,68", "grass: a 32-pixel person's body above its feet")
+  local own = { 56, 68, 88, 76 }
+  local pieces = {}
+  g.around({ b }, 1, own[1], own[2], own[3], own[4], function(...) pieces[#pieces + 1] = { ... } end)
+  eq(#pieces .. ":" .. table.concat(pieces[1], ","), "1:56,68,88,76", "grass: their own feet still get grass")
+  pieces = {}
+  g.around({ b }, 1, 64, 52, 80, 60, function(...) pieces[#pieces + 1] = { ... } end)
+  eq(#pieces, 0, "grass: someone's grass behind them is kept off their body")
+  -- a random check: the pieces cover the strip minus the boxes, each pixel once -Elvie
+  local seed = 7
+  local function rnd(n) seed = (seed * 1103515245 + 12345) % 2147483648 return seed % n end
+  local okAll = true
+  for _ = 1, 300 do
+    local boxes = {}
+    for k = 1, rnd(3) + 1 do
+      local x, y = rnd(40), rnd(40)
+      boxes[k] = { x, y, x + rnd(20) + 1, y + rnd(20) + 1 }
+    end
+    local x0, y0 = rnd(40), rnd(40)
+    local x1, y1 = x0 + rnd(20) + 1, y0 + rnd(10) + 1
+    local count = {}
+    g.around(boxes, 1, x0, y0, x1, y1, function(a, bb, c, d)
+      for y = bb, d - 1 do for x = a, c - 1 do count[y * 100 + x] = (count[y * 100 + x] or 0) + 1 end end
+    end)
+    for y = y0, y1 - 1 do for x = x0, x1 - 1 do
+      local inside = false
+      for _, bx in ipairs(boxes) do if x >= bx[1] and x < bx[3] and y >= bx[2] and y < bx[4] then inside = true end end
+      local want = inside and 0 or 1
+      if (count[y * 100 + x] or 0) ~= want then okAll = false end
+    end end
+  end
+  check(okAll, "grass: 300 random strips are covered exactly once outside the boxes")
+end
+
 -- WINDOWS on the Game Boy games: which art a box gets, and where the
 -- text box's tiles go -Elvie
 do

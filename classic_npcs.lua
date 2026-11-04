@@ -280,6 +280,12 @@ function classic.init(mod, rows)
     -- with COLORS on RED++ -Elvie
     local okF, PaletteFX = pcall(require, "src.render.PaletteFX")
     local gen1 = require("mods.facets.classic").generation() == 1
+    -- Red, Blue and Yellow draw tall grass after everyone; keep it off a
+    -- tall person's body -Elvie
+    if gen1 then
+      local okG, grass = pcall(require, "mods.facets.classic_grass")
+      if okG and type(grass) == "table" then grass.install(mod.log) end
+    end
     local function fullColour()
       if not gen1 then return true end
       if not (okF and type(PaletteFX) == "table" and type(PaletteFX.honorsTrueColor) == "function") then return false end
