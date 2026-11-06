@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- Red, Blue, Yellow, Gold, Silver and Crystal: PRISM's text shows with a translation pack's font. The pack's TTF prints in the current colour, and PRISM left it white, so the list was white on white. Its text is now drawn in black, as the game's own screens do, the same fix as Emerald Lens's and Crystal Lens's.
+
 ## 1.0.1
 
 - Red, Blue and Yellow: tall grass no longer gets drawn across a set's taller people when someone in the grass stands right behind them (Oak walking you out of Pallet Town's grass).
