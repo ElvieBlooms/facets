@@ -2541,9 +2541,11 @@ do
   local text = {}
   for _, d in ipairs(got) do text[#text + 1] = d.name .. "=" .. d.label end
   eq(table.concat(text, ","), "DPPT=IMPORTED,HGSS=MISSING,B2W2=42%", "imports: imported, missing and importing")
-  all.hgss, all.bw2 = { state = "failed" }, { state = "pending" }
+  all.hgss, all.bw2 = { state = "failed" }, { state = "queued" }
   got = P.imports(pmod)
-  eq(got[2].label .. ":" .. tostring(got[2].red) .. "," .. got[3].label, "FAILED:true,WAITING", "imports: failed in red, and waiting")
+  eq(got[2].label .. ":" .. tostring(got[2].red) .. "," .. got[3].label, "FAILED:true,QUEUED", "imports: failed in red, and queued")
+  all.dppt = { state = "needed" }
+  eq(P.imports(pmod)[1].label, "NOT YET", "imports: picked but not imported yet")
   eq(P.imports({ find = function() return nil end }), nil, "imports: nothing without Prism Importer")
   eq(P.imports({}), nil, "imports: no mod.find")
   local broken = { find = function() return { exports = { status = function() error("x") end } } end }

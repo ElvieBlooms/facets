@@ -213,8 +213,10 @@ function prebuild.imports(mod)
     elseif st.state == "running" then
       local total, done = tonumber(st.total) or 0, tonumber(st.done) or 0
       label = total > 0 and ("%d%%"):format(math.floor(100 * math.min(done, total) / total)) or "0%"
-    elseif st.state == "pending" then
-      label = "WAITING"
+    elseif st.state == "needed" then
+      label = "NOT YET"
+    elseif st.state == "queued" or st.state == "pending" then
+      label = "QUEUED"
     elseif st.state == "failed" then
       label, red = "FAILED", true
     end
