@@ -311,6 +311,16 @@ local GB_GEM_X, GB_LABEL_X = 16, 28
 function prism.registerGb(mod)
   if not (mod.content and mod.content.screens and mod.ui and mod.ui.Font) then return nil end
   local Font = mod.ui.Font
+  -- A translation's TTF prints in the current colour (Game Boy tiles are
+  -- black whatever it is), so text is always drawn in black, as the game's
+  -- own screens do
+  local function text(s, x, y)
+    local r, g, b, a = love.graphics.getColor()
+    love.graphics.setColor(0, 0, 0, 1)
+    local w = Font.draw(s, x, y)
+    love.graphics.setColor(r, g, b, a)
+    return w
+  end
   local okFx, PaletteFX = pcall(require, "src.render.PaletteFX")
   if not okFx then PaletteFX = nil end
   local id = (mod.id or "mod") .. "_prism"
@@ -349,20 +359,20 @@ function prism.registerGb(mod)
       end
       function self:draw()
         Font.drawBox(0, 0, 20, 18)
-        Font.draw("PRISM", 8, 8)
+        text("PRISM", 8, 8)
         for i, entry in ipairs(self.entries) do
           local y = GB_ROW_Y + (i - 1) * GB_ROW_H
           if i == self.index then
             local Theme = mod.ui.Theme
             if Theme and Theme.cursor and Font.drawCode then Font.drawCode(Theme.cursor, 6, y)
-            else Font.draw(">", 6, y) end
+            else text(">", 6, y) end
           end
           local c = entry.colour
           if not (type(c) == "table" and tonumber(c[1]) and tonumber(c[2]) and tonumber(c[3])) then c = BLUE end
           gem(GB_GEM_X, y, c)
-          Font.draw(tostring(entry.label):sub(1, 16), GB_LABEL_X, y)
+          text(tostring(entry.label):sub(1, 16), GB_LABEL_X, y)
           local value = valueOf(entry)
-          Font.draw(value:sub(1, 15), GB_LABEL_X + 8, y + 8)
+          text(value:sub(1, 15), GB_LABEL_X + 8, y + 8)
         end
         local picked = self.entries[self.index]
         local about = picked and (picked.aboutGb or picked.about)
@@ -370,12 +380,12 @@ function prism.registerGb(mod)
           local line, n = "", 0
           for word in about:gmatch("%S+") do
             if #line > 0 and #line + 1 + #word > 18 then
-              Font.draw(line, 8, 120 + n * 8); n = n + 1; line = word
+              text(line, 8, 120 + n * 8); n = n + 1; line = word
             else
               line = #line > 0 and (line .. " " .. word) or word
             end
           end
-          if #line > 0 and n < 2 then Font.draw(line, 8, 120 + n * 8) end
+          if #line > 0 and n < 2 then text(line, 8, 120 + n * 8) end
         end
       end
       return self
