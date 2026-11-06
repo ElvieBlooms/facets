@@ -68,6 +68,8 @@ PREBUILD is also on its own **PERFORMANCE** screen, a second entry in PRISM (the
 
 Under the rows, the progress: BUILDING with a count, ALL READY, or ALL READY, KEPT once it's written to your install. PRISM's own list shows PREBUILD (ON, OFF, or how far it's got) beside PERFORMANCE, and its corner shows the bar.
 
+With [Prism Importer](https://github.com/ElvieBlooms/prism_importer) installed, PERFORMANCE also shows which of your DS dumps it has: DPPT (Diamond, Pearl or Platinum), HGSS and B2W2, each IMPORTED, MISSING, WAITING, FAILED, or how far along it is while it imports.
+
 ### The FACETS screen
 The same choices for the game you're playing are on a screen of their own, laid out like Emerald Lens's LENS screen. It's reached through **PRISM**, on the START menu (above MODS, or EXIT) and the OPTION menu: a short list of FACETS (with your NPC set), PERFORMANCE (PREBUILD) and SCREEN (the filter), plus EMERALD LENS (with your character) when Emerald Lens is installed too, since the two share the one item. Picking one opens its screen; B there comes back to the list. Each has its own gem in the list (emerald for Emerald Lens, amethyst for Facets, topaz for PERFORMANCE, sapphire for SCREEN); the header takes the picked one's colour, and a faceted corner in the same colour shows what it's doing right now: your character, or a Pokémon and an NPC from your sets. Each mod still works on its own, and either can be installed without the other. Up and down pick a row, left and right (or A) change it, and B closes it. Changes apply straight away and are saved to the same settings as the mod options.
 

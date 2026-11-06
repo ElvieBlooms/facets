@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **WINDOWS: LIBERTY** now ships: LibertyTwins' ten DS-inspired window frames from Custom Text Boxes FR, with their text and sign boxes. Their thread confirms the frames are their own drawings.
+- **PERFORMANCE** shows [Prism Importer](https://github.com/ElvieBlooms/prism_importer)'s DS dumps when it's installed: DPPT, HGSS and B2W2, each IMPORTED, MISSING or how far along it is.
 
 ## 1.0.1
 

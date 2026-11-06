@@ -191,6 +191,37 @@ end
 -- --------------------------------------------------
 prebuild.COLOUR = { 196, 132, 30 } -- topaz -Elvie
 local BAR_X0, BAR_X1, BAR_Y, BAR_H = 16, 224, 128, 8
+-- With Prism Importer installed its dumps sit under the hints, three
+-- columns across, and the bar moves down to make room -Elvie
+local IMPORTS_Y, IMPORTS_COL, BAR_Y_LOW = 95, 70, 137
+local DUMPS = { { "dppt", "DPPT" }, { "hgss", "HGSS" }, { "bw2", "B2W2" } }
+
+-- { { name, label, red } } for each dump, or nil without Prism Importer -Elvie
+function prebuild.imports(mod)
+  if not (type(mod) == "table" and type(mod.find) == "function") then return nil end
+  local ok, other = pcall(mod.find, "prism_importer")
+  local api = ok and type(other) == "table" and other.exports
+  if type(api) ~= "table" or type(api.status) ~= "function" then return nil end
+  local okS, all = pcall(api.status)
+  if not (okS and type(all) == "table") then all = {} end
+  local out = {}
+  for _, dump in ipairs(DUMPS) do
+    local st = type(all[dump[1]]) == "table" and all[dump[1]] or {}
+    local label, red = "MISSING", false
+    if st.state == "ready" then
+      label = "IMPORTED"
+    elseif st.state == "running" then
+      local total, done = tonumber(st.total) or 0, tonumber(st.done) or 0
+      label = total > 0 and ("%d%%"):format(math.floor(100 * math.min(done, total) / total)) or "0%"
+    elseif st.state == "pending" then
+      label = "WAITING"
+    elseif st.state == "failed" then
+      label, red = "FAILED", true
+    end
+    out[#out + 1] = { name = dump[2], label = label, red = red }
+  end
+  return out
+end
 
 local function status()
   if type(prebuild.status) == "function" then
@@ -277,12 +308,20 @@ function prebuild.model(mod, set)
   end
   function M.draw()
     local st = status()
+    local imports = prebuild.imports(mod)
+    local barY = imports and BAR_Y_LOW or BAR_Y
     local okW, Window = pcall(require, "src.ui.game3.window")
     local okF, FrlgFont = pcall(require, "src.ui.game3.frlg_font")
     if okW and okF and type(Window) == "table" and type(FrlgFont) == "table" then
-      pcall(Window.printPx, prebuild.progressText(st), BAR_X0, BAR_Y - 14, { colors = FrlgFont.COLOR.NORMAL })
+      for i, dump in ipairs(imports or {}) do
+        local x = BAR_X0 + (i - 1) * IMPORTS_COL
+        pcall(Window.printPx, dump.name, x, IMPORTS_Y, { colors = FrlgFont.COLOR.BLUE })
+        pcall(Window.printPx, dump.label, x, IMPORTS_Y + 13,
+          { colors = dump.red and FrlgFont.COLOR.RED or FrlgFont.COLOR.NORMAL })
+      end
+      pcall(Window.printPx, prebuild.progressText(st), BAR_X0, barY - 14, { colors = FrlgFont.COLOR.NORMAL })
     end
-    prebuild.drawBar(BAR_X0, BAR_Y, BAR_X1, BAR_H, prebuild.percent(st))
+    prebuild.drawBar(BAR_X0, barY, BAR_X1, BAR_H, prebuild.percent(st))
   end
   function M.credits() return {} end
   -- PRISM's corner: the bar, big, on the faceted panel -Elvie

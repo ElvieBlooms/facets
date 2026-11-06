@@ -2530,5 +2530,25 @@ do
   eq(#screen.fitting(lines, 5), 3, "screen: everything when it fits")
 end
 
+-- PERFORMANCE: Prism Importer's dumps, when it's installed -Elvie
+do
+  local P = require("mods.facets.prebuild")
+  local all = { dppt = { state = "ready" }, bw2 = { state = "running", done = 42, total = 100 } }
+  local pmod = { find = function(id)
+    return id == "prism_importer" and { exports = { status = function() return all end } } or nil
+  end }
+  local got = P.imports(pmod)
+  local text = {}
+  for _, d in ipairs(got) do text[#text + 1] = d.name .. "=" .. d.label end
+  eq(table.concat(text, ","), "DPPT=IMPORTED,HGSS=MISSING,B2W2=42%", "imports: imported, missing and importing")
+  all.hgss, all.bw2 = { state = "failed" }, { state = "pending" }
+  got = P.imports(pmod)
+  eq(got[2].label .. ":" .. tostring(got[2].red) .. "," .. got[3].label, "FAILED:true,WAITING", "imports: failed in red, and waiting")
+  eq(P.imports({ find = function() return nil end }), nil, "imports: nothing without Prism Importer")
+  eq(P.imports({}), nil, "imports: no mod.find")
+  local broken = { find = function() return { exports = { status = function() error("x") end } } end }
+  eq(P.imports(broken)[1].label, "MISSING", "imports: a failing status reads as missing")
+end
+
 print(("%d passed, %d failed"):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)
