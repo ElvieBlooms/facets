@@ -1,12 +1,13 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
 
 - Crystal: with **YOUR SIDE** on FRONT or MIRRORED, your Pokémon now plays its front animation when it's sent out, as the foe's does, mirrored with MIRRORED. Before, only the foe's moved. Crystal animates only the foe's front picture, so Facets now runs the same animation for your side.
 - **WINDOWS** and **TEXT BOX** are now two choices, in every game: WINDOWS for menu frames, TEXT BOX for the text box (and in Gen 3 signs and the battle text box), so LIBERTY's frames can go with TITO's WOODY, or Crystal's frames with the game's text box. TEXT BOX's **MATCH**, the default, follows WINDOWS, so your look stays as it was. On the Game Boy games LIBERTY's own frames now go round the menus (they were FireRed's frame 1 before, which needed FireRed imported).
 - **WINDOWS: LIBERTY** now ships: LibertyTwins' ten DS-inspired window frames from Custom Text Boxes FR, with their text and sign boxes. Their thread confirms the frames are their own drawings.
 - Red, Blue, Yellow, Gold, Silver and Crystal: a text box whose border sits on the inside of its edge tiles (LIBERTY's) moves out to the screen's edge so it no longer runs under the first and last letters; TITO's and FireRed's boxes stay where they were. The text box's inside colour now stops at its border, so the map shows round its corners as in Gen 3, instead of a white margin. Menu frames do the same: only the inside of a frame's border is filled, so rounded corners (LIBERTY's) show the map instead of white.
-- **PERFORMANCE** shows [Prism Importer](https://github.com/ElvieBlooms/prism_importer)'s DS dumps when it's installed: DPPT, HGSS and B2W2, each IMPORTED, MISSING or how far along it is.
+- **PERFORMANCE** shows [Prism Importer](https://github.com/ElvieBlooms/prism_importer)'s DS dumps when it's installed: DPPT, HGSS and B2W2, each IMPORTED, NOT YET, QUEUED, FAILED, MISSING or how far along it is. Without Prism Importer, PERFORMANCE is as it was.
+- Tools: `ips_extract.py` reads `.ups` patches as well as `.ips`. New `tileset_package.py` turns an extracted tileset patch into tile sheets, palettes, block atlases, map layouts and previews, leaving out FireRed's own tiles, and `patch_layouts.py` follows the patched game's own map headers, so maps a patch resizes or moves to other tilesets come out as the patch has them.
 
 ## 1.0.2
 
