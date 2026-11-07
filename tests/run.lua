@@ -2650,5 +2650,37 @@ do
   eq(inside[1 * 6 + 1] and "in" or "out", "out", "frame mask: the border itself isn't filled")
 end
 
+-- POKEMON from the DS games (ds.lua, through Prism Importer) -Elvie
+do
+  local D = require("mods.facets.ds")
+  eq(D.monId("dppt", "front", false, 25, nil, ""), "normal/025/front", "ds: a plain front")
+  eq(D.monId("hgss", "back", true, 6, nil, ""), "shiny/006/back", "ds: a shiny back")
+  eq(D.monId("dppt", "front", false, 201, 1, ""), "normal/201/front/form/b", "ds: Unown B by letter in Gen 4")
+  eq(D.monId("dppt", "front", false, 201, 27, ""), "normal/201/front/form/question_mark", "ds: Unown ?")
+  eq(D.monId("bw2", "front", false, 201, 1, ""), "normal/201/front/form/1", "ds: Unown B by number in Black 2/White 2")
+  eq(D.monId("dppt", "front", false, 351, nil, "_rainy"), "normal/351/front/form/rain", "ds: Castform's rain form")
+  eq(D.monId("bw2", "front", false, 386, nil, "_speed"), "normal/386/front/form/3", "ds: Deoxys Speed in Black 2/White 2")
+  eq(D.monId("dppt", "front", false, "egg"), "normal/egg/normal", "ds: the egg")
+  eq(D.monId("bw2", "front", false, "egg"), nil, "ds: Black 2/White 2 has no egg picture")
+  local keep, k = D.fitPlan(60, 50, false)
+  eq(keep .. "," .. k, "50,1", "ds: a picture that fits stays as it is")
+  keep, k = D.fitPlan(80, 80, false)
+  eq(keep .. "," .. k, "80,0.8", "ds: a big front shrinks whole")
+  keep, k = D.fitPlan(60, 78, true)
+  eq(keep .. "," .. k, "64,1", "ds: a tall back keeps its top 64 rows")
+  keep, k = D.fitPlan(80, 78, true)
+  eq(keep .. "," .. k, "64,0.8", "ds: a wide back is cropped, then shrinks")
+  eq(D.altFrame("dppt", 2), 1, "ds: Gen 4's second frame")
+  eq(D.altFrame("bw2", 24), 12, "ds: the middle of Black 2/White 2's idle")
+  eq(D.altFrame("bw2", 1), nil, "ds: a single frame has no second")
+  local api = { apiVersion = 1, status = function() return { dppt = { state = "ready" }, hgss = { state = "needed" } } end }
+  local mod = { find = function(id) return id == "prism_importer" and { exports = api } or nil end }
+  local got = {}
+  for _, g in ipairs(D.picked(D.api(mod))) do got[#got + 1] = g.label end
+  eq(table.concat(got, ","), "DPPT,HGSS", "ds: a choice for each dump picked, imported or not")
+  eq(D.state(D.api(mod), "bw2"), "absent", "ds: a dump not picked")
+  eq(D.api({ find = function() return nil end }), nil, "ds: nothing without Prism Importer")
+end
+
 print(("%d passed, %d failed"):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)

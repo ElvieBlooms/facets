@@ -510,6 +510,19 @@ function mons.init(mod, rows, menu)
     end
   end
   table.sort(sets, function(a, b) return a.label < b.label end)
+  -- The DS games, from the player's own dumps through Prism Importer:
+  -- one choice for each dump picked there, before the sets Facets ships.
+  -- What a dump doesn't have, or everything until it's imported, comes
+  -- from the DS set, then the game's own -Elvie
+  local ds = require("mods.facets.ds")
+  local dsApi = ds.api(mod)
+  local hasDsSet = false
+  for _, set in ipairs(sets) do hasDsSet = hasDsSet or set.key == "ds" end
+  for i, g in ipairs(ds.picked(dsApi)) do
+    table.insert(sets, i, { key = "ds_" .. g.id, label = g.label, ds = g.id,
+      fallback = hasDsSet and "ds" or nil,
+      credit = "Your own " .. g.name .. ", through Prism Importer." })
+  end
   if #sets == 0 then return nil end
 
   -- Options: a POKEMON heading and its SET, OFF by default, so Facets
@@ -761,7 +774,27 @@ function mons.init(mod, rows, menu)
 
     -- The picture, true when it's a Game Boy one, and the set a file of
     -- its own came from. -Elvie
+    -- A DS set's picture from the player's dump, fitted and stood on the
+    -- game's ground line; a front keeps its spot for its second frame -Elvie
+    local function dsBuild(kind, species, shiny, nat, letter, variant, alt)
+      local id = ds.monId(current.ds, kind, shiny, nat, letter, variant)
+      local src = ds.monPicture(dsApi, current.ds, id, kind == "back", alt)
+      if not src then return nil end
+      local place
+      if kind == "front" and variant == "" then
+        placements[species] = placements[species] or {}
+        place = placements[species]
+      end
+      local out, why = mons.layOut(src, bottomFor(kind, species), ownColour, place)
+      if not out then mod.log:warn("%s %s %s: %s", current.label, kind, tostring(nat), tostring(why)) end
+      return out
+    end
+
     local function build(kind, species, shiny, nat, letter, variant, gameKey)
+      if current.ds then
+        local out = dsBuild(kind, species, shiny, nat, letter, variant)
+        if out then return out, false, current end
+      end
       local data, from = ownFile(current, kind, shiny, nat, letter, variant)
       if data then
         -- Stood on the game's own ground line, like everything else; a
@@ -832,7 +865,10 @@ function mons.init(mod, rows, menu)
       local hit = cache[key]
       if hit ~= nil then return hit or nil end
       local ok, data, fromGb, fromSet
-      local kept, meta = disk.get(setGroup(), key)
+      -- a DS set's pictures aren't kept on disk: importing another dump
+      -- would leave them stale, and they're quick to cut again -Elvie
+      local kept, meta
+      if not current.ds then kept, meta = disk.get(setGroup(), key) end
       if kept then
         ok, data, fromGb = true, kept, meta.gb == 1
         for _, s in ipairs(sets) do if s.key == meta.set then fromSet = s end end
@@ -851,7 +887,7 @@ function mons.init(mod, rows, menu)
           meta = { gb = fromGb and 1 or 0, set = fromSet and fromSet.key or nil }
           local place = kind == "front" and variant == "" and placements[species]
           if place and place.ox then meta.ox, meta.oy = place.ox, place.oy end
-          disk.put(setGroup(), key, data, meta)
+          if not current.ds then disk.put(setGroup(), key, data, meta) end
         end
       end
       local entry = false
@@ -1189,6 +1225,27 @@ function mons.init(mod, rows, menu)
     end
     mons.emeraldPic = emeraldPic
 
+    -- A DS set's second front frame (Gen 4's, or the middle of Black 2/
+    -- White 2's idle), in the spot its first frame took -Elvie
+    local dsFrames = {}
+    local function dsFrame(species, shiny)
+      local key = species .. (shiny and ":s" or "")
+      local hit = dsFrames[key]
+      if hit ~= nil then return hit or nil end
+      dsFrames[key] = false
+      local first = lookup("front", species, nil, shiny)
+      if not (first and first.set == current) then return nil end
+      local nat, letter = identify(species)
+      if type(nat) ~= "number" or nat == 327 then return nil end
+      local ok, data = pcall(dsBuild, "front", species, shiny, nat, letter, "", true)
+      if not (ok and data and love and love.graphics) then return nil end
+      local image = love.graphics.newImage(data)
+      image:setFilter("nearest", "nearest")
+      local entry = { image = image, imageData = data, w = SIZE, h = SIZE, set = current }
+      dsFrames[key] = entry
+      return entry
+    end
+
     -- Another mod's picture comes first: when a sprite pack (Sprite
     -- Swapper's, say) has this Pokémon, Facets steps aside for it, and
     -- fills in only what the pack leaves out. -Elvie
@@ -1421,6 +1478,8 @@ function mons.init(mod, rows, menu)
           if current then
             local e = gbFrame(sp, f, shiny)
             if e then return e end
+            e = current.ds and dsFrame(sp, shiny)
+            if e then return e end
           end
           local e = lookup("front", sp, nil, shiny)
           if e then return e end
@@ -1439,7 +1498,7 @@ function mons.init(mod, rows, menu)
       for _, set in ipairs(sets) do
         if set.key == selected then current = set end
       end
-      cache, placements, commands = {}, {}, {}
+      cache, placements, commands, dsFrames = {}, {}, {}, {}
       -- a game imported since the last look: read it again -Elvie
       if palettes == false then palettes = nil end
       if crystalIcons == false then crystalIcons = nil end
@@ -1634,6 +1693,14 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
         end
         if emerald and not gb.imported({ "emerald" }) then
           needs[#needs + 1] = { text = "No Emerald imported.", red = true }
+        end
+        -- a DS dump picked in Prism Importer but not imported yet: the DS
+        -- set stands in until it is -Elvie
+        if set.ds then
+          local DS = require("mods.facets.ds")
+          if DS.state(DS.api(mod), set.ds) ~= "ready" then
+            needs[#needs + 1] = { text = "Not imported yet: DS set for now.", red = true }
+          end
         end
         for i = #needs, 1, -1 do table.insert(lines, 1, needs[i]) end
         if packShowing() then

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **POKEMON: DPPT, HGSS and B2W2** (FireRed, LeafGreen, Ruby, Sapphire, Emerald): Pokémon from your own Diamond/Pearl/Platinum, HeartGold/SoulSilver and Black 2/White 2, through Prism Importer. A choice appears for each dump picked there; until it's imported, and for anything it lacks, the DS set stands in. Big fronts shrink to fit Gen 3's 64x64, backs keep their top 64 rows, and fronts animate with the DS games' second frame.
+
 ## 1.1.0
 
 - Crystal: with **YOUR SIDE** on FRONT or MIRRORED, your Pokémon now plays its front animation when it's sent out, as the foe's does, mirrored with MIRRORED. Before, only the foe's moved. Crystal animates only the foe's front picture, so Facets now runs the same animation for your side.
