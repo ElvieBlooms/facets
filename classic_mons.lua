@@ -251,6 +251,15 @@ function classic.init(mod, rows)
           return copy
         end
       end
+      -- YOUR SIDE on FRONT or MIRRORED: your Pokémon plays its front
+      -- animation when it comes out, as the foe's does -Elvie
+      local okS, sideAnim = pcall(require, "mods.facets.classic_side_anim")
+      local okM, MonAnim = pcall(require, "src.render.MonAnim")
+      if okS and okB and okM then
+        local done = sideAnim.install(BattleState, MonAnim, function() return mod.options:get("classicSide") end,
+          function(...) mod.log:warn(...) end)
+        if not done then mod.log:warn("Gen 2's battle front animation wasn't found; YOUR SIDE stays still") end
+      end
     end
     -- Yellow's partner Pikachu in its PIKACHU look's front and back
     -- (leParagon's), whatever the POKEMON set is. The partner is the

@@ -2627,5 +2627,15 @@ do
     and text:find("11@1,14:-7", 1, true) and text:find("12@18,14:7", 1, true), "windows: shifted cells")
 end
 
+-- YOUR SIDE in Crystal: which part of the animation sheet a frame is -Elvie
+do
+  local A = require("mods.facets.classic_side_anim")
+  eq(A.frameRect(0, 56, 56, 224), nil, "side anim: frame 0 is the still picture")
+  local x, y, w, h = A.frameRect(2, 56, 56, 224)
+  eq(x .. "," .. y .. "," .. w .. "," .. h, "0,112,56,56", "side anim: frame 2 is the third picture down")
+  eq(A.frameRect(4, 56, 56, 224), nil, "side anim: nothing past the sheet")
+  eq(A.install({}, {}, function() return "front" end), false, "side anim: stays out without the battle's functions")
+end
+
 print(("%d passed, %d failed"):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)

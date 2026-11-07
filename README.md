@@ -421,7 +421,7 @@ A person's own name is looked for in every set before any stand-in, so a fill-in
 
 ### Pokémon
 
-- **POKEMON: DS**, with **YOUR SIDE** (BACK, MIRRORED or FRONT) as on Gen 3. With a set off, YOUR SIDE shows the game's own front, or another mod's. On Red, Blue and Yellow there's also **CRYSTAL**: Crystal's battle sprites, read from your own imported Crystal (or Gold, or Silver).
+- **POKEMON: DS**, with **YOUR SIDE** (BACK, MIRRORED or FRONT) as on Gen 3. With a set off, YOUR SIDE shows the game's own front, or another mod's. In Crystal your Pokémon then plays its front animation when it comes out, as the foe's does (mirrored with MIRRORED); Gold and Silver have no animations, so there it stays still. On Red, Blue and Yellow there's also **CRYSTAL**: Crystal's battle sprites, read from your own imported Crystal (or Gold, or Silver).
 - **ICONS**: **GAME**, **MINIDEX** (a different icon for every Pokémon, at the Game Boy's own size) or, on Red, Blue and Yellow, **CRYSTAL** (Crystal's icons, from your install).
 - **SIZE**, under POKEMON and under TRAINERS (POKEMON SIZE and TRAINER SIZE on the FACETS page): **FIT** (the default) cuts each picture to its edges and shrinks it only if it still doesn't fit the game's own box. **FULL** shows the art at its own size in battle, **SMALL** at three quarters and **TINY** at half, standing on the same ground line.
 
