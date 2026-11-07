@@ -195,6 +195,37 @@ function windows.sideShift(pixel, fill)
   return shiftL, shiftR
 end
 
+-- Which see-through pixels of a frame are inside its border: those the
+-- outside can't reach by stepping through see-through pixels from the
+-- picture's edge. clear(x, y) says whether a pixel is see-through. Returns
+-- a set of y * w + x. Only they get the inside colour, so round a frame's
+-- corners and outer edge the map shows, as in Gen 3 -Elvie
+function windows.insideMask(clear, w, h)
+  local outside, stack = {}, {}
+  local function push(x, y)
+    if x < 0 or y < 0 or x >= w or y >= h then return end
+    local k = y * w + x
+    if outside[k] or not clear(x, y) then return end
+    outside[k] = true
+    stack[#stack + 1] = k
+  end
+  for x = 0, w - 1 do push(x, 0); push(x, h - 1) end
+  for y = 0, h - 1 do push(0, y); push(w - 1, y) end
+  while #stack > 0 do
+    local k = table.remove(stack)
+    local x, y = k % w, math.floor(k / w)
+    push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1)
+  end
+  local inside = {}
+  for y = 0, h - 1 do
+    for x = 0, w - 1 do
+      local k = y * w + x
+      if not outside[k] and clear(x, y) then inside[k] = true end
+    end
+  end
+  return inside
+end
+
 -- A 3x3 frame's tiles on a box's border ring: put(cell, cx, cy) -Elvie
 function windows.frameCells(tx, ty, tw, th, put)
   put(0, tx, ty)
@@ -312,6 +343,34 @@ function windows.init(mod, rows)
       return l, r
     end
 
+    -- each frame's inside, as a white picture laid out like the frame, to
+    -- tint with the box's fill under it -Elvie
+    local masks = {}
+    local function maskFor(img)
+      local got = masks[img]
+      if got ~= nil then return got or nil end
+      masks[img] = false
+      local data = datas[img]
+      if not data then return nil end
+      local w, h = data:getDimensions()
+      local ok, mask = pcall(function()
+        local inside = windows.insideMask(function(x, y)
+          local _, _, _, a = data:getPixel(x, y)
+          return a < 0.5
+        end, w, h)
+        local out = love.image.newImageData(w, h)
+        out:mapPixel(function(x, y)
+          if inside[y * w + x] then return 1, 1, 1, 1 end
+          return 0, 0, 0, 0
+        end)
+        local image = love.graphics.newImage(out)
+        image:setFilter("nearest", "nearest")
+        return image
+      end)
+      if ok and mask then masks[img] = mask end
+      return masks[img] or nil
+    end
+
     -- The art for the chosen WINDOWS and TEXT BOX: { frame, dialogue,
     -- fill }, either may be missing; nil when neither changes anything -Elvie
     local function styleOf(key, n)
@@ -382,7 +441,15 @@ function windows.init(mod, rows)
         local L, Top, W, H = tx + 2, ty + 1, tw - 4, th - 2
         G.rectangle("fill", L * T - sl, Top * T, W * T + sl + sr, H * T)
       else
-        G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
+        -- the middle, then only the frame's own inside under its border
+        -- tiles, so its corners show the map -Elvie
+        local mask = maskFor(img)
+        if mask then
+          G.rectangle("fill", (tx + 1) * T, (ty + 1) * T, (tw - 2) * T, (th - 2) * T)
+          windows.frameCells(tx, ty, tw, th, function(i, cx, cy) G.draw(mask, quad(mask, i), cx * T, cy * T) end)
+        else
+          G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
+        end
       end
       G.setColor(1, 1, 1, 1)
       if kind == "dialogue" then

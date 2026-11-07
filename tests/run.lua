@@ -2637,5 +2637,18 @@ do
   eq(A.install({}, {}, function() return "front" end), false, "side anim: stays out without the battle's functions")
 end
 
+-- WINDOWS on the Game Boy: only a frame's own inside gets the fill -Elvie
+do
+  local W = require("mods.facets.classic_windows")
+  -- 6x6: "." see-through, "#" border. The corner is open to the outside,
+  -- the middle is closed in by the border -Elvie
+  local rows = { "..####", ".#...#", "#....#", "#....#", "#....#", "######" }
+  local inside = W.insideMask(function(x, y) return rows[y + 1]:sub(x + 1, x + 1) == "." end, 6, 6)
+  eq(inside[0] and "in" or "out", "out", "frame mask: the rounded corner is outside")
+  eq(inside[1] and "in" or "out", "out", "frame mask: ...all of it")
+  eq(inside[2 * 6 + 2] and "in" or "out", "in", "frame mask: inside the border takes the fill")
+  eq(inside[1 * 6 + 1] and "in" or "out", "out", "frame mask: the border itself isn't filled")
+end
+
 print(("%d passed, %d failed"):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)
