@@ -85,23 +85,75 @@ end
 -- The text box's tiles from Gen 3's 18-tile atlas, for a box at tx, ty
 -- tw x th (tiles): cell index and flip for each tile on the border, as
 -- pokefirered's menu.c lays them out round content (2, 15) 26x4. Calls
--- put(cell, cx, cy, flip) -Elvie
-function windows.dialogueCells(tx, ty, tw, th, put)
+-- put(cell, cx, cy, flip, dx), dx a pixel nudge. With shiftL / shiftR
+-- (pixels, from sideShift) the left and right sides move out that far,
+-- and the top and bottom edges reach out to meet them -Elvie
+function windows.dialogueCells(tx, ty, tw, th, put, shiftL, shiftR)
   local L, Top, W, H = tx + 2, ty + 1, tw - 4, th - 2
+  local sl, sr = shiftL or 0, shiftR or 0
   for _, edge in ipairs({ { Top - 1, false }, { Top + H, true } }) do
     local y, f = edge[1], edge[2]
-    put(0, L - 2, y, f); put(1, L - 1, y, f)
-    for i = 0, W - 1 do put(2, L + i, y, f) end
-    put(3, L + W, y, f); put(4, L + W + 1, y, f)
+    if sl > 0 then put(2, L - 1, y, f, 0) end
+    if sr > 0 then put(2, L + W, y, f, 0) end
+    put(0, L - 2, y, f, -sl); put(1, L - 1, y, f, -sl)
+    for i = 0, W - 1 do put(2, L + i, y, f, 0) end
+    put(3, L + W, y, f, sr); put(4, L + W + 1, y, f, sr)
   end
   local rows = { { 5, 6, 8, 9, false }, { 10, 11, 12, 13, false }, { 10, 11, 12, 13, true }, { 5, 6, 8, 9, true } }
   for r = 1, H do
     -- rows past the fourth repeat the middle ones -Elvie
     local c = rows[r == H and 4 or (r == 1 and 1 or (r <= H / 2 and 2 or 3))]
     local y = Top + r - 1
-    put(c[1], L - 2, y, c[5]); put(c[2], L - 1, y, c[5])
-    put(c[3], L + W, y, c[5]); put(c[4], L + W + 1, y, c[5])
+    put(c[1], L - 2, y, c[5], -sl); put(c[2], L - 1, y, c[5], -sl)
+    put(c[3], L + W, y, c[5], sr); put(c[4], L + W + 1, y, c[5], sr)
   end
+end
+
+-- How far a text box's sides move out on the Game Boy, in pixels. Gen 3
+-- starts its text two tiles in, past both side tiles; the Game Boy starts
+-- one tile in, on the inner one. A style whose border sits on that inner
+-- tile (LIBERTY's) would run under the first and last letters, so its
+-- side moves out until the border clears the text, but only as far as the
+-- outer tile is empty, so nothing is cut off at the screen's edge. Styles
+-- that draw their border on the outer tile (TITO's, FireRed's own) don't
+-- move. pixel(x, y) gives r, g, b, a (0-255) of the 48x24 atlas; fill is
+-- the inside colour (0-255). Returns left, right -Elvie
+function windows.sideShift(pixel, fill)
+  local f = type(fill) == "table" and fill or { 255, 255, 255 }
+  local function strip(c1, c2)
+    local out = {}
+    for k, c in ipairs({ c1, c2 }) do
+      local x0, y = (c % 6) * T, math.floor(c / 6) * T + 4
+      for x = 0, T - 1 do
+        local r, g, b, a = pixel(x0 + x, y)
+        local kind = "clear"
+        if (a or 0) > 0 then
+          local same = math.abs(r - f[1]) <= 2 and math.abs(g - f[2]) <= 2 and math.abs(b - f[3]) <= 2
+          kind = same and "fill" or "border"
+        end
+        out[(k - 1) * T + x + 1] = kind
+      end
+    end
+    return out
+  end
+  local function clamp(v, hi) return math.max(0, math.min(v, hi)) end
+  -- left: cells 10 (outer) and 11 (inner), pixels 1-16 from the outside -Elvie
+  local left = strip(10, 11)
+  local firstOpaque, innerEnd = 2 * T, 0
+  for i = 1, 2 * T do
+    if left[i] ~= "clear" and firstOpaque == 2 * T then firstOpaque = i - 1 end
+    if left[i] == "border" then innerEnd = i end
+  end
+  local shiftL = clamp(innerEnd - T, firstOpaque)
+  -- right: cells 12 (inner) and 13 (outer) -Elvie
+  local right = strip(12, 13)
+  local innerStart, lastOpaque = 2 * T, -1
+  for i = 2 * T, 1, -1 do
+    if right[i] ~= "clear" and lastOpaque < 0 then lastOpaque = i - 1 end
+    if right[i] == "border" then innerStart = i - 1 end
+  end
+  local shiftR = clamp(T - innerStart, 2 * T - 1 - lastOpaque)
+  return shiftL, shiftR
 end
 
 -- A 3x3 frame's tiles on a box's border ring: put(cell, cx, cy) -Elvie
@@ -158,7 +210,7 @@ function windows.init(mod, rows)
       return
     end
 
-    local images, quads = {}, {}
+    local images, quads, datas = {}, {}, {}
     local function fromGame(rel, w, h)
       local id = "game:" .. rel
       if images[id] ~= nil then return images[id] or nil end
@@ -169,6 +221,7 @@ function windows.init(mod, rows)
           local img = love.graphics.newImage(data)
           img:setFilter("nearest", "nearest")
           images[id] = img
+          datas[img] = data
           return img
         end
       end
@@ -179,10 +232,13 @@ function windows.init(mod, rows)
       if images[id] ~= nil then return images[id] or nil end
       images[id] = false
       if type(file) ~= "string" or not file:match("^[%w_%-%.]+%.png$") then return nil end
-      local ok, img = pcall(love.graphics.newImage, mod.assets:path(DIR .. "/" .. key .. "/" .. file))
+      local okD, data = pcall(love.image.newImageData, mod.assets:path(DIR .. "/" .. key .. "/" .. file))
+      if not okD then return nil end
+      local ok, img = pcall(love.graphics.newImage, data)
       if not ok then return nil end
       img:setFilter("nearest", "nearest")
       images[id] = img
+      datas[img] = data
       return img
     end
     local function quad(img, i)
@@ -195,6 +251,26 @@ function windows.init(mod, rows)
         byImg[i] = q
       end
       return q
+    end
+
+    -- each text box's side shifts, worked out once from its pixels -Elvie
+    local shifts = {}
+    local function shift(img, a)
+      local got = shifts[img]
+      if got then return got[1], got[2] end
+      local l, r = 0, 0
+      local ok = pcall(function()
+        local data = datas[img]
+        if not data then return end
+        local c = a.fill
+        l, r = windows.sideShift(function(x, y)
+          local pr, pg, pb, pa = data:getPixel(x, y)
+          return pr * 255, pg * 255, pb * 255, pa * 255
+        end, { c[1] * 255, c[2] * 255, c[3] * 255 })
+      end)
+      if not ok then l, r = 0, 0 end
+      shifts[img] = { l, r }
+      return l, r
     end
 
     -- The art for the chosen WINDOWS: { frame, dialogue, fill } -Elvie
@@ -238,14 +314,24 @@ function windows.init(mod, rows)
       if shader then G.setShader() end
       local inside = kind == "dialogue" and a.fill
         or (type(fill) == "table" and fill[1] and { fill[1] / 255, fill[2] / 255, fill[3] / 255 }) or { 1, 1, 1 }
+      local sl, sr = 0, 0
+      if kind == "dialogue" then sl, sr = shift(img, a) end
       G.setColor(inside[1], inside[2], inside[3], 1)
-      G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
+      if kind == "dialogue" then
+        -- only inside the border: the text box's own tiles carry their
+        -- inside, and round its corners the map shows, as in Gen 3 -Elvie
+        local L, Top, W, H = tx + 2, ty + 1, tw - 4, th - 2
+        G.rectangle("fill", L * T - sl, Top * T, W * T + sl + sr, H * T)
+      else
+        G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
+      end
       G.setColor(1, 1, 1, 1)
       if kind == "dialogue" then
-        windows.dialogueCells(tx, ty, tw, th, function(i, cx, cy, flip)
-          if flip then G.draw(img, quad(img, i), cx * T, cy * T + T, 0, 1, -1)
-          else G.draw(img, quad(img, i), cx * T, cy * T) end
-        end)
+        windows.dialogueCells(tx, ty, tw, th, function(i, cx, cy, flip, dx)
+          local x = cx * T + (dx or 0)
+          if flip then G.draw(img, quad(img, i), x, cy * T + T, 0, 1, -1)
+          else G.draw(img, quad(img, i), x, cy * T) end
+        end, sl, sr)
       else
         windows.frameCells(tx, ty, tw, th, function(i, cx, cy) G.draw(img, quad(img, i), cx * T, cy * T) end)
       end

@@ -2552,5 +2552,47 @@ do
   eq(P.imports(broken)[1].label, "MISSING", "imports: a failing status reads as missing")
 end
 
+-- WINDOWS on the Game Boy: a text box whose border sits on its inner side
+-- tiles moves out so it clears the text; one drawn on the outer tiles
+-- stays -Elvie
+do
+  local W = require("mods.facets.classic_windows")
+  local FILL = { 248, 248, 248 }
+  -- rows of the 16-pixel strips (outer to inner on the left, inner to
+  -- outer on the right): "." clear, "f" fill, "b" border -Elvie
+  local function atlas(leftStrip, rightStrip)
+    return function(x, y)
+      local cell = math.floor(y / 8) * 6 + math.floor(x / 8)
+      local px = x % 8
+      local ch
+      if cell == 10 then ch = leftStrip:sub(px + 1, px + 1)
+      elseif cell == 11 then ch = leftStrip:sub(9 + px, 9 + px)
+      elseif cell == 12 then ch = rightStrip:sub(px + 1, px + 1)
+      elseif cell == 13 then ch = rightStrip:sub(9 + px, 9 + px)
+      else ch = "." end
+      if ch == "." then return 0, 0, 0, 0 end
+      if ch == "f" then return 248, 248, 248, 255 end
+      return 59, 59, 59, 255
+    end
+  end
+  -- LIBERTY: border at pixel 7 to 14 on the left, 1 to 8 on the right
+  local l, r = W.sideShift(atlas(".......bbbbbbbbf", "fbbbbbbbb......."), FILL)
+  eq(l .. "," .. r, "7,7", "windows: LIBERTY's sides move out 7 pixels")
+  -- TITO: border from the outer edge, fill-coloured inside
+  l, r = W.sideShift(atlas("bbbbbbbbbbbfffff", "fffffbbbbbbbbbbb"), FILL)
+  eq(l .. "," .. r, "0,0", "windows: an outer border stays put")
+  -- a border reaching in but no room outside: as far as the empty pixels go
+  l, r = W.sideShift(atlas("...bbbbbbbbbbbbf", "fbbbbbbbbbbbbb.."), FILL)
+  eq(l .. "," .. r, "3,2", "windows: never past the empty edge")
+  -- the text box's sides take the nudge, and the top and bottom reach out
+  local seen = {}
+  W.dialogueCells(0, 12, 20, 6, function(cell, cx, cy, flip, dx)
+    seen[#seen + 1] = cell .. "@" .. cx .. "," .. cy .. ":" .. dx
+  end, 7, 7)
+  local text = table.concat(seen, " ")
+  check(text:find("0@0,12:-7", 1, true) and text:find("2@1,12:0", 1, true) and text:find("4@19,12:7", 1, true)
+    and text:find("11@1,14:-7", 1, true) and text:find("12@18,14:7", 1, true), "windows: shifted cells")
+end
+
 print(("%d passed, %d failed"):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)

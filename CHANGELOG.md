@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **WINDOWS: LIBERTY** now ships: LibertyTwins' ten DS-inspired window frames from Custom Text Boxes FR, with their text and sign boxes. Their thread confirms the frames are their own drawings.
+- Red, Blue, Yellow, Gold, Silver and Crystal: a text box whose border sits on the inside of its edge tiles (LIBERTY's) moves out to the screen's edge so it no longer runs under the first and last letters; TITO's and FireRed's boxes stay where they were. The text box's inside colour now stops at its border, so the map shows round its corners as in Gen 3, instead of a white margin.
 - **PERFORMANCE** shows [Prism Importer](https://github.com/ElvieBlooms/prism_importer)'s DS dumps when it's installed: DPPT, HGSS and B2W2, each IMPORTED, MISSING or how far along it is.
 
 ## 1.0.2
