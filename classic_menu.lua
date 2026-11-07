@@ -94,17 +94,18 @@ function cmenu.start(mod, rows)
     return out
   end
 
-  -- The WINDOWS row shows the text box its style gives: Gen 1 draws that
-  -- row's own box as the text box; Gen 2's page gives it a box of its
-  -- own, the rest as the game lays them out -Elvie
-  local WINDOWS = "facets.classicWindows"
+  -- The TEXT BOX row shows the text box it gives: Gen 1 draws that row's
+  -- own box as the text box; Gen 2's page gives it a box of its own, the
+  -- rest as the game lays them out. WINDOWS shows on the page's own
+  -- frame -Elvie
+  local TEXTBOX = "facets.classicTextBox"
   local function wins()
     local w = package.loaded["mods.facets.classic_windows"]
     return type(w) == "table" and w or nil
   end
   local function boxed(row)
     local w = wins()
-    return row and row.id == WINDOWS and w and w.styled() or false
+    return row and row.id == TEXTBOX and w and w.textStyled() or false
   end
 
   local function gen1Page(g)
@@ -122,7 +123,7 @@ function cmenu.start(mod, rows)
     return page
   end
 
-  -- Gen 2's OPTION page lays rows out two lines apart; the WINDOWS row
+  -- Gen 2's OPTION page lays rows out two lines apart; the TEXT BOX row
   -- here takes four, for its box -Elvie
   local FIRST, LAST, ARROW = 2, 15, 16
   local function height(row)

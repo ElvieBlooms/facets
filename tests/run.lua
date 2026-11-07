@@ -1225,7 +1225,7 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sectionMons,setMons,animMons,backMons,mirrorMons,sectionScreen,gbcFrame,gbcHud,gbcBattleBg,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sectionMons,setMons,animMons,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
   local trainerSets = {}
   for _, c in ipairs(mod.rows[6].choices) do trainerSets[#trainerSets + 1] = c[1] end
   eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
@@ -1723,17 +1723,30 @@ do
   local list = G.loadSets(wmod)
   check(G.SETS.tito, "gbc ui: Tito Seich's window set is found")
   eq(G.WINDOWS[2][1] .. "," .. G.WINDOWS[9][1], "GBC 1,GBC 8", "gbc ui: Crystal's frames first")
-  local seen = {}
-  for _, c in ipairs(G.WINDOWS) do seen[c[2]] = c[1] end
-  eq(seen["tito:1"], "TITO CHECKERED", "gbc ui: a set's styles by name")
+  local seen, frames = {}, {}
+  for _, c in ipairs(G.TEXTBOX) do seen[c[2]] = c[1] end
+  for _, c in ipairs(G.WINDOWS) do frames[c[2]] = c[1] end
+  eq(seen["tito:1"], "TITO CHECKERED", "gbc ui: a set's text boxes by name")
   eq(seen["tito:10"], "TITO WOODY", "gbc ui: ...all ten")
+  eq(frames["tito:1"], nil, "gbc ui: TITO has no frames, so it's not a WINDOWS choice")
+  eq(frames["libertytwins:1"] .. "," .. frames["libertytwins:10"], "LIBERTY 1,LIBERTY 10", "gbc ui: LIBERTY's ten frames are WINDOWS")
+  eq(seen["libertytwins:1"], "LIBERTY", "gbc ui: its one text box is just LIBERTY")
+  eq(seen["libertytwins:2"], nil, "gbc ui: ...listed once")
+  eq(G.TEXTBOX[1][2] .. "," .. G.TEXTBOX[2][2] .. "," .. G.TEXTBOX[3][1], "match,game,GBC 1", "gbc ui: TEXT BOX starts MATCH, GAME, Crystal's")
+  -- TEXT BOX: MATCH follows WINDOWS; its own choice wins -Elvie
+  local function tv(frame, text) return G.textValue(function(k) if k == "gbcFrame" then return frame elseif k == "gbcTextBox" then return text end end) end
+  eq(tv("3", nil), "3", "gbc ui: MATCH takes Crystal's frame for the text box")
+  eq(tv("libertytwins:4", "match"), "libertytwins:4", "gbc ui: MATCH takes a set's text box")
+  eq(tv("3", "tito:2"), "tito:2", "gbc ui: TEXT BOX on its own")
+  eq(tv("libertytwins:4", "game"), "game", "gbc ui: LIBERTY frames, the game's text box")
+  eq(tv("game", "nope:1"), "game", "gbc ui: an unknown TEXT BOX is MATCH")
   local st = G.style("tito:10")
   eq(st and st.dialogue, "dialogue_woody.png", "gbc ui: a style's dialogue box")
   eq(st and table.concat(st.fill, ","), "248,200,120", "gbc ui: ...filled with its colour 1")
   eq(G.settings(function(k) return k == "gbcFrame" and "tito:3" or nil end), "tito:3", "gbc ui: a set's style is a WINDOWS value")
   eq(G.settings(function(k) return k == "gbcFrame" and "nope:3" or nil end), "game", "gbc ui: an unknown one is GAME")
   check(G.SETS.libertytwins, "gbc ui: LibertyTwins' window set is found")
-  eq(seen["libertytwins:1"] .. "," .. seen["libertytwins:10"], "LIBERTY 1,LIBERTY 10", "gbc ui: LIBERTY's ten frames")
+  eq(frames["libertytwins:1"] .. "," .. frames["libertytwins:10"], "LIBERTY 1,LIBERTY 10", "gbc ui: LIBERTY's ten frames")
   for _, key in ipairs({ "tito", "libertytwins" }) do
     for _, style in ipairs(G.SETS[key].styles) do
       for _, kind in ipairs({ "frame", "dialogue", "sign" }) do
@@ -1804,9 +1817,9 @@ do
   local rows = {}
   local start = G.init(mod, rows, nil)
   mod.options:define(rows)
-  eq(rows[1].key .. "," .. rows[2].key .. "," .. rows[3].key .. "," .. rows[4].key, "sectionScreen,gbcFrame,gbcHud,gbcBattleBg",
+  eq(rows[1].key .. "," .. rows[2].key .. "," .. rows[3].key .. "," .. rows[4].key, "sectionScreen,gbcFrame,gbcTextBox,gbcHud",
     "gbc ui: rows under a SCREEN heading of their own when the filter isn't there")
-  eq(rows[2].default .. "," .. rows[3].default .. "," .. rows[4].default, "game,game,game", "gbc ui: all the game's own by default")
+  eq(rows[2].default .. "," .. rows[3].default .. "," .. rows[4].default .. "," .. rows[5].default, "game,match,game,game", "gbc ui: all the game's own by default, TEXT BOX matching")
   start()
   Chrome.stdFrame(1, 1, 4, 2); Chrome.dialogueFrame(); BC.drawPanel("menu"); BC.drawEnemyBox(0, 0); Bg.draw()
   eq(table.concat(drawn, ","), "std,dlg,panel:menu,ebox,bg", "gbc ui: GAME draws the game's own")
@@ -2458,6 +2471,26 @@ do
   eq(withFills[4], "NPCS: KALARIE", "credits: every fill-in set")
   eq(table.concat(got, "|"), "FACETS|NPCS: COMMUNITY|NPCS: HEART & SOUL|WINDOWS: TITO|YOUR OWN GAMES",
     "credits: each set once, Heart & Soul with the NPCs, own games last")
+end
+
+-- WINDOWS and TEXT BOX on the Game Boy games -Elvie
+do
+  local W = require("mods.facets.classic_windows")
+  local a, b, c = W.textParse("match", "fr:3")
+  eq(tostring(a) .. "," .. tostring(c), "fr,3", "gb text box: MATCH with a FIRERED frame is FireRed's")
+  a, b, c = W.textParse(nil, "libertytwins:5")
+  eq(a .. "," .. b .. "," .. c, "set,libertytwins,5", "gb text box: MATCH with LIBERTY is its text box")
+  eq(W.textParse("game", "fr:3"), nil, "gb text box: GAME is the game's")
+  eq(W.textParse("fr", "game"), "fr", "gb text box: FIRERED on its own")
+  a, b, c = W.textParse("tito:2", "fr:1")
+  eq(b .. "," .. c, "tito,2", "gb text box: a set's on its own")
+  eq(W.textParse("match", "game"), nil, "gb text box: MATCH with GAME is the game's")
+  local frames, boxes = W.setChoices({ key = "libertytwins", label = "LIBERTY", styles = {
+    { name = "1", frame = "f1.png", dialogue = "d.png" }, { name = "2", frame = "f2.png", dialogue = "d.png" } } })
+  eq(#frames .. "," .. #boxes .. "," .. boxes[1][1], "2,1,LIBERTY", "gb windows: LIBERTY gives two frames, one text box")
+  frames, boxes = W.setChoices({ key = "tito", label = "TITO", styles = {
+    { name = "RED", dialogue = "r.png" }, { name = "WOODY", dialogue = "w.png" } } })
+  eq(#frames .. "," .. boxes[2][1], "0,TITO WOODY", "gb windows: TITO gives text boxes only, by name")
 end
 
 -- COLORS on the Game Boy games: when Facets holds the full-colour mode -Elvie

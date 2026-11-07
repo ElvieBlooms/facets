@@ -26,6 +26,7 @@ credits.DIRS = {
   { "classicBattleBg", "assets/battlebg", "BATTLE BG" },
   { "classicBattleUi", "assets/battleui", "BATTLE UI" },
   { "classicWindows", "assets/windows", "WINDOWS" },
+  { "classicTextBox", "assets/windows", "TEXT BOX" },
 }
 
 -- Choices read from the player's own games, not shipped -Elvie

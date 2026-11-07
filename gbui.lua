@@ -1,10 +1,12 @@
 -- GBC windows and battle boxes
 -- Crystal's interface on Gen 3, read from the player's own imported
 -- Crystal (or Gold, Silver) while they play, so none of it is included:
---   WINDOWS: every text box, menu and sign framed with one of Crystal's
---     eight FRAME styles, on white, like Crystal's TYPE option; or a
---     window set's (assets/windows/<set>/): frames, dialogue and sign
---     boxes in Gen 3's own formats, drawn the way Gen 3 draws its own.
+--   WINDOWS: every menu framed with one of Crystal's eight FRAME styles,
+--     on white, like Crystal's TYPE option; or a window set's frames
+--     (assets/windows/<set>/, in Gen 3's own format).
+--   TEXT BOX: the text box, signs and the battle message box, in one of
+--     Crystal's frames or a window set's dialogue and sign boxes, drawn
+--     the way Gen 3 draws its own. MATCH follows WINDOWS.
 --   BATTLE UI: the battle healthboxes as Gen 2 draws them: no box, the
 --     bracket under the HP bar, Crystal's HP and EXP bars; or a battle box
 --     set's (assets/battleui/<set>/): healthboxes, bars and text box from
@@ -22,6 +24,10 @@ local gbui = {}
 
 gbui.WINDOWS = { { "GAME", "game" } }
 for n = 1, 8 do gbui.WINDOWS[#gbui.WINDOWS + 1] = { "GBC " .. n, tostring(n) } end
+-- TEXT BOX: MATCH (whatever WINDOWS gives), GAME, Crystal's, then the
+-- sets' text boxes -Elvie
+gbui.TEXTBOX = { { "MATCH", "match" }, { "GAME", "game" } }
+for n = 1, 8 do gbui.TEXTBOX[#gbui.TEXTBOX + 1] = { "GBC " .. n, tostring(n) } end
 gbui.SETS = {}          -- [key] = { label, credit, styles } from assets/windows -Elvie
 gbui.WINDOWS_DIR = "assets/windows"
 gbui.HUD = { { "GAME", "game" }, { "GBC", "gbc" } }
@@ -50,11 +56,21 @@ end
 function gbui.settings(get)
   local frame = tostring(get("gbcFrame") or "game")
   if not (frame:match("^[1-8]$") or gbui.style(frame)) then frame = "game" end
+  local text = tostring(get("gbcTextBox") or "match")
+  if not (text == "game" or text:match("^[1-8]$") or gbui.style(text)) then text = "match" end
   local hud = tostring(get("gbcHud") or "game")
   if hud ~= "gbc" and not gbui.UI_SETS[hud] then hud = "game" end
   local bg = tostring(get("gbcBattleBg") or "game")
   if bg ~= "white" and not gbui.BG_SETS[bg] then bg = "game" end
-  return frame, hud, bg
+  return frame, hud, bg, text
+end
+
+-- What draws the text box: "game", "1"-"8" or "<set>:<n>". MATCH takes
+-- WINDOWS's, which for a set's style is its text box -Elvie
+function gbui.textValue(get)
+  local frame, _, _, text = gbui.settings(get)
+  if text ~= "match" then return text end
+  return frame
 end
 
 -- --------------------------------------------------
@@ -278,6 +294,31 @@ end
 -- Window sets
 -- --------------------------------------------------
 
+-- A set's WINDOWS choices (its styles with a frame) and TEXT BOX choices
+-- (one per text box picture: LIBERTY's ten frames share one, so it's just
+-- LIBERTY; TITO's ten are TITO <name>) -Elvie
+function gbui.setChoices(set)
+  local frames, boxes, seen, distinct = {}, {}, {}, 0
+  for _, st in ipairs(set.styles) do
+    if type(st) == "table" and type(st.dialogue) == "string" and not seen[st.dialogue] then
+      seen[st.dialogue] = true
+      distinct = distinct + 1
+    end
+  end
+  seen = {}
+  for n, st in ipairs(set.styles) do
+    if type(st) == "table" then
+      local name = set.label .. " " .. tostring(st.name or n)
+      if type(st.frame) == "string" then frames[#frames + 1] = { name, set.key .. ":" .. n } end
+      if type(st.dialogue) == "string" and not seen[st.dialogue] then
+        seen[st.dialogue] = true
+        boxes[#boxes + 1] = { distinct == 1 and set.label or name, set.key .. ":" .. n }
+      end
+    end
+  end
+  return frames, boxes
+end
+
 -- Reads assets/windows/*/meta.json and adds each style to WINDOWS, after
 -- Crystal's, as "<LABEL> <name>". -Elvie
 function gbui.loadSets(mod)
@@ -298,14 +339,15 @@ function gbui.loadSets(mod)
     end
   end
   table.sort(list, function(a, b) return a.label < b.label end)
-  local choices = {}
+  local choices, texts = {}, {}
   for i = 1, 9 do choices[i] = gbui.WINDOWS[i] end
+  for i = 1, 10 do texts[i] = gbui.TEXTBOX[i] end
   for _, set in ipairs(list) do
-    for n, st in ipairs(set.styles) do
-      choices[#choices + 1] = { set.label .. " " .. tostring(st.name or n), set.key .. ":" .. n }
-    end
+    local frames, boxes = gbui.setChoices(set)
+    for _, c in ipairs(frames) do choices[#choices + 1] = c end
+    for _, c in ipairs(boxes) do texts[#texts + 1] = c end
   end
-  gbui.WINDOWS = choices
+  gbui.WINDOWS, gbui.TEXTBOX = choices, texts
   return list
 end
 
@@ -658,7 +700,7 @@ end
 -- picked): your healthbox and the message box for BATTLE UI, the text
 -- box for WINDOWS, the foe's spot for BATTLE BG. -Elvie
 gbui.SAMPLE = { x = 160, y = 82, size = 64,
-  crops = { gbcHud = { 176, 80 }, gbcFrame = { 0, 96 }, gbcBattleBg = { 152, 8 } } }
+  crops = { gbcHud = { 176, 80 }, gbcFrame = { 0, 0 }, gbcTextBox = { 0, 96 }, gbcBattleBg = { 152, 8 } } }
 local sampleCanvas, sampleQuads = nil, {}
 local sampleWarned = false
 local function logSample(e)
@@ -680,11 +722,17 @@ function gbui.drawSample(who, bg)
   G.clear(0, 0, 0, 0)
   G.setColor(1, 1, 1, 1)
   local okI = pcall(BattleChrome.ensureInstalled)
-  if who == "gbcFrame" then
+  if who == "gbcFrame" or who == "gbcTextBox" then
     G.setColor(0.55, 0.75, 0.5, 1)
     G.rectangle("fill", 0, 0, 240, 160)
     G.setColor(1, 1, 1, 1)
-    pcall(require("src.ui.game3.chrome").dialogueFrame)
+    local Chrome = require("src.ui.game3.chrome")
+    if who == "gbcFrame" then
+      -- a small menu window, its frame round the square's middle -Elvie
+      pcall(Chrome.stdFrame, 2, 2, 4, 4)
+    else
+      pcall(Chrome.dialogueFrame)
+    end
   else
     if bg == "white" then
       G.rectangle("fill", 0, 0, 240, 160)
@@ -731,6 +779,7 @@ function gbui.init(mod, rows, menu)
     rows[#rows + 1] = { key = "sectionScreen", type = "choice", label = "SCREEN", choices = { { "", "_" } }, default = "_" }
   end
   rows[#rows + 1] = { key = "gbcFrame", type = "choice", label = "  WINDOWS", choices = gbui.WINDOWS, default = "game" }
+  rows[#rows + 1] = { key = "gbcTextBox", type = "choice", label = "  TEXT BOX", choices = gbui.TEXTBOX, default = "match" }
   rows[#rows + 1] = { key = "gbcHud", type = "choice", label = "  BATTLE UI", choices = gbui.HUD, default = "game" }
   rows[#rows + 1] = { key = "gbcBattleBg", type = "choice", label = "  BATTLE BG", choices = gbui.BG, default = "game" }
 
@@ -742,29 +791,45 @@ function gbui.init(mod, rows, menu)
   if menu then
     menu.register({
       rows = function()
-        local frame, hud, bg = gbui.settings(get)
+        local frame, hud, bg, text = gbui.settings(get)
         return {
           { key = "gbcFrame", label = "WINDOWS", who = "gbcFrame", choices = gbui.WINDOWS, value = frame },
+          { key = "gbcTextBox", label = "TEXT BOX", who = "gbcTextBox", choices = gbui.TEXTBOX, value = text },
           { key = "gbcHud", label = "BATTLE UI", who = "gbcHud", choices = gbui.HUD, value = hud },
           { key = "gbcBattleBg", label = "BATTLE BG", who = "gbcBattleBg", choices = gbui.BG, value = bg },
         }
       end,
       preview = function(who)
-        local frame, hud, bg = gbui.settings(get)
+        local frame, hud, bg, textChoice = gbui.settings(get)
+        local text = gbui.textValue(get)
         local lines = {}
         local st, set = gbui.style(frame)
-        if (who == "gbcFrame" and frame ~= "game" and not st) or (who == "gbcHud" and hud == "gbc") then
+        local tst, tset = gbui.style(text)
+        if (who == "gbcFrame" and frame ~= "game" and not st) or (who == "gbcHud" and hud == "gbc")
+            or (who == "gbcTextBox" and text:match("^[1-8]$")) then
           if not imported() then lines[#lines + 1] = { text = "No Gen 2 game imported.", red = true } end
+        end
+        local function credit(of)
+          local c = type(of.credit) == "table" and of.credit[1] or of.credit
+          if type(c) == "string" then lines[#lines + 1] = { text = c } end
         end
         if who == "gbcFrame" then
           -- this screen's own window shows the frame -Elvie
-          if st then
-            local credit = type(set.credit) == "table" and set.credit[1] or set.credit
-            lines[#lines + 1] = { text = st.frame and "Its frame, like this one." or "Its text box; menus as before." }
-            if type(credit) == "string" then lines[#lines + 1] = { text = credit } end
+          if st and st.frame then
+            lines[#lines + 1] = { text = "Its frame, like this one." }
+            credit(set)
           else
-            lines[#lines + 1] = { text = frame == "game" and "The game's own windows." or "Crystal's frame, like this one." }
+            lines[#lines + 1] = { text = (frame == "game" or st) and "The game's own windows." or "Crystal's frame, like this one." }
           end
+        elseif who == "gbcTextBox" then
+          if textChoice == "match" then
+            lines[#lines + 1] = { text = text == "game" and "Matches WINDOWS: the game's own." or "Matches WINDOWS." }
+          elseif tst then
+            lines[#lines + 1] = { text = "Its text box and signs." }
+          else
+            lines[#lines + 1] = { text = text == "game" and "The game's own text box." or "Crystal's frame round it." }
+          end
+          if tst then credit(tset) end
         elseif who == "gbcHud" then
           local uset = gbui.UI_SETS[hud]
           if uset then
@@ -790,7 +855,7 @@ function gbui.init(mod, rows, menu)
         return { lines = lines, width = gbui.SAMPLE.x - 20 }
       end,
       draw = function(clock, family, spots, who)
-        if spots or not (who == "gbcFrame" or who == "gbcHud" or who == "gbcBattleBg") then return end
+        if spots or not (who == "gbcFrame" or who == "gbcTextBox" or who == "gbcHud" or who == "gbcBattleBg") then return end
         pcall(gbui.drawSample, who, select(3, gbui.settings(get)))
       end,
     })
@@ -802,16 +867,27 @@ function gbui.init(mod, rows, menu)
     local okG, BattleBg = pcall(require, "src.core.game3.battle.bg")
     local okH, Healthbox = pcall(require, "src.core.game3.battle.healthbox")
     local okF, FrlgFont = pcall(require, "src.ui.game3.frlg_font")
+    -- WINDOWS: Crystal's frame n for menus, or a set style's frame -Elvie
     local function frameOn()
       local frame = gbui.settings(get)
       if not frame:match("^[1-8]$") or not gbui.art() then return nil end
       return frame
     end
-    -- a window set's style, loaded -Elvie
     local function styleOn()
       local frame = gbui.settings(get)
       if frame:match("^[1-8]$") or frame == "game" then return nil end
       return gbui.styleArt(mod, frame)
+    end
+    -- TEXT BOX: Crystal's frame n, or a set style's text box -Elvie
+    local function textFrameOn()
+      local text = gbui.textValue(get)
+      if not text:match("^[1-8]$") or not gbui.art() then return nil end
+      return text
+    end
+    local function textStyleOn()
+      local text = gbui.textValue(get)
+      if text:match("^[1-8]$") or text == "game" then return nil end
+      return gbui.styleArt(mod, text)
     end
     local function hudOn()
       local _, hud = gbui.settings(get)
@@ -974,9 +1050,9 @@ function gbui.init(mod, rows, menu)
         local orig = Chrome[name]
         if type(orig) == "function" then
           Chrome[name] = function(...)
-            local frame = frameOn()
+            local frame = textFrameOn()
             if frame and gbui.box(frame, 0, 14 * T, 30, 6) then return end
-            local st = styleOn()
+            local st = textStyleOn()
             if st then
               local img = name == "signFrame" and st.sign or st.dialogue
               local fill = name == "signFrame" and st.sign and st.signFill or st.fill
@@ -993,7 +1069,7 @@ function gbui.init(mod, rows, menu)
       local origPanel = BattleChrome.drawPanel
       if type(origPanel) == "function" then
         BattleChrome.drawPanel = function(mode, ...)
-          local frame = frameOn()
+          local frame = textFrameOn()
           if frame then
             local rects
             if type(BattleChrome.menuFrameRects) == "function" and type(BattleChrome.layout) == "function" then
@@ -1129,7 +1205,7 @@ function gbui.init(mod, rows, menu)
       local origText = FrlgFont.draw
       FrlgFont.draw = function(text, x, y, opts, ...)
         if type(opts) == "table" and (tonumber(y) or 0) >= 112 and now() - recentPanel < 0.25
-            and gbui.lightText(opts.colors) and frameOn() then
+            and gbui.lightText(opts.colors) and textFrameOn() then
           local o = {}
           for k, v in pairs(opts) do o[k] = v end
           o.colors = FrlgFont.COLOR and FrlgFont.COLOR.NORMAL or opts.colors
@@ -1140,7 +1216,7 @@ function gbui.init(mod, rows, menu)
     end
 
     mod.events:on("mod.options_changed", function(change)
-      if type(change) == "table" and change.mod == mod.id and (change.key == "gbcFrame" or change.key == "gbcHud") then
+      if type(change) == "table" and change.mod == mod.id and (change.key == "gbcFrame" or change.key == "gbcTextBox" or change.key == "gbcHud") then
         if art == false then gbui.reset() end -- an import since: try again -Elvie
       end
     end)

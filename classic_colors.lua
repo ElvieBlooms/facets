@@ -15,7 +15,7 @@ local GAME, FULL = "game", "full"
 -- The settings that change how the game looks. the SIZE rows on their own
 -- change nothing -Elvie
 colors.LOOKS = { "classicNpcs", "classicPikachu", "classicTrainers", "classicMons", "classicSide",
-  "classicIcons", "classicBattleBg", "classicBattleUi", "classicWindows", "filter" }
+  "classicIcons", "classicBattleBg", "classicBattleUi", "classicWindows", "classicTextBox", "filter" }
 
 -- Whether the game's colours are Facets' to hold: COLORS on and any look
 -- away from its default -Elvie

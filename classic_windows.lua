@@ -2,12 +2,14 @@
 -- Every box Red/Blue/Yellow and Gold/Silver/Crystal draw goes through
 -- Font.drawBox (Gold/Silver/Crystal's with a palette shader on), one 8x8
 -- tile border round a filled inside: the same grid as Gen 3's windows.
--- So a box drawn there gets a Gen 3 frame instead:
---   FIRERED 1-10: the frames from FireRed's OPTION menu, and FireRed's
---     own text box for the six-row box at the bottom, read from the
---     player's imported FireRed (then LeafGreen, then Emerald).
---   A window set's style (assets/windows/<set>/, TITO's): its text box at
---     the bottom, and FireRed's frame 1 round everything else.
+-- So a box drawn there gets a Gen 3 frame instead, in two choices:
+--   WINDOWS, every box but the text box: FIRERED 1-10, the frames from
+--     FireRed's OPTION menu, read from the player's imported FireRed
+--     (then LeafGreen, then Emerald), or a window set's frames
+--     (assets/windows/<set>/, LIBERTY's).
+--   TEXT BOX, the six-row box at the bottom: FireRed's own text box, or a
+--     window set's (TITO's, LIBERTY's). MATCH, the default, follows
+--     WINDOWS: FireRed's box with a FIRERED frame, a set's with its.
 -- Six-row boxes are the text box: Gen 3's is two tiles thick at the sides
 -- and one at the top and bottom, round four rows of text. Boxes under
 -- three tiles either way stay the game's own. -Elvie
@@ -28,8 +30,10 @@ windows.FRAMES = 10
 -- so that row shows the text box the style gives -Elvie
 windows.textBoxAt = nil
 
--- Whether WINDOWS changes anything, once init has run -Elvie
+-- Whether WINDOWS or TEXT BOX changes anything, and whether TEXT BOX
+-- does, once init has run -Elvie
 function windows.styled() return false end
+function windows.textStyled() return false end
 
 -- The text box drawn last with a coloured inside (TITO's WOODY and the
 -- like): { x, y, w, h, fill = {r, g, b} 0-255, at = time, calls = draw
@@ -65,6 +69,41 @@ function windows.parse(value)
     return nil
   end
   return "set", key, n
+end
+
+-- A TEXT BOX value: "match" follows WINDOWS (its own value), "fr" is
+-- FireRed's text box, "<set>:<n>" a set style's. Returns "fr", key, n for
+-- FireRed's or a set's, nil for the game's -Elvie
+function windows.textParse(value, windowsValue)
+  local v = tostring(value or "match")
+  if v == "match" then v = tostring(windowsValue or "") end
+  if v == "fr" then return "fr", "fr", 0 end
+  return windows.parse(v)
+end
+
+-- A set's WINDOWS choices (styles with a frame) and TEXT BOX choices (one
+-- per text box picture: LIBERTY's ten frames share one, so it's just
+-- LIBERTY) -Elvie
+function windows.setChoices(set)
+  local frames, boxes, seen, distinct = {}, {}, {}, 0
+  for _, st in ipairs(set.styles) do
+    if type(st) == "table" and type(st.dialogue) == "string" and not seen[st.dialogue] then
+      seen[st.dialogue] = true
+      distinct = distinct + 1
+    end
+  end
+  seen = {}
+  for n, st in ipairs(set.styles) do
+    if type(st) == "table" then
+      local name = set.label .. " " .. tostring(st.name or n)
+      if type(st.frame) == "string" then frames[#frames + 1] = { name, set.key .. ":" .. n } end
+      if type(st.dialogue) == "string" and not seen[st.dialogue] then
+        seen[st.dialogue] = true
+        boxes[#boxes + 1] = { distinct == 1 and set.label or name, set.key .. ":" .. n }
+      end
+    end
+  end
+  return frames, boxes
 end
 
 -- Which art a box gets: "dialogue" for the six-row text box, "frame" for
@@ -192,16 +231,16 @@ function windows.init(mod, rows)
   local sets = findSets(mod)
   local byKey = {}
   local choices = { { "GAME", GAME } }
+  local texts = { { "MATCH", "match" }, { "GAME", GAME }, { "FIRERED", "fr" } }
   for n = 1, windows.FRAMES do choices[#choices + 1] = { "FIRERED " .. n, "fr:" .. n } end
   for _, set in ipairs(sets) do
     byKey[set.key] = set
-    for n, st in ipairs(set.styles) do
-      if type(st) == "table" and type(st.dialogue) == "string" then
-        choices[#choices + 1] = { set.label .. " " .. tostring(st.name or n), set.key .. ":" .. n }
-      end
-    end
+    local frames, boxes = windows.setChoices(set)
+    for _, c in ipairs(frames) do choices[#choices + 1] = c end
+    for _, c in ipairs(boxes) do texts[#texts + 1] = c end
   end
   rows[#rows + 1] = { key = "classicWindows", type = "choice", label = "WINDOWS", choices = choices, default = GAME }
+  rows[#rows + 1] = { key = "classicTextBox", type = "choice", label = "TEXT BOX", choices = texts, default = "match" }
 
   return function()
     local okF, Font = pcall(require, "src.render.Font")
@@ -273,20 +312,39 @@ function windows.init(mod, rows)
       return l, r
     end
 
-    -- The art for the chosen WINDOWS: { frame, dialogue, fill } -Elvie
-    local function art()
-      local kind, key, n = windows.parse(mod.options:get("classicWindows"))
-      if not kind then return nil end
-      if kind == "fr" then
-        return { frame = fromGame("chrome/user_frame_" .. (n - 1) .. ".rgba", 24, 24),
-          dialogue = fromGame("chrome/menu_message_rgba.rgba", 48, 24), fill = { 1, 1, 1 } }
-      end
+    -- The art for the chosen WINDOWS and TEXT BOX: { frame, dialogue,
+    -- fill }, either may be missing; nil when neither changes anything -Elvie
+    local function styleOf(key, n)
       local set = byKey[key]
       local st = set and set.styles[n]
-      if type(st) ~= "table" then return nil end
-      local c = type(st.fill) == "table" and st.fill or { 255, 255, 255 }
-      return { frame = fromGame("chrome/user_frame_0.rgba", 24, 24), dialogue = fromSet(key, st.dialogue),
-        fill = { (tonumber(c[1]) or 255) / 255, (tonumber(c[2]) or 255) / 255, (tonumber(c[3]) or 255) / 255 } }
+      return type(st) == "table" and st or nil
+    end
+    local function art()
+      local value = mod.options:get("classicWindows")
+      local out = {}
+      local kind, key, n = windows.parse(value)
+      if kind == "fr" then
+        out.frame = fromGame("chrome/user_frame_" .. (n - 1) .. ".rgba", 24, 24)
+      elseif kind == "set" then
+        local st = styleOf(key, n)
+        -- a set without frames (TITO's, from before TEXT BOX): FireRed's
+        -- frame 1, as it was then -Elvie
+        if st and type(st.frame) == "string" then out.frame = fromSet(key, st.frame)
+        elseif st then out.frame = fromGame("chrome/user_frame_0.rgba", 24, 24) end
+      end
+      local tkind, tkey, tn = windows.textParse(mod.options:get("classicTextBox"), value)
+      if tkind == "fr" then
+        out.dialogue, out.fill = fromGame("chrome/menu_message_rgba.rgba", 48, 24), { 1, 1, 1 }
+      elseif tkind == "set" then
+        local st = styleOf(tkey, tn)
+        if st then
+          local c = type(st.fill) == "table" and st.fill or { 255, 255, 255 }
+          out.dialogue = fromSet(tkey, st.dialogue)
+          out.fill = { (tonumber(c[1]) or 255) / 255, (tonumber(c[2]) or 255) / 255, (tonumber(c[3]) or 255) / 255 }
+        end
+      end
+      if not (out.frame or out.dialogue) then return nil end
+      return out
     end
 
     local okP, PaletteFX = pcall(require, "src.render.PaletteFX")
@@ -299,6 +357,7 @@ function windows.init(mod, rows)
     end
 
     windows.styled = function() return art() ~= nil end
+    windows.textStyled = function() local a = art(); return a ~= nil and a.dialogue ~= nil end
 
     local own = Font.drawBox
     Font.drawBox = function(tx, ty, tw, th, fill, ...)
@@ -468,7 +527,7 @@ function windows.init(mod, rows)
 
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
-        if type(change) == "table" and change.mod == mod.id and change.key == "classicWindows" then
+        if type(change) == "table" and change.mod == mod.id and (change.key == "classicWindows" or change.key == "classicTextBox") then
           images = {}
           gba.reset()
         end
