@@ -2696,6 +2696,25 @@ do
   eq(B.frameAt({}, 10), 0, "bw: no timings, the first frame")
   eq(B.external({ find = function(id) return id == "BW-Animated-Sprites" and {} or nil end }), true, "bw: DarkHeros' mod found")
   eq(B.external({ find = function() return nil end }), false, "bw: ...or not")
+  -- a Gen 4 sheet: two 8x8 frames, drawn at (2,3) in one and (5,6) in the
+  -- other -Elvie
+  local sheet = love.image.newImageData(16, 8)
+  sheet:setPixel(2, 3, 1, 0, 0, 1)
+  sheet:setPixel(8 + 5, 6, 0, 1, 0, 1)
+  local api = { imageData = function(game, pack, id)
+    return sheet, { sprite = { width = 8, height = 8, columns = 2, frames = 2 } }
+  end }
+  local src = B.dsSource(api, "dppt")
+  local data, sprite = src.load("normal/006/front")
+  eq(table.concat(sprite.durations, ","), "60,20", "bw: Gen 4's two frames get the beat")
+  eq(B.frameAt(sprite, 70), 1, "bw: ...the second frame after the still one")
+  eq(B.frameAt(sprite, 85), 0, "bw: ...and round again")
+  eq(table.concat(B.box(data, sprite), ","), "2,3,4,4", "bw: the box takes in both frames' drawing")
+  local cut = B.cut(data, sprite, 1, false, B.box(data, sprite))
+  local w, h = cut:getDimensions()
+  eq(w .. "x" .. h, "4x4", "bw: each frame is cut to the shared box")
+  local _, g = cut:getPixel(3, 3)
+  eq(g, 1, "bw: ...the second frame's pixel where it belongs")
 end
 
 -- SCENERY on the Game Boy games: the window round the screen, and GBC

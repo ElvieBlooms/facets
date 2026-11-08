@@ -31,6 +31,8 @@ local mons = {}
 local MONS_DIR = "assets/mons"
 local OFF = "__off"
 local SIZE = 64
+-- The DS choices play their dump's animations (bw.lua) -Elvie
+local ANIMATE_DS = true
 local GB_GAMES = { "crystal", "gold", "silver" }
 local WHITE, BLACK = { 255, 255, 255 }, { 0, 0, 0 }
 local CASTFORM = { "_sunny", "_rainy", "_snowy" }
@@ -851,25 +853,40 @@ function mons.init(mod, rows, menu)
     -- frame cut and stood on the game's ground line when first shown; the
     -- frame showing is picked by the clock, so the idle loops -Elvie
     local bwSrc, bwSheets, bwPics = nil, {}, {}
-    local function bwLookup(kind, species, shiny, nat, letter, variant)
-      if bwSrc == nil then bwSrc = bw.source(mod) or false end
-      if not bwSrc then return nil end
-      local id = ds.monId("bw2", kind, shiny, nat, letter, variant)
+    -- the DS choices play their own dump's frames the same way: Black 2/
+    -- White 2's idles, and Gen 4's two frames on a beat -Elvie
+    local dsSrcs = {}
+    local function animLookup(kind, species, shiny, nat, letter, variant)
+      local src, idGame
+      if current.ds then
+        idGame = current.ds
+        if dsSrcs[idGame] == nil then dsSrcs[idGame] = bw.dsSource(dsApi, idGame) or false end
+        src = dsSrcs[idGame]
+      else
+        idGame = "bw2"
+        if bwSrc == nil then bwSrc = bw.source(mod) or false end
+        src = bwSrc
+      end
+      if not src then return nil end
+      local id = ds.monId(idGame, kind, shiny, nat, letter, variant)
       if not id then return nil end
-      local sheet = bwSheets[id]
+      local sheetKey = (current.ds or "bw") .. ":" .. id
+      local sheet = bwSheets[sheetKey]
       if sheet == nil then
-        local data, sprite = bwSrc.load(id)
-        sheet = data and { data = data, sprite = sprite, place = nil } or false
-        bwSheets[id] = sheet
+        local data, sprite = src.load(id)
+        local okB, box = false, nil
+        if data then okB, box = pcall(bw.box, data, sprite) end
+        sheet = data and okB and box and { data = data, sprite = sprite, box = box } or false
+        bwSheets[sheetKey] = sheet
       end
       if not sheet then return nil end
       local now = love and love.timer and love.timer.getTime() or os.clock()
       local n = bw.frameAt(sheet.sprite, now * 60)
-      local key = id .. "#" .. n
+      local key = sheetKey .. "#" .. n
       local hit = bwPics[key]
       if hit ~= nil then return hit or nil end
       bwPics[key] = false
-      local ok, cut = pcall(bw.cut, sheet.data, sheet.sprite, n, kind == "back")
+      local ok, cut = pcall(bw.cut, sheet.data, sheet.sprite, n, kind == "back", sheet.box)
       if not (ok and cut) then return nil end
       -- the whole animation's bottom on the ground line, every frame in
       -- the same spot -Elvie
@@ -916,7 +933,13 @@ function mons.init(mod, rows, menu)
       -- Pokémon neither has falls through to the DS set -Elvie
       if current.bw then
         if bw.external(mod) then return nil end
-        local e = bwLookup(kind, species, shiny, nat, letter, variant)
+        local e = animLookup(kind, species, shiny, nat, letter, variant)
+        if e then return e end
+      end
+      -- a DS choice animates from its dump; a picture it can't play falls
+      -- through to the still one below -Elvie
+      if current.ds and ANIMATE_DS and not (nat == 327 and kind == "front") then
+        local e = animLookup(kind, species, shiny, nat, letter, variant)
         if e then return e end
       end
       local key = kind .. ":" .. species .. variant .. (shiny and ":s" or "")
@@ -1536,6 +1559,10 @@ function mons.init(mod, rows, menu)
           if current then
             local e = gbFrame(sp, f, shiny)
             if e then return e end
+            if current.ds and ANIMATE_DS then
+              e = lookup("front", sp, nil, shiny)
+              if e then return e end
+            end
             e = current.ds and dsFrame(sp, shiny)
             if e then return e end
             -- BW ANIM keeps looping through a move; with DarkHeros' mod,

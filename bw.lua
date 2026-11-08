@@ -5,6 +5,7 @@
 -- the DS choices: from the engine's own Black/White import if there is
 -- one (what his mod reads), else Black 2/White 2 through Prism Importer.
 -- Each picture loops its idle animation for as long as it's on screen.
+-- The DS choices use the same player for their own dumps (bw.dsSource).
 -- Nothing from the games ships with Facets. -Elvie
 -- --------------------------------------------------
 
@@ -81,23 +82,85 @@ function bw.source(mod)
   return nil
 end
 
--- Frame n of a sheet, fitted to 64x64 the way the DS choices are. The
--- frames are the animation's whole extent, so every frame gets the same
--- cut and the animation moves as it should -Elvie
-function bw.cut(data, sprite, n, back)
+-- Gen 4's sheets are two frames with no timing of their own: the still
+-- picture held, then the second frame for a beat, round and round -Elvie
+bw.GEN4_BEAT = { 60, 20 }
+
+-- A DS dump's battle sprites through Prism Importer, as a source like the
+-- one above. Gen 4's get the beat for timing -Elvie
+function bw.dsSource(api, game)
+  if not (api and type(api.imageData) == "function") then return nil end
+  return { name = game, load = function(id)
+    local ok, data, entry = pcall(api.imageData, game, "battle_sprites", id)
+    if not (ok and data and type(entry) == "table") then return nil end
+    local sp = type(entry.sprite) == "table" and entry.sprite or {}
+    local sprite = {}
+    for k, v in pairs(sp) do sprite[k] = v end
+    local sw, sh = data:getDimensions()
+    sprite.height = tonumber(sprite.height) or sh
+    sprite.width = tonumber(sprite.width) or sprite.height
+    sprite.columns = tonumber(sprite.columns) or math.max(1, math.floor(sw / sprite.width))
+    sprite.frames = tonumber(sprite.frames) or tonumber(entry.frames) or sprite.columns
+    if type(sprite.durations) ~= "table" or #sprite.durations == 0 then
+      if sprite.frames < 2 then
+        sprite.durations = { 1 }
+      else
+        sprite.durations = { bw.GEN4_BEAT[1], bw.GEN4_BEAT[2] }
+      end
+      sprite.loopStartFrame = 0
+    end
+    return data, sprite
+  end }
+end
+
+-- The drawn part of every frame together, in frame pixels, so each frame
+-- is cut from the same rectangle and the animation stays put -Elvie
+function bw.box(data, sprite)
+  local fw, fh = tonumber(sprite.width), tonumber(sprite.height)
+  local cols = math.max(1, tonumber(sprite.columns) or 1)
+  local count = math.max(1, tonumber(sprite.frames) or (type(sprite.durations) == "table" and #sprite.durations) or 1)
+  if not (fw and fh) then return nil end
+  local sw, sh = data:getDimensions()
+  local x0, y0, x1, y1
+  for n = 0, count - 1 do
+    local sx0, sy0 = (n % cols) * fw, math.floor(n / cols) * fh
+    if sx0 + fw <= sw and sy0 + fh <= sh then
+      for y = 0, fh - 1 do
+        for x = 0, fw - 1 do
+          local _, _, _, a = data:getPixel(sx0 + x, sy0 + y)
+          if a > 0 then
+            if not x0 or x < x0 then x0 = x end
+            if not x1 or x > x1 then x1 = x end
+            if not y0 or y < y0 then y0 = y end
+            if not y1 or y > y1 then y1 = y end
+          end
+        end
+      end
+    end
+  end
+  if not x0 then return nil end
+  return { x0, y0, x1 - x0 + 1, y1 - y0 + 1 }
+end
+
+-- Frame n of a sheet, fitted to 64x64 the way the DS choices are. box
+-- (from bw.box) is the part to cut, the same for every frame; without it
+-- the whole frame -Elvie
+function bw.cut(data, sprite, n, back, box)
   local fw, fh = tonumber(sprite.width), tonumber(sprite.height)
   local cols = math.max(1, tonumber(sprite.columns) or 1)
   if not (fw and fh) then return nil end
   local sx0, sy0 = (n % cols) * fw, math.floor(n / cols) * fh
   local sw, sh = data:getDimensions()
   if sx0 + fw > sw or sy0 + fh > sh then return nil end
-  local keepH, scale = ds.fitPlan(fw, fh, back)
-  local ow, oh = math.max(1, math.floor(fw * scale + 0.5)), math.max(1, math.floor(keepH * scale + 0.5))
+  local bx, by, bw_, bh = 0, 0, fw, fh
+  if box then bx, by, bw_, bh = box[1], box[2], box[3], box[4] end
+  local keepH, scale = ds.fitPlan(bw_, bh, back)
+  local ow, oh = math.max(1, math.floor(bw_ * scale + 0.5)), math.max(1, math.floor(keepH * scale + 0.5))
   local out = love.image.newImageData(ow, oh)
   for y = 0, oh - 1 do
-    local sy = sy0 + math.min(keepH - 1, math.floor(y / scale))
+    local sy = sy0 + by + math.min(keepH - 1, math.floor(y / scale))
     for x = 0, ow - 1 do
-      out:setPixel(x, y, data:getPixel(sx0 + math.min(fw - 1, math.floor(x / scale)), sy))
+      out:setPixel(x, y, data:getPixel(sx0 + bx + math.min(bw_ - 1, math.floor(x / scale)), sy))
     end
   end
   return out
