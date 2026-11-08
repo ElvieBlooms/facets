@@ -93,8 +93,9 @@ function cds.new(mod)
     local src = sources[game]
     if not src then return nil end
     local id = ds.monId(game, face == "back" and "back" or "front", shiny, dex, 0, "")
-    local data, sprite = id and src.load(id)
-    if not data then return nil end
+    if not id then return nil end
+    local data, sprite = src.load(id)
+    if not (data and sprite) then return nil end
     local okF, frames = pcall(cds.frames, data, sprite, face == "back", mirror)
     if not (okF and frames) then return nil end
     local order = {}

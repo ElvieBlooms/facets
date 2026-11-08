@@ -250,6 +250,19 @@ function classic.setup(mod)
   end
   local listed = nil
   -- name: where it goes under the folder; make: gives the ImageData -Elvie
+  -- A frame of an animated battle picture: composed from make, drawn at
+  -- the scale its still one would be (Gen 1 asks by path) -Elvie
+  function pics.frame(path, scale, make)
+    if not made[path] then
+      local okA, Assets = pcall(require, "src.render.Assets")
+      if not okA then return nil end
+      Assets.compose(path, make)
+      made[path] = true
+    end
+    scaleFor[path] = scale
+    return path
+  end
+
   function pics.fileOf(name, make)
     local cache = mod.cache
     if not (type(cache) == "table" and type(cache.write) == "function") then return nil end

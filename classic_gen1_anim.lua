@@ -1,12 +1,14 @@
 -- Pokémon animations on Red, Blue and Yellow
--- Gen 1 never animated its Pokémon; Crystal plays one when the foe's comes
--- out. With POKEMON on CRYSTAL (Crystal's own frames) or an EMERALD look
--- (Emerald's two frames to Crystal's script), Facets plays that same
--- animation on the foe's Pokémon once it's fully on screen, from the
--- player's own Crystal. The battle draws every picture through picImage,
--- so while the animation runs that hands back the frame showing, tinted
--- the way the game tints the still one. Only at SIZE FIT, where the frames
--- and the still picture are the same size -Elvie
+-- Gen 1 never animated its Pokémon. Facets plays two kinds there: Crystal's
+-- animation when the foe's Pokémon comes out (POKEMON on CRYSTAL, or an
+-- EMERALD look, from the player's own Crystal), and the DS games' idles,
+-- round and round on both sides (DPPT, HGSS and B2W2). The battle draws
+-- every picture through picImage, so while one is moving that's handed
+-- the frame showing instead of the still one, and does with it all it
+-- does with the still one: COLORS, the fades, the black slide-in, the
+-- mono modes. Each frame is its own picture, loaded the way the game
+-- loads its own (getImage, through BattleState.trainerSprite), so it has
+-- the still one's colours, ground line and size -Elvie
 -- --------------------------------------------------
 
 local g1 = {}
@@ -37,96 +39,109 @@ function g1.tint(data, colors)
   return data
 end
 
--- info(battle, mon) gives { path, size, script, trueColor } or nil.
--- Returns whether it went in -Elvie
-function g1.install(BattleState, MonAnim, info, log)
-  if type(BattleState) ~= "table" or type(BattleState.picImage) ~= "function" then return false end
-  if type(MonAnim) ~= "table" or type(MonAnim.new) ~= "function" then return false end
-  local okA, Assets = pcall(require, "src.render.Assets")
+-- A Pokémon's colours the way the battle asks for them (monPalette) -Elvie
+local function palette(PaletteFX, data, species)
+  local okC, colors = pcall(PaletteFX.monPal, data, species)
+  if not (okC and colors) then return nil end
+  local okN, name = pcall(PaletteFX.monPalName, data, species)
+  name = okN and name or tostring(species)
+  local okG, gbc = pcall(PaletteFX.usesGbcPack)
+  if okG and gbc then name = "redpp:" .. name end
+  return { name = name, colors = colors }
+end
+
+-- A picture at path, loaded by the battle itself, in a Pokémon's colours
+-- (unless full colour is shown as it is): getImage is the battle's own,
+-- reached through trainerSprite, which only hands its three answers to
+-- it -Elvie
+function g1.engineImage(BattleState, data, species, path, trueColor)
   local okF, PaletteFX = pcall(require, "src.render.PaletteFX")
-  if not (okA and okF) then return false end
+  if not okF then return nil end
+  local pal = palette(PaletteFX, data, species)
+  local P, Q, T = BattleState.trainerPicPath, BattleState.trainerPalette, BattleState.trainerTrueColor
+  BattleState.trainerPicPath = function() return path end
+  BattleState.trainerPalette = function() return pal end
+  BattleState.trainerTrueColor = function() return trueColor and true or false end
+  local ok, img = pcall(BattleState.trainerSprite, data, {}, nil, nil)
+  BattleState.trainerPicPath, BattleState.trainerPalette, BattleState.trainerTrueColor = P, Q, T
+  return ok and img or nil
+end
 
-  local images = {}
-  local function frameImage(battle, st, n)
-    local key = st.path .. "#" .. n .. (st.tintName or "")
-    local hit = images[key]
-    if hit ~= nil then return hit or nil end
-    images[key] = false
-    local okS, sheet = pcall(Assets.imageData, st.path)
-    if not (okS and sheet) then return nil end
-    local data = g1.slot(sheet, st.size, n)
-    if not data then return nil end
-    if st.colors then g1.tint(data, st.colors) end
-    local okI, img = pcall(love.graphics.newImage, data)
-    if not okI then return nil end
-    img:setFilter("nearest", "nearest")
-    images[key] = img
-    return img
-  end
-
-  local function start(battle, e)
-    local st = { mon = e.mon }
-    battle.facetsGen1Anim = st
-    local got = info(battle, e.mon)
-    if type(got) ~= "table" then return st end
-    local runner = MonAnim.new(got.script, "battle")
-    if not runner then return st end
-    st.runner, st.path, st.size, st.ticks = runner, got.path, got.size, 0
-    st.at = love.timer and love.timer.getTime() or 0
-    -- the game tints a picture unless it's full colour and shown as it is -Elvie
-    local honours = type(PaletteFX.honorsTrueColor) == "function" and PaletteFX.honorsTrueColor()
-    if not (got.trueColor and honours) and type(PaletteFX.monPal) == "function" then
-      local okP, colors = pcall(PaletteFX.monPal, battle.data, e.mon.species)
-      if okP and type(colors) == "table" then
-        st.colors = colors
-        local okN, name = pcall(PaletteFX.monPalName, battle.data, e.mon.species)
-        st.tintName = "@" .. tostring(okN and name or "") .. (PaletteFX.usesGbcPack and PaletteFX.usesGbcPack() and "+" or "")
-      end
-    end
-    return st
-  end
-
-  local function plain(battle)
-    if battle.grayPics or battle.blackedOut or (battle.introSlide or 0) > 0 then return false end
-    local mode = PaletteFX.mode
-    if mode == "og" or mode == "og_inv" or mode == "classic" then return false end
-    if type(PaletteFX.forcesRawGrays) == "function" and PaletteFX.forcesRawGrays() then return false end
-    return true
-  end
+-- source(battle, battler) gives what's playing on that side, or nil:
+--   { key, frameAt(now) -> n, framePath(n) -> path, trueColor, once }
+-- framePath(0) is never asked for; n = 0 is the still picture. once means
+-- it plays a single time from when the Pokémon is fully out (Crystal's);
+-- otherwise it loops by the clock. Returns whether it went in -Elvie
+function g1.install(BattleState, source, log)
+  if type(BattleState) ~= "table" or type(BattleState.picImage) ~= "function"
+      or type(BattleState.trainerSprite) ~= "function" then return false end
 
   local own = BattleState.picImage
+  local function out(self, b)
+    if self.enemySendingOut and b == self.enemy then return false end
+    if b == self.enemy and self.showEnemyTrainer then return false end
+    if type(self.growInScale) == "function" and self:growInScale(b) then return false end
+    return true
+  end
   BattleState.picImage = function(self, img, ...)
-    local out = own(self, img, ...)
-    local e = self.enemy
-    if img == nil or not (e and e.mon and img == e.sprite) or not plain(self) then return out end
+    if img == nil then return own(self, img, ...) end
+    local b
+    if self.enemy and img == self.enemy.sprite then b = self.enemy
+    elseif self.player and img == self.player.sprite then b = self.player end
+    if not (b and b.mon) then return own(self, img, ...) end
     local ok, frame = pcall(function()
-      local st = self.facetsGen1Anim
-      if not st or st.mon ~= e.mon then
-        -- once it's fully out: not mid-slide, mid-throw or growing -Elvie
-        if self.enemySendingOut or self.showEnemyTrainer then return nil end
-        if type(self.growInScale) == "function" and self:growInScale(e) then return nil end
-        st = start(self, e)
+      local st = b.facetsAnim
+      if not st or st.mon ~= b.mon or st.img ~= img then
+        st = { mon = b.mon, img = img }
+        b.facetsAnim = st
       end
-      if not st.runner then return nil end
+      if st.src == nil then
+        if not out(self, b) then return nil end
+        st.src = source(self, b) or false
+        st.at = love.timer and love.timer.getTime() or 0
+      end
+      local src = st.src
+      if not src then return nil end
       local now = love.timer and love.timer.getTime() or st.at
-      local due = math.floor((now - st.at) * 60)
-      while st.ticks < due do
-        st.runner:update()
-        st.ticks = st.ticks + 1
-        if st.runner:finished() then st.runner = nil return nil end
+      local n = src.frameAt(now - st.at)
+      if not n or n <= 0 then
+        if src.once and n == nil then st.src = false end
+        return nil
       end
-      local n = st.runner:currentFrame() or 0
-      if n <= 0 then return nil end
-      return frameImage(self, st, n)
+      st.images = st.images or {}
+      local hit = st.images[n]
+      if hit == nil then
+        local path = src.framePath(n)
+        hit = path and g1.engineImage(BattleState, self.data, b.mon.species, path, src.trueColor) or false
+        st.images[n] = hit
+      end
+      return hit or nil
     end)
     if not ok then
-      if log then log("the foe's animation stopped: %s", tostring(frame)) end
-      self.facetsGen1Anim = { mon = e.mon }
-      return out
+      if log then log("a Pokémon's animation stopped: %s", tostring(frame)) end
+      b.facetsAnim = { mon = b.mon, img = img, src = false }
+      frame = nil
     end
-    return frame or out
+    return own(self, frame or img, ...)
   end
   return true
+end
+
+-- A Crystal script played once, as a source's frameAt: the frame showing
+-- `elapsed` seconds in, or nil when it's over -Elvie
+function g1.once(MonAnim, script)
+  local runner = MonAnim.new(script, "battle")
+  if not runner then return nil end
+  local ticks = 0
+  return function(elapsed)
+    local due = math.floor(elapsed * 60)
+    while ticks < due do
+      runner:update()
+      ticks = ticks + 1
+      if runner:finished() then return nil end
+    end
+    return runner:currentFrame() or 0
+  end
 end
 
 return g1

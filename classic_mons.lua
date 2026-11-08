@@ -218,10 +218,9 @@ function classic.init(mod, rows)
     -- The sheet is made as many frames long as Crystal's; animData gives
     -- the script the sheet's frame size, so the picture keeps its size
     -- while it moves -Elvie
-    -- Red, Blue and Yellow animate only at SIZE FIT (classic_gen1_anim) -Elvie
-    local function animating()
-      return not gen1 or not tonumber(mod.options:get("classicSize"))
-    end
+    -- every game animates now; Gen 1's frames are drawn at their still
+    -- picture's size (classic_gen1_anim) -Elvie
+    local function animating() return true end
     local okA, Assets = pcall(require, "src.render.Assets")
     local sheets = {} -- [path] = { path, side } or false -Elvie
     local function animSheet(pokemon, species, shiny, crystalSheet)
@@ -305,56 +304,6 @@ function classic.init(mod, rows)
           return image, trueColor, path
         end
       end
-    else
-      local okB, BattleState = pcall(require, "src.battle.BattleState")
-      local okF, PaletteFX = pcall(require, "src.render.PaletteFX")
-      if okB and okF and type(BattleState) == "table" and type(BattleState.picImage) == "function" then
-        local ownImage = BattleState.picImage
-        local function recFor(battle, b)
-          local set = mod.options:get("classicMons")
-          local game = cds.game(set)
-          if not game or tonumber(mod.options:get("classicSize")) then return nil end
-          local key = set .. "|" .. tostring(mod.options:get("classicSide"))
-          if b.facetsDsKey == key and b.facetsDsMon == b.mon then return b.facetsDsRec or nil end
-          b.facetsDsKey, b.facetsDsMon, b.facetsDsRec = key, b.mon, false
-          local def = type(battle.data) == "table" and type(battle.data.pokemon) == "table"
-            and b.mon and battle.data.pokemon[b.mon.species]
-          local dex = type(def) == "table" and tonumber(def.dex) or nil
-          if not dex then return nil end
-          opts.set, opts.size, opts.side = set, nil, mod.options:get("classicSide")
-          local pick = dsPick(game, dex, b.isPlayer and "back" or "front", "battle", false)
-          b.facetsDsRec = pick and pick.rec or false
-          return pick and pick.rec or nil
-        end
-        local function plain(battle)
-          if battle.grayPics or battle.blackedOut or (battle.introSlide or 0) > 0 then return false end
-          local mode = PaletteFX.mode
-          if mode == "og" or mode == "og_inv" or mode == "classic" then return false end
-          if type(PaletteFX.forcesRawGrays) == "function" and PaletteFX.forcesRawGrays() then return false end
-          return true
-        end
-        BattleState.picImage = function(self, img, ...)
-          local out = ownImage(self, img, ...)
-          if img == nil or not plain(self) then return out end
-          local b
-          if self.enemy and img == self.enemy.sprite then b = self.enemy
-          elseif self.player and img == self.player.sprite then b = self.player end
-          if not (b and b.mon) then return out end
-          local ok, frame = pcall(function()
-            local rec = recFor(self, b)
-            if not rec then return nil end
-            local colors, tintKey
-            local honours = type(PaletteFX.honorsTrueColor) == "function" and PaletteFX.honorsTrueColor()
-            if not honours and type(PaletteFX.monPal) == "function" then
-              colors = PaletteFX.monPal(self.data, b.mon.species)
-              tintKey = "@" .. tostring(b.mon.species) .. (PaletteFX.usesGbcPack and PaletteFX.usesGbcPack() and "+" or "")
-            end
-            return dsPics.image(rec, dsPics.frameAt(rec), colors, tintKey)
-          end)
-          if ok and frame then return frame end
-          return out
-        end
-      end
     end
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
@@ -386,23 +335,56 @@ function classic.init(mod, rows)
       borrowed[dex] = copy
       return copy
     end
+    -- Red, Blue and Yellow: the DS choices loop on both sides, and CRYSTAL
+    -- and the EMERALD looks play Crystal's animation once when the foe's
+    -- comes out (classic_gen1_anim) -Elvie
     if gen1 then
       local okB, BattleState = pcall(require, "src.battle.BattleState")
       local okM, MonAnim = pcall(require, "src.render.MonAnim")
       local okG, g1 = pcall(require, "mods.facets.classic_gen1_anim")
+      local function sheetFrame(sheetPath, size, n, scale)
+        local path = sheetPath:gsub("%.png$", "") .. "@f" .. n .. ".png"
+        return pics.frame(path, scale, function()
+          local okS, sheet = pcall(Assets.imageData, sheetPath)
+          local data = okS and sheet and g1.slot(sheet, size, n)
+          return data or love.image.newImageData(1, 1)
+        end)
+      end
+      local function source(battle, b)
+        local set = mod.options:get("classicMons")
+        local scale = tonumber(mod.options:get("classicSize"))
+        local pokemon = type(battle.data) == "table" and battle.data.pokemon
+        local def = type(pokemon) == "table" and pokemon[b.mon.species]
+        local dex = type(def) == "table" and tonumber(def.dex) or nil
+        if not dex then return nil end
+        local isPlayer = b == battle.player
+        local game = cds.game(set)
+        if game then
+          opts.set, opts.size, opts.side = set, mod.options:get("classicSize"), mod.options:get("classicSide")
+          local pick = dsPick(game, dex, isPlayer and "back" or "front", "battle", false)
+          local rec = pick and pick.rec
+          if not rec or rec.count < 2 then return nil end
+          return { trueColor = true,
+            frameAt = function() return dsPics.frameAt(rec) end,
+            framePath = function(n) return sheetFrame(rec.path, rec.side, n, scale) end }
+        end
+        -- Crystal's, on the foe's side only, where its still picture is
+        -- laid out like its animation -Elvie
+        if isPlayer then return nil end
+        local script = borrow(pokemon, b.mon.species)
+        if not script then return nil end
+        local got = animSheet(pokemon, b.mon.species, false, script.sheet)
+        if not got then return nil end
+        local copy = {}
+        for k, v in pairs(script) do copy[k] = v end
+        copy.tiles = got.side / 8
+        local frameAt = g1.once(MonAnim, copy)
+        if not frameAt then return nil end
+        return { trueColor = got.trueColor, once = true, frameAt = frameAt,
+          framePath = function(n) return sheetFrame(got.path, got.side, n, scale) end }
+      end
       if okB and okM and okG then
-        local done = g1.install(BattleState, MonAnim, function(battle, mon)
-          if not animating() or type(mon) ~= "table" then return nil end
-          local pokemon = type(battle.data) == "table" and battle.data.pokemon
-          local script = borrow(pokemon, mon.species)
-          if not script then return nil end
-          local got = animSheet(pokemon, mon.species, false, script.sheet)
-          if not got then return nil end
-          local copy = {}
-          for k, v in pairs(script) do copy[k] = v end
-          copy.tiles = got.side / 8
-          return { path = got.path, size = got.side, script = copy, trueColor = got.trueColor }
-        end, function(...) mod.log:warn(...) end)
+        local done = g1.install(BattleState, source, function(...) mod.log:warn(...) end)
         if not done then mod.log:warn("Gen 1's battle pictures weren't found; Pokémon stay still") end
       end
     end

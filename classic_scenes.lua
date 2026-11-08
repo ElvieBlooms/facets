@@ -257,7 +257,10 @@ local function startGen1(mod, sceneFor)
       local q = quads[s.image]
       if not q then
         s.image:setWrap("mirroredrepeat", "mirroredrepeat")
-        q = love.graphics.newQuad(math.floor((iw - W) / 2), ih - BOTTOM, W, BOTTOM, iw, ih)
+        -- on down past the field to the bottom of the screen, so the
+        -- ground carries on behind the text box instead of a white band
+        -- (the art's last rows mirrored) -Elvie
+        q = love.graphics.newQuad(math.floor((iw - W) / 2), ih - BOTTOM, W, H, iw, ih)
         quads[s.image] = q
       end
       G.setColor(1, 1, 1, 1)
