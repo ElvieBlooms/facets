@@ -425,7 +425,8 @@ A person's own name is looked for in every set before any stand-in, so a fill-in
 
 ### Pokémon
 
-- **POKEMON: DS**, with **YOUR SIDE** (BACK, MIRRORED or FRONT) as on Gen 3. With a set off, YOUR SIDE shows the game's own front, or another mod's. In Crystal your Pokémon then plays its front animation when it comes out, as the foe's does (mirrored with MIRRORED); Gold and Silver have no animations, so there it stays still. On Red, Blue and Yellow there's also **CRYSTAL**: Crystal's battle sprites, read from your own imported Crystal (or Gold, or Silver).
+- **POKEMON: DS**, with **YOUR SIDE** (BACK, MIRRORED or FRONT) as on Gen 3. With a set off, YOUR SIDE shows the game's own front, or another mod's. In Crystal your Pokémon then plays its front animation when it comes out, as the foe's does (mirrored with MIRRORED); Gold and Silver have no animations, so there it stays still. On Red, Blue, Yellow, Gold and Silver there's also **CRYSTAL**: Crystal's battle sprites, read from your own imported Crystal (or Gold, or Silver).
+- **Animations on games that never had them.** With your Crystal imported, **CRYSTAL** and the **FIRERED** and **EMERALD** looks play Crystal's animation when the foe's Pokémon comes out in Red, Blue, Yellow, Gold and Silver, as Crystal does: CRYSTAL with Crystal's own frames, and FIRERED and EMERALD with their two frames timed to Crystal's script. On Red, Blue and Yellow it's at SIZE FIT, and on the foe's side only. The games' own pictures stay still, since Crystal's frames were drawn for Crystal's art and most of Gold's, Silver's and Red's differ.
 - **ICONS**: **GAME**, **MINIDEX** (a different icon for every Pokémon, at the Game Boy's own size) or, on Red, Blue and Yellow, **CRYSTAL** (Crystal's icons, from your install).
 - **SIZE**, under POKEMON and under TRAINERS (POKEMON SIZE and TRAINER SIZE on the FACETS page): **FIT** (the default) cuts each picture to its edges and shrinks it only if it still doesn't fit the game's own box. **FULL** shows the art at its own size in battle, **SMALL** at three quarters and **TINY** at half, standing on the same ground line.
 
@@ -577,7 +578,7 @@ None of this is included: Facets reads it while you play from the games you impo
 - **GBC-ISH:** Gen 2 battle sprites, palettes and animations from your imported Crystal, Gold or Silver; Hoenn made from your imported Emerald's pictures.
 - **GB EMERALD:** made from your imported Emerald's pictures.
 - **GBC ANIM:** Kanto and Johto's Gen 2 battle sprites and palettes from your imported Crystal, Gold or Silver; the rest from GBC-ISH.
-- **CRYSTAL (Red, Blue and Yellow):** Crystal's battle sprites, palettes and party icons from your imported Crystal, Gold or Silver.
+- **CRYSTAL (Red, Blue, Yellow, Gold and Silver):** Crystal's battle sprites, palettes, party icons and animations from your imported Crystal, Gold or Silver.
 - **TRAINERS: GBC-ISH and GAME BOY:** Gen 1/2 trainer pictures and Crystal's colours from your imported games, and the game's own trainer pictures made Game Boy while you play.
 - **FIRERED and EMERALD (Game Boy games):** people, trainer pictures and Pokémon from your imported FireRed, LeafGreen and Emerald; **FR/LG ANIMS** reads Emerald's animations the same way.
 - **WINDOWS: FIRERED (Game Boy games):** FireRed's window frames and text box from your imported game.

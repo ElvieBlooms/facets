@@ -19,6 +19,7 @@ local WHITE, BLACK = { 255, 255, 255 }, { 0, 0, 0 }
 -- Crystal's palettes.lua and icons.lua, read once as text (mods can't
 -- load() Lua) -Elvie
 local palettes, icons, partyPal
+local animText, animIndex, anims = nil, {}, {}
 local function data(file)
   return gb.readAt(gb.path("data", file), GAMES)
 end
@@ -41,6 +42,7 @@ end
 -- Forget what was read, for a game imported since -Elvie
 function crystal.reset()
   palettes, icons, partyPal = nil, nil, nil
+  animText, animIndex, anims = nil, {}, {}
 end
 
 -- A grey sprite through a palette (colours 1 and 2; 0 white, 3 black),
@@ -83,6 +85,50 @@ function crystal.picture(dex, face, shiny, coloured)
   local pal = all and all[NAMES[dex][2]]
   if not pal then return crystal.colour(src, nil) end
   return crystal.colour(src, shiny and pal.shiny or pal.normal)
+end
+
+-- A Pokémon's colours from Crystal's palettes ({ normal, shiny } pairs of
+-- colours 1 and 2), or nil -Elvie
+function crystal.palette(dex, shiny)
+  local row = type(dex) == "number" and NAMES[dex]
+  local all = row and monPalettes()
+  local pal = all and all[row[2]]
+  if not pal then return nil end
+  return shiny and pal.shiny or pal.normal
+end
+
+-- Crystal's animation for a Pokémon (its script, with the sheet's path in
+-- Crystal's install), or nil; only Crystal has them -Elvie
+function crystal.anim(dex)
+  local row = type(dex) == "number" and NAMES[dex]
+  if not row or row[1] == "unown" then return nil end
+  local hit = anims[row[1]]
+  if hit ~= nil then return hit or nil end
+  if animText == nil then animText = gb.readAt(gb.path("data", "pokemon.lua"), { "crystal" }) or false end
+  local mons = require("mods.facets.mons")
+  local anim = animText and mons.crystalAnim(animText, row[1], animIndex)
+  anims[row[1]] = anim or false
+  return anim or nil
+end
+
+-- Its frames, each a square ImageData, from Crystal's sheet: grey, or in
+-- Crystal's colours -Elvie
+function crystal.animFrames(dex, shiny, coloured)
+  local anim = crystal.anim(dex)
+  local size = anim and tonumber(anim.tiles) and tonumber(anim.tiles) * 8
+  local src = size and size > 0 and type(anim.sheet) == "string" and gb.readImage(anim.sheet, { "crystal" })
+  if not src then return nil end
+  local w, h = src:getDimensions()
+  if w < size then return nil end
+  local pal = coloured and crystal.palette(dex, shiny) or nil
+  local frames = {}
+  for i = 0, math.floor(h / size) - 1 do
+    local f = love.image.newImageData(size, size)
+    f:paste(src, 0, 0, 0, i * size, size, size)
+    frames[#frames + 1] = crystal.colour(f, pal)
+  end
+  if #frames == 0 then return nil end
+  return frames
 end
 
 -- A party icon (16x32, two frames) as ImageData, or nil -Elvie

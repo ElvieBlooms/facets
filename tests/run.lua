@@ -2717,6 +2717,23 @@ do
   eq(g, 1, "bw: ...the second frame's pixel where it belongs")
 end
 
+-- Pokémon animations on Red, Blue and Yellow (classic_gen1_anim.lua):
+-- a frame out of a column sheet, tinted like the game's own -Elvie
+do
+  local G1 = require("mods.facets.classic_gen1_anim")
+  local sheet = love.image.newImageData(8, 24)
+  sheet:setPixel(1, 8 + 2, 0.6, 0.6, 0.6, 1)
+  local f = G1.slot(sheet, 8, 1)
+  local w, h = f:getDimensions()
+  eq(w .. "x" .. h, "8x8", "gen1 anim: a frame is one square")
+  local r = f:getPixel(1, 2)
+  eq(r, 0.6, "gen1 anim: ...the second one's pixel")
+  eq(G1.slot(sheet, 8, 3), nil, "gen1 anim: past the sheet's end, nothing")
+  G1.tint(f, { { 255, 255, 255 }, { 255, 0, 0 }, { 0, 0, 255 }, { 0, 0, 0 } })
+  local tr, tg, tb = f:getPixel(1, 2)
+  eq(("%d,%d,%d"):format(tr, tg, tb), "1,0,0", "gen1 anim: a light grey takes the palette's second colour")
+end
+
 -- SCENERY on the Game Boy games: the window round the screen, and GBC
 -- colours -Elvie
 do

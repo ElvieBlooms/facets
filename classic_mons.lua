@@ -19,6 +19,7 @@ local PREFIX = "facets/classic/"
 
 local shared = require("mods.facets.classic")
 local gba = require("mods.facets.classic_gba")
+local gb = require("mods.facets.gb")
 local crystal = require("mods.facets.classic_crystal")
 classic.BOX = { front = shared.BOX.front, back = shared.BOX.back }
 classic.SIZES = shared.SIZES
@@ -103,6 +104,17 @@ function classic.choose(opts, dex, side, kind, shiny)
     end
     raw = true
   end
+  -- CRYSTAL's enemy the same way, from Crystal's own frames -Elvie
+  if not anim and opts.animate and battle and side == "front" and face == "front"
+      and opts.set == crystal.CHOICE and crystal.anim(dex) then
+    local coloured = opts.coloured and true or false
+    rel = rel:gsub("%.png$", "@a.png")
+    load = function()
+      local frames = crystal.animFrames(dex, shiny, coloured)
+      return frames and (shared.sheet(frames, { 1 }, box))
+    end
+    raw = true
+  end
   -- outside battle Gold/Silver/Crystal place a picture by its width, so
   -- it goes in the box's square -Elvie
   local square = not battle and box ~= nil and not raw and shared.generation() == 2
@@ -123,6 +135,17 @@ function classic.frontFor(def, backPath)
     end
   end
   return type(def.spriteFront) == "string" and def.spriteFront or nil
+end
+
+-- Whether this is a game without Pokémon animations of its own: Red, Blue,
+-- Yellow, Gold and Silver. They borrow Crystal's, from the player's
+-- Crystal -Elvie
+function classic.borrowsAnims()
+  if shared.generation() == 1 then return true end
+  local okV, GameVersion = pcall(require, "src.core.GameVersion")
+  if not (okV and type(GameVersion) == "table" and type(GameVersion.get) == "function") then return false end
+  local ok, version = pcall(GameVersion.get)
+  return ok and (version == "gold" or version == "silver") or false
 end
 
 -- Sets that suit the Game Boy games: full colour, with a front folder -Elvie
@@ -158,6 +181,9 @@ function classic.init(mod, rows)
     choices[#choices + 1] = { crystal.LABEL, crystal.CHOICE }
     -- and Crystal's party icons -Elvie
     classic.ICONS = { classic.ICONS[1], classic.ICONS[2], { crystal.LABEL, "crystal" } }
+  elseif classic.borrowsAnims() then
+    -- Gold and Silver: Crystal's art, with Crystal's animations -Elvie
+    choices[#choices + 1] = { crystal.LABEL, crystal.CHOICE }
   end
   for _, c in ipairs(gba.CHOICES) do choices[#choices + 1] = c end
   choices[#choices + 1] = { "OFF", OFF }
@@ -188,20 +214,40 @@ function classic.init(mod, rows)
     -- The sheet is made as many frames long as Crystal's; animData gives
     -- the script the sheet's frame size, so the picture keeps its size
     -- while it moves -Elvie
-    opts.animate = not gen1
+    -- Red, Blue and Yellow animate only at SIZE FIT (classic_gen1_anim) -Elvie
+    local function animating()
+      return not gen1 or not tonumber(mod.options:get("classicSize"))
+    end
     local okA, Assets = pcall(require, "src.render.Assets")
     local sheets = {} -- [path] = { path, side } or false -Elvie
     local function animSheet(pokemon, species, shiny, crystalSheet)
-      if gen1 or not okA then return nil end
+      if not okA then return nil end
       opts.set = mod.options:get("classicMons")
       opts.size = mod.options:get("classicSize")
       local def = type(pokemon) == "table" and pokemon[species]
       local dex = type(def) == "table" and tonumber(def.dex) or nil
       if dex == 201 then return nil end
-      local anim = dex and gba.isChoice(opts.set) and gba.monAnim(opts.set, dex, shiny)
-      if not anim or type(crystalSheet) ~= "string" then return nil end
       local scale = tonumber(opts.size)
       local box = not scale and classic.BOX.front or nil
+      -- CRYSTAL: Crystal's own frames, cut and laid out together -Elvie
+      if dex and opts.set == crystal.CHOICE then
+        local tint = coloured()
+        local path = ("facets/classic/anim/crystal/%d%s%s@%s.png"):format(dex, shiny and "s" or "", tint and "c" or "", box or "cut")
+        local hit = sheets[path]
+        if hit ~= nil then return hit or nil end
+        sheets[path] = false
+        local frames = crystal.animFrames(dex, shiny, tint)
+        if not frames then return nil end
+        local order = {}
+        for i = 1, #frames do order[i] = i end
+        local sheet, side = shared.sheet(frames, order, box)
+        if not sheet then return nil end
+        Assets.compose(path, function() return sheet end)
+        sheets[path] = { path = path, side = side, trueColor = tint }
+        return sheets[path]
+      end
+      local anim = dex and gba.isChoice(opts.set) and gba.monAnim(opts.set, dex, shiny)
+      if not anim or type(crystalSheet) ~= "string" then return nil end
       local path = ("facets/classic/anim/%s/%d%s@%s.png"):format(opts.set, dex, shiny and "s" or "", box or "cut")
       local hit = sheets[path]
       if hit ~= nil then return hit or nil end
@@ -217,8 +263,52 @@ function classic.init(mod, rows)
       local sheet, side = classic.layOut(f0, f1, order, box)
       if not sheet then return nil end
       Assets.compose(path, function() return sheet end)
-      sheets[path] = { path = path, side = side }
+      sheets[path] = { path = path, side = side, trueColor = true }
       return sheets[path]
+    end
+    -- Crystal's script for a game without one, for the sets that bring
+    -- their own frames (CRYSTAL and the EMERALD looks); its sheet is
+    -- Crystal's, read from the player's install, for its frame count -Elvie
+    local borrowed = {}
+    local function borrow(pokemon, species)
+      if not classic.borrowsAnims() then return nil end
+      local set = mod.options:get("classicMons")
+      if not (set == crystal.CHOICE or gba.isChoice(set)) then return nil end
+      local def = type(pokemon) == "table" and pokemon[species]
+      local dex = type(def) == "table" and tonumber(def.dex) or nil
+      if not dex or dex == 201 then return nil end
+      local hit = borrowed[dex]
+      if hit ~= nil then return hit or nil end
+      borrowed[dex] = false
+      local anim = crystal.anim(dex)
+      if not (anim and okA) then return nil end
+      local copy = {}
+      for k, v in pairs(anim) do copy[k] = v end
+      local from = anim.sheet
+      copy.sheet = ("facets/classic/crystal_anim/%d.png"):format(dex)
+      Assets.compose(copy.sheet, function() return gb.readImage(from, { "crystal" }) end)
+      borrowed[dex] = copy
+      return copy
+    end
+    if gen1 then
+      local okB, BattleState = pcall(require, "src.battle.BattleState")
+      local okM, MonAnim = pcall(require, "src.render.MonAnim")
+      local okG, g1 = pcall(require, "mods.facets.classic_gen1_anim")
+      if okB and okM and okG then
+        local done = g1.install(BattleState, MonAnim, function(battle, mon)
+          if not animating() or type(mon) ~= "table" then return nil end
+          local pokemon = type(battle.data) == "table" and battle.data.pokemon
+          local script = borrow(pokemon, mon.species)
+          if not script then return nil end
+          local got = animSheet(pokemon, mon.species, false, script.sheet)
+          if not got then return nil end
+          local copy = {}
+          for k, v in pairs(script) do copy[k] = v end
+          copy.tiles = got.side / 8
+          return { path = got.path, size = got.side, script = copy, trueColor = got.trueColor }
+        end, function(...) mod.log:warn(...) end)
+        if not done then mod.log:warn("Gen 1's battle pictures weren't found; Pokémon stay still") end
+      end
     end
     if not gen1 then
       -- pictures bigger than their box under the move animations -Elvie
@@ -236,6 +326,8 @@ function classic.init(mod, rows)
         local copies = setmetatable({}, { __mode = "k" })
         BattleState.animData = function(self, mon, ...)
           local def = own(self, mon, ...)
+          -- Gold and Silver have none: Crystal's, for a set with frames -Elvie
+          if def == nil and type(mon) == "table" then def = borrow(self.pokemon, mon.species) end
           if type(def) ~= "table" or type(mon) ~= "table" then return def end
           local got = animSheet(self.pokemon, mon.species, mon.shiny and true or false, def.sheet)
           if not got then return def end
@@ -329,6 +421,7 @@ function classic.init(mod, rows)
       local def = type(data) == "table" and type(data.pokemon) == "table" and data.pokemon[ctx.species]
       local dex = type(def) == "table" and tonumber(def.dex) or nil
       opts.coloured = coloured()
+      opts.animate = animating()
       local pick = classic.choose(opts, dex, ctx.side, ctx.kind, ctx.shiny)
       if pick then
         ctx.trueColor = not pick.grey
