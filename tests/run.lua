@@ -2734,6 +2734,28 @@ do
   eq(("%d,%d,%d"):format(tr, tg, tb), "1,0,0", "gen1 anim: a light grey takes the palette's second colour")
 end
 
+-- The DS games on the Game Boy games (classic_ds.lua) -Elvie
+do
+  local C = require("mods.facets.classic_ds")
+  eq(C.game("ds_dppt"), "dppt", "classic ds: a dump's choice")
+  eq(C.game("ds"), nil, "classic ds: ...not the shipped DS set")
+  eq(C.game("ds_nope"), nil, "classic ds: ...nor a dump that isn't one")
+  -- two 8x8 frames, drawn at (2,3) and (5,6) -Elvie
+  local sheet = love.image.newImageData(16, 8)
+  sheet:setPixel(2, 3, 1, 0, 0, 1)
+  sheet:setPixel(8 + 5, 6, 0, 1, 0, 1)
+  local sprite = { width = 8, height = 8, columns = 2, frames = 2 }
+  local fr = C.frames(sheet, sprite, false, false)
+  eq(#fr, 2, "classic ds: one picture per frame")
+  local w, h = fr[1]:getDimensions()
+  eq(w .. "x" .. h, "4x4", "classic ds: each cut to the box round both")
+  local _, g = fr[2]:getPixel(3, 3)
+  eq(g, 1, "classic ds: ...the second frame's pixel in place")
+  local m = C.frames(sheet, sprite, false, true)
+  local r = m[1]:getPixel(3, 0)
+  eq(r, 1, "classic ds: mirrored for MIRRORED")
+end
+
 -- SCENERY on the Game Boy games: the window round the screen, and GBC
 -- colours -Elvie
 do

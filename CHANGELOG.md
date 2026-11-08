@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Red, Blue, Yellow, Gold, Silver and Crystal: **POKEMON: DPPT, HGSS and B2W2**, from your own DS dumps through Prism Importer, animated in battle on both sides as on Gen 3, with the DS set for anything missing.
 - Red, Blue, Yellow, Gold and Silver: **Pokémon animations.** With your Crystal imported, **POKEMON: CRYSTAL** (now on Gold and Silver too), **FIRERED** and **EMERALD** play Crystal's animation when the foe's Pokémon comes out, as Crystal does. On Red, Blue and Yellow, at SIZE FIT.
 - FireRed, LeafGreen, Ruby, Sapphire and Emerald: **BATTLE BG: SCENERY** reaches the window's edges too. The borders round the GBA screen show the scene zoomed in, blurred and a little darker, instead of the engine's flat pale surround.
 - Red, Blue, Yellow, Gold, Silver and Crystal: **BATTLE BG: SCENERY** now reaches the window's edges. When the window is wider or taller than the game screen, the borders round it show the same scene zoomed in, blurred and a little darker, instead of plain white or black; and the scene carries on behind the text box. Oak's Lab in Red, Blue and Yellow now gets the Lab scene (it's on the Dojo's tileset there, so it got Indoors before). New **SCENE COLOURS: GBC** raises the scenes' saturation and rounds them to the Game Boy Color's colours.

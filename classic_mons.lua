@@ -20,6 +20,8 @@ local PREFIX = "facets/classic/"
 local shared = require("mods.facets.classic")
 local gba = require("mods.facets.classic_gba")
 local gb = require("mods.facets.gb")
+local cds = require("mods.facets.classic_ds")
+local ds = require("mods.facets.ds")
 local crystal = require("mods.facets.classic_crystal")
 classic.BOX = { front = shared.BOX.front, back = shared.BOX.back }
 classic.SIZES = shared.SIZES
@@ -176,6 +178,8 @@ function classic.init(mod, rows)
   -- Gen 1's back box is 32x32 drawn at 2x -Elvie
   if shared.generation() == 1 then classic.BOX = { front = 56, back = 64, hofBack = 28 } end
   local choices = {}
+  -- the DS games, from the player's own dumps through Prism Importer -Elvie
+  for _, c in ipairs(cds.choices(ds.api(mod))) do choices[#choices + 1] = c end
   for _, set in ipairs(sets) do choices[#choices + 1] = { set.label, set.key } end
   if shared.generation() == 1 then
     choices[#choices + 1] = { crystal.LABEL, crystal.CHOICE }
@@ -266,6 +270,98 @@ function classic.init(mod, rows)
       sheets[path] = { path = path, side = side, trueColor = true }
       return sheets[path]
     end
+    -- DPPT, HGSS and B2W2: the dump's animation, laid out for the game's
+    -- box, its first frame the still picture (classic_ds) -Elvie
+    local dsPics = cds.new(mod)
+    local dsByPath = {}
+    local function dsPick(game, dex, side, kind, shiny)
+      local battle = kind == "battle"
+      local face, mirror = side, false
+      if side == "back" and battle and opts.side ~= "back" then
+        face, mirror = "front", opts.side == "mirrored"
+      end
+      local scale = battle and tonumber(opts.size) or nil
+      local box = not scale and classic.BOX[face == "front" and "front" or side] or nil
+      if kind == "hof" and side == "back" and classic.BOX.hofBack then box = classic.BOX.hofBack end
+      local rec = dsPics.record(game, dex, face, shiny, mirror, box)
+      if not rec then return nil end
+      local path = rec.path:gsub("%.png$", "@still.png")
+      dsByPath[path] = rec
+      return { rel = rec.path, raw = true, box = box, scale = scale, path = path, rec = rec,
+        load = function() return cds.slot(rec.sheet, rec.side, 0) end }
+    end
+    -- in battle they keep moving: the frame showing in place of the still
+    -- one, whichever side it's on -Elvie
+    if not gen1 then
+      local okB, BattleState = pcall(require, "src.ui.gen2.BattleState")
+      if okB and type(BattleState) == "table" and type(BattleState.pic) == "function" then
+        local ownPic = BattleState.pic
+        BattleState.pic = function(self, mon, back, ...)
+          local image, trueColor, path = ownPic(self, mon, back, ...)
+          local rec = type(path) == "string" and dsByPath[path]
+          if not rec or self.showPlayerTrainer then return image, trueColor, path end
+          local ok, img = pcall(dsPics.image, rec, dsPics.frameAt(rec))
+          if ok and img then return img, trueColor, path end
+          return image, trueColor, path
+        end
+      end
+    else
+      local okB, BattleState = pcall(require, "src.battle.BattleState")
+      local okF, PaletteFX = pcall(require, "src.render.PaletteFX")
+      if okB and okF and type(BattleState) == "table" and type(BattleState.picImage) == "function" then
+        local ownImage = BattleState.picImage
+        local function recFor(battle, b)
+          local set = mod.options:get("classicMons")
+          local game = cds.game(set)
+          if not game or tonumber(mod.options:get("classicSize")) then return nil end
+          local key = set .. "|" .. tostring(mod.options:get("classicSide"))
+          if b.facetsDsKey == key and b.facetsDsMon == b.mon then return b.facetsDsRec or nil end
+          b.facetsDsKey, b.facetsDsMon, b.facetsDsRec = key, b.mon, false
+          local def = type(battle.data) == "table" and type(battle.data.pokemon) == "table"
+            and b.mon and battle.data.pokemon[b.mon.species]
+          local dex = type(def) == "table" and tonumber(def.dex) or nil
+          if not dex then return nil end
+          opts.set, opts.size, opts.side = set, nil, mod.options:get("classicSide")
+          local pick = dsPick(game, dex, b.isPlayer and "back" or "front", "battle", false)
+          b.facetsDsRec = pick and pick.rec or false
+          return pick and pick.rec or nil
+        end
+        local function plain(battle)
+          if battle.grayPics or battle.blackedOut or (battle.introSlide or 0) > 0 then return false end
+          local mode = PaletteFX.mode
+          if mode == "og" or mode == "og_inv" or mode == "classic" then return false end
+          if type(PaletteFX.forcesRawGrays) == "function" and PaletteFX.forcesRawGrays() then return false end
+          return true
+        end
+        BattleState.picImage = function(self, img, ...)
+          local out = ownImage(self, img, ...)
+          if img == nil or not plain(self) then return out end
+          local b
+          if self.enemy and img == self.enemy.sprite then b = self.enemy
+          elseif self.player and img == self.player.sprite then b = self.player end
+          if not (b and b.mon) then return out end
+          local ok, frame = pcall(function()
+            local rec = recFor(self, b)
+            if not rec then return nil end
+            local colors, tintKey
+            local honours = type(PaletteFX.honorsTrueColor) == "function" and PaletteFX.honorsTrueColor()
+            if not honours and type(PaletteFX.monPal) == "function" then
+              colors = PaletteFX.monPal(self.data, b.mon.species)
+              tintKey = "@" .. tostring(b.mon.species) .. (PaletteFX.usesGbcPack and PaletteFX.usesGbcPack() and "+" or "")
+            end
+            return dsPics.image(rec, dsPics.frameAt(rec), colors, tintKey)
+          end)
+          if ok and frame then return frame end
+          return out
+        end
+      end
+    end
+    if mod.events and type(mod.events.on) == "function" then
+      mod.events:on("mod.options_changed", function(change)
+        if type(change) == "table" and change.mod == mod.id and change.key == "classicMons" then dsPics.reset(); dsByPath = {} end
+      end)
+    end
+
     -- Crystal's script for a game without one, for the sets that bring
     -- their own frames (CRYSTAL and the EMERALD looks); its sheet is
     -- Crystal's, read from the player's install, for its frame count -Elvie
@@ -422,7 +518,19 @@ function classic.init(mod, rows)
       local dex = type(def) == "table" and tonumber(def.dex) or nil
       opts.coloured = coloured()
       opts.animate = animating()
-      local pick = classic.choose(opts, dex, ctx.side, ctx.kind, ctx.shiny)
+      local pick
+      if cds.game(opts.set) then
+        pick = dsPick(cds.game(opts.set), dex, ctx.side, ctx.kind, ctx.shiny and true or false)
+        -- what the dump doesn't have comes from the DS set -Elvie
+        if not pick then
+          local was = opts.set
+          opts.set = pics.has(MONS_DIR .. "/ds/front/001.png") and "ds" or OFF
+          pick = classic.choose(opts, dex, ctx.side, ctx.kind, ctx.shiny)
+          opts.set = was
+        end
+      else
+        pick = classic.choose(opts, dex, ctx.side, ctx.kind, ctx.shiny)
+      end
       if pick then
         ctx.trueColor = not pick.grey
         -- Gen 1 loads pictures outside battle straight from a file
