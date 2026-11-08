@@ -17,11 +17,11 @@ local scenes = {}
 -- Where the scene last landed on the game screen, for the window around it
 -- (scenes.edges): { image, canvas, x, y, kx, ky, stamp } -Elvie
 local shown, frame = nil, 0
+local blurOf
 
--- Notes where a drawn scene's art sits right now: its top-left corner and
--- one art pixel's size, in the pixels of the canvas being drawn to, read
--- off the drawing transform itself. qx, qy is where the quad starts in the
--- art, dx, dy where it was drawn -Elvie
+-- Notes the scene drawn this frame, for the borders to show blurred. The
+-- position arguments are kept for the callers; the blurred backdrop only
+-- needs the picture -Elvie
 local function note(image, qx, qy, dx, dy)
   local G = love.graphics
   if type(G.transformPoint) ~= "function" or type(G.getCanvas) ~= "function" then return end
@@ -34,25 +34,55 @@ local function note(image, qx, qy, dx, dy)
 end
 scenes._note = note
 
--- The art rectangle (in art pixels, mirrored past its edges) that covers
--- a window ww x wh, given where the art's corner lands (ax, ay) and one
--- art pixel's size there (sx, sy): u, v, w, h -Elvie
-function scenes.coverRect(ax, ay, sx, sy, ww, wh)
-  if not (sx and sy and sx > 0 and sy > 0) then return nil end
-  return -ax / sx, -ay / sy, ww / sx, wh / sy
+-- The borders show the scene zoomed in and blurred, a little darker, so
+-- the sharp battle sits in front of a soft backdrop of itself -Elvie
+scenes.ZOOM, scenes.DIM = 1.15, 0.8
+
+-- The scale that makes a w x h picture cover a ww x wh window, zoomed in a
+-- little more -Elvie
+function scenes.coverScale(w, h, ww, wh, zoom)
+  return math.max(ww / w, wh / h) * (zoom or 1)
 end
 
--- Where a noted scene's art corner lands in the window, and one art
--- pixel's size there: ax, ay, sx, sy -Elvie
-function scenes.toWindow(s, cw, ch, ww, wh, ox, oy, vpw, vph)
-  if cw == ww and ch == wh then return s.x, s.y, s.kx, s.ky end
-  local fx, fy = vpw / cw, vph / ch
-  return ox + s.x * fx, oy + s.y * fy, s.kx * fx, s.ky * fy
+-- A blurred copy of a scene, made once: halved again and again with
+-- smooth sampling (each halving averages 2x2), down to about 16 across;
+-- drawn back up with smooth filtering, that's the blur -Elvie
+local blurs = setmetatable({}, { __mode = "k" })
+blurOf = function(image)
+  local hit = blurs[image]
+  if hit ~= nil then return hit or nil end
+  blurs[image] = false
+  local G = love.graphics
+  local ok, result = pcall(function()
+    local w, h = image:getDimensions()
+    local src, filter = image, { image:getFilter() }
+    image:setFilter("linear", "linear")
+    local out
+    G.push("all")
+    while w > 16 do
+      w, h = math.max(1, math.floor(w / 2)), math.max(1, math.floor(h / 2))
+      local c = G.newCanvas(w, h)
+      c:setFilter("linear", "linear")
+      G.setCanvas(c)
+      G.origin()
+      G.setShader()
+      G.setBlendMode("replace", "premultiplied")
+      G.clear(0, 0, 0, 0)
+      G.setColor(1, 1, 1, 1)
+      local sw, sh = src:getDimensions()
+      G.draw(src, 0, 0, 0, w / sw, h / sh)
+      src, out = c, c
+    end
+    G.pop()
+    image:setFilter(filter[1], filter[2])
+    return out
+  end)
+  if ok and result then blurs[image] = result end
+  return blurs[image] or nil
 end
 
--- The window around the game screen: the same scene, at the same scale and
--- lined up with it, so it carries on past the screen's edges instead of
--- stopping at the borders. Drawn by the engine's render.letterbox before
+-- The window around the game screen: the scene, zoomed and blurred, in the
+-- borders instead of a flat colour. Drawn by the engine's render.letterbox before
 -- the game screen goes on top. Only on a frame the scene was drawn -Elvie
 function scenes.edges(info)
   local s = shown
@@ -61,16 +91,17 @@ function scenes.edges(info)
   local cw, ch = s.canvas:getDimensions()
   local vpw, vph = tonumber(info.vpw), tonumber(info.vph)
   if not (cw and ch and cw > 0 and ch > 0 and vpw and vph) then return end
-  -- canvas pixels to window pixels: a window-sized canvas already is in
-  -- them; a screen-sized one is put down at (ox, oy), vpw x vph -Elvie
   local ww, wh = tonumber(info.ww), tonumber(info.wh)
-  local ax, ay, sx, sy = scenes.toWindow(s, cw, ch, ww, wh, tonumber(info.ox) or 0, tonumber(info.oy) or 0, vpw, vph)
-  local u, v, w, h = scenes.coverRect(ax, ay, sx, sy, ww or 0, wh or 0)
-  if not u then return end
+  if not (ww and wh and ww > 0 and wh > 0) then return end
+  local blur = blurOf(s.image)
+  if not blur then return end
   local G = love.graphics
+  -- the whole scene, zoomed to cover the window a little past its edges
+  -- and centred on it -Elvie
   local iw, ih = s.image:getDimensions()
-  scenes._quad = scenes._quad or G.newQuad(0, 0, 1, 1, iw, ih)
-  scenes._quad:setViewport(u, v, w, h, iw, ih)
+  local k = scenes.coverScale(iw, ih, ww, wh, scenes.ZOOM)
+  local bw, bh = blur:getDimensions()
+  local dw, dh = iw * k, ih * k
   -- only the borders: whatever order the engine puts the game screen down
   -- in, the screen itself is never drawn over -Elvie
   local ox, oy = math.floor((tonumber(info.ox) or 0) + 0.5), math.floor((tonumber(info.oy) or 0) + 0.5)
@@ -78,8 +109,8 @@ function scenes.edges(info)
     G.push("all")
     G.origin()
     G.intersectScissor(r[1], r[2], r[3], r[4])
-    G.setColor(1, 1, 1, 1)
-    G.draw(s.image, scenes._quad, 0, 0, 0, sx, sy)
+    G.setColor(scenes.DIM, scenes.DIM, scenes.DIM, 1)
+    G.draw(blur, (ww - dw) / 2, (wh - dh) / 2, 0, dw / bw, dh / bh)
     G.pop()
   end
 end
@@ -130,6 +161,9 @@ function scenes.pick(where)
   local env = tostring(where.environment or "")
   local tiles = tostring(where.tileset or "")
   if where.surfing then return "sea" end
+  -- Oak's Lab is on the Dojo's tileset in Red, Blue and Yellow, so it's
+  -- named here to get the lab, as are the Gen 2 labs -Elvie
+  if id:find("OAKS_LAB") or id:find("ELMS_LAB") then return "lab" end
   -- Gen 1's maps have a tileset but no environment -Elvie
   if env == "" and tiles ~= "" then
     if id:find("CHAMPIONS_ROOM") then return "space" end

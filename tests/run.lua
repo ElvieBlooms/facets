@@ -2230,6 +2230,8 @@ do
   eq(sc.pick({ map = "SILVER_CAVE_ROOM_3", environment = "CAVE" }), "snow_mountain", "scenes: Mt. Silver")
   eq(sc.pick({ map = "LANCES_ROOM", environment = "INDOOR", tileset = "TILESET_CHAMPIONS_ROOM" }), "space", "scenes: the champion")
   eq(sc.pick({ map = "NEW_BARK_TOWN", environment = "TOWN" }), "town", "scenes: a town")
+  eq(sc.pick({ map = "OAKS_LAB", tileset = "DOJO" }), "lab", "scenes: Oak's Lab in Red, Blue and Yellow")
+  eq(sc.pick({ map = "ELMS_LAB", environment = "INDOOR", tileset = "TILESET_LAB" }), "lab", "scenes: Elm's Lab")
   eq(sc.pick({ map = "ELMS_LAB", environment = "INDOOR", tileset = "TILESET_LAB" }), "lab", "scenes: a lab")
   eq(sc.pick({}), "neutral", "scenes: nowhere in particular")
   local x, y, w, h = sc.crop(240, 112)
@@ -2700,17 +2702,14 @@ end
 -- colours -Elvie
 do
   local Sc = require("mods.facets.classic_scenes")
-  local u, v, w, h = Sc.coverRect(-88, -56, 5, 5, 1024, 768)
-  eq(("%.1f,%.1f,%.1f,%.1f"):format(u, v, w, h), "17.6,11.2,204.8,153.6", "scenes: the art rectangle that covers the window")
+  eq(Sc.coverScale(160, 144, 1024, 768, 1), 6.4, "scenes: the backdrop covers the window's width")
+  eq(Sc.coverScale(240, 160, 800, 720, 1), 4.5, "scenes: ...or its height, whichever needs more")
+  eq(Sc.coverScale(100, 100, 200, 100, 1.5), 3, "scenes: ...zoomed in a little more")
   local bars = Sc.bars(112, 24, 800, 720, 1024, 768)
   local t = {}
   for _, r in ipairs(bars) do t[#t + 1] = table.concat(r, " ") end
   eq(table.concat(t, ","), "0 0 112 768,912 0 112 768,112 0 800 24,112 744 800 24", "scenes: the four borders")
   eq(#Sc.bars(0, 0, 160, 144, 160, 144), 0, "scenes: no borders, nothing drawn")
-  local ax, ay, sx = Sc.toWindow({ x = -88, y = -56, kx = 5, ky = 5 }, 1024, 768, 1024, 768, 112, 24, 800, 720)
-  eq(ax .. "," .. ay .. "," .. sx, "-88,-56,5", "scenes: a window-sized canvas is already in window pixels")
-  ax, ay, sx = Sc.toWindow({ x = -40, y = -16, kx = 1, ky = 1 }, 160, 144, 1024, 768, 112, 24, 800, 720)
-  eq(("%d,%d,%d"):format(ax, ay, sx), "-88,-56,5", "scenes: a screen-sized one is scaled out to where it's drawn")
   local r, g, b = Sc.gbcColour(0.5, 0.5, 0.5)
   eq(("%.3f"):format(r) .. "," .. ("%.3f"):format(b), "0.516,0.516", "scenes: GBC leaves grey grey, on 32 levels")
   r, g, b = Sc.gbcColour(0.6, 0.5, 0.4)

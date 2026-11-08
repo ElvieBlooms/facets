@@ -340,3 +340,4 @@ These are suggestions to accept or override:
 | Other `OwSprites.get` users | `fame_checker.lua` 661, `naming.lua` 449, `rse/ow_sheet.lua` 13 | re-check |
 | Option row types (`toggle`) | `src/mods/ManagerState.lua` 1157 | re-check |
 | Sprite cache | `<game>/data/generated/gba/ow/<id>.rgba` (zlib RGBA) + `.meta`, `manifest.lua` | same |
+- **Nov 8, 2026 (blurred borders):** The mirrored continuation is replaced by a backdrop: classic_scenes.blurOf makes, once per scene image (weak table), a copy halved with linear sampling down to about 16 px across; edges draws it cover-fit to the window (coverScale x ZOOM 1.15, centred) at DIM 0.8, still scissored to the four bars. coverRect and toWindow are gone; note keeps only the image and canvas. scenes.pick sends OAKS_LAB and ELMS_LAB to lab (Gen 1's Oak's Lab is on the DOJO tileset, so it fell to indoors). Checked in a Crystal and a FireRed battle at 1024x768. Oak's Lab pick not run in game. 1283 tests.
