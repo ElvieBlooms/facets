@@ -523,6 +523,17 @@ function mons.init(mod, rows, menu)
       fallback = hasDsSet and "ds" or nil,
       credit = "Your own " .. g.name .. ", through Prism Importer." })
   end
+  -- BW ANIM: Black/White's animated Pokémon, DarkHeros' BW Animated Sprites
+  -- when it's installed, else Facets' own from the engine's Black/White
+  -- import or Prism Importer's Black 2/White 2 (bw.lua). Offered when one of
+  -- those is there -Elvie
+  local bw = require("mods.facets.bw")
+  if bw.external(mod) or bw.source(mod) or ds.state(dsApi, "bw2") ~= "absent" then
+    table.insert(sets, 1, { key = "bw_anim", label = "BW ANIM", bw = true,
+      fallback = hasDsSet and "ds" or nil,
+      credit = bw.external(mod) and "BW Animated Sprites by DarkHeros09."
+        or "Your own Black/White, or Black 2/White 2 through Prism Importer." })
+  end
   if #sets == 0 then return nil end
 
   -- Options: a POKEMON heading and its SET, OFF by default, so Facets
@@ -836,6 +847,46 @@ function mons.init(mod, rows, menu)
       return nil
     end
 
+    -- BW ANIM's own pictures: each Pokémon's sheet read once, and each
+    -- frame cut and stood on the game's ground line when first shown; the
+    -- frame showing is picked by the clock, so the idle loops -Elvie
+    local bwSrc, bwSheets, bwPics = nil, {}, {}
+    local function bwLookup(kind, species, shiny, nat, letter, variant)
+      if bwSrc == nil then bwSrc = bw.source(mod) or false end
+      if not bwSrc then return nil end
+      local id = ds.monId("bw2", kind, shiny, nat, letter, variant)
+      if not id then return nil end
+      local sheet = bwSheets[id]
+      if sheet == nil then
+        local data, sprite = bwSrc.load(id)
+        sheet = data and { data = data, sprite = sprite, place = nil } or false
+        bwSheets[id] = sheet
+      end
+      if not sheet then return nil end
+      local now = love and love.timer and love.timer.getTime() or os.clock()
+      local n = bw.frameAt(sheet.sprite, now * 60)
+      local key = id .. "#" .. n
+      local hit = bwPics[key]
+      if hit ~= nil then return hit or nil end
+      bwPics[key] = false
+      local ok, cut = pcall(bw.cut, sheet.data, sheet.sprite, n, kind == "back")
+      if not (ok and cut) then return nil end
+      -- the whole animation's bottom on the ground line, every frame in
+      -- the same spot -Elvie
+      if not sheet.place then
+        local cw, ch = cut:getDimensions()
+        local oy = math.max(0, bottomFor(kind, species) - ch)
+        sheet.place = { ox = math.floor((SIZE - cw) / 2), oy = oy }
+      end
+      local out = mons.layOut(cut, nil, ownColour, sheet.place)
+      if not (out and love and love.graphics) then return nil end
+      local image = love.graphics.newImage(out)
+      image:setFilter("nearest", "nearest")
+      local entry = { image = image, imageData = out, w = SIZE, h = SIZE, set = current }
+      bwPics[key] = entry
+      return entry
+    end
+
     local function lookup(kind, species, form, shiny)
       if not current then return nil end
       species = tonumber(species)
@@ -861,6 +912,13 @@ function mons.init(mod, rows, menu)
       -- Spinda's front is drawn by the game with each Spinda's own spots. -Elvie
       if nat == 327 and kind == "front" then return nil end
       shiny = shiny and nat ~= "egg" or false
+      -- BW ANIM: DarkHeros' mod draws them, or Facets plays them here; a
+      -- Pokémon neither has falls through to the DS set -Elvie
+      if current.bw then
+        if bw.external(mod) then return nil end
+        local e = bwLookup(kind, species, shiny, nat, letter, variant)
+        if e then return e end
+      end
       local key = kind .. ":" .. species .. variant .. (shiny and ":s" or "")
       local hit = cache[key]
       if hit ~= nil then return hit or nil end
@@ -1480,6 +1538,13 @@ function mons.init(mod, rows, menu)
             if e then return e end
             e = current.ds and dsFrame(sp, shiny)
             if e then return e end
+            -- BW ANIM keeps looping through a move; with DarkHeros' mod,
+            -- his framePic decides -Elvie
+            if current.bw then
+              if bw.external(mod) then return origFrame(species, frame, shiny, ...) end
+              e = lookup("front", sp, nil, shiny)
+              if e then return e end
+            end
           end
           local e = lookup("front", sp, nil, shiny)
           if e then return e end
@@ -1499,6 +1564,7 @@ function mons.init(mod, rows, menu)
         if set.key == selected then current = set end
       end
       cache, placements, commands, dsFrames = {}, {}, {}, {}
+      bwSrc, bwSheets, bwPics = nil, {}, {}
       -- a game imported since the last look: read it again -Elvie
       if palettes == false then palettes = nil end
       if crystalIcons == false then crystalIcons = nil end

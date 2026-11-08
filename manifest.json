@@ -18,5 +18,6 @@
   ],
   "description": "New looks for FireRed, LeafGreen, Ruby, Sapphire and Emerald, and for Red, Blue, Yellow, Gold, Silver and Crystal: NPC overworld sprites, trainer and Pokémon pictures, battle scenes and boxes, and Game Boy screen filters. Companion to Emerald Lens and Crystal Lens: it leaves the player and the rival alone.",
   "github": "ElvieBlooms/facets",
-  "games": ["gen3", "gen2", "gen1"]
+  "games": ["gen3", "gen2", "gen1"],
+  "optional_assets": [{ "importer": "gen5_bw", "pack": "battle_sprites", "version": ">=1.0.0" }]
 }

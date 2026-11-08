@@ -2682,5 +2682,19 @@ do
   eq(D.api({ find = function() return nil end }), nil, "ds: nothing without Prism Importer")
 end
 
+-- BW ANIM (bw.lua): which frame of Black/White's idle is showing -Elvie
+do
+  local B = require("mods.facets.bw")
+  local sp = { durations = { 10, 10, 10, 10 }, loopStartFrame = 1 }
+  eq(B.frameAt(sp, 0), 0, "bw: starts on frame 0")
+  eq(B.frameAt(sp, 25), 2, "bw: 25 ticks in is the third frame")
+  eq(B.frameAt(sp, 40), 1, "bw: after the end it loops from loopStartFrame")
+  eq(B.frameAt(sp, 75), 1, "bw: ...and keeps looping there")
+  eq(B.frameAt({ durations = { 5 } }, 99), 0, "bw: a single frame stays")
+  eq(B.frameAt({}, 10), 0, "bw: no timings, the first frame")
+  eq(B.external({ find = function(id) return id == "BW-Animated-Sprites" and {} or nil end }), true, "bw: DarkHeros' mod found")
+  eq(B.external({ find = function() return nil end }), false, "bw: ...or not")
+end
+
 print(("%d passed, %d failed"):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)

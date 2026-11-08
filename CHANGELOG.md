@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **POKEMON: BW ANIM**: Black/White's animated Pokémon. With DarkHeros' BW Animated Sprites installed, Facets steps aside for it; without it, Facets loops each Pokémon's Black/White idle itself, fitted to 64x64, from the engine's Black/White import or Prism Importer's Black 2/White 2.
 - **POKEMON: DPPT, HGSS and B2W2** (FireRed, LeafGreen, Ruby, Sapphire, Emerald): Pokémon from your own Diamond/Pearl/Platinum, HeartGold/SoulSilver and Black 2/White 2, through Prism Importer. A choice appears for each dump picked there; until it's imported, and for anything it lacks, the DS set stands in. Big fronts shrink to fit Gen 3's 64x64, backs keep their top 64 rows, and fronts animate with the DS games' second frame.
 
 ## 1.1.0
