@@ -14,9 +14,113 @@
 
 local scenes = {}
 
+-- Where the scene last landed on the game screen, for the window around it
+-- (scenes.edges): { image, canvas, x, y, kx, ky, stamp } -Elvie
+local shown, frame = nil, 0
+
+-- Notes where a drawn scene's art sits right now: its top-left corner and
+-- one art pixel's size, in the pixels of the canvas being drawn to, read
+-- off the drawing transform itself. qx, qy is where the quad starts in the
+-- art, dx, dy where it was drawn -Elvie
+local function note(image, qx, qy, dx, dy)
+  local G = love.graphics
+  if type(G.transformPoint) ~= "function" or type(G.getCanvas) ~= "function" then return end
+  local canvas = G.getCanvas()
+  if type(canvas) == "table" then canvas = canvas[1] and (canvas[1].texture or canvas[1]) end
+  if not canvas then return end
+  local x0, y0 = G.transformPoint(dx - qx, dy - qy)
+  local x1, y1 = G.transformPoint(dx - qx + 1, dy - qy + 1)
+  shown = { image = image, canvas = canvas, x = x0, y = y0, kx = x1 - x0, ky = y1 - y0, stamp = frame }
+end
+scenes._note = note
+
+-- The art rectangle (in art pixels, mirrored past its edges) that covers
+-- a window ww x wh, given where the art's corner lands (ax, ay) and one
+-- art pixel's size there (sx, sy): u, v, w, h -Elvie
+function scenes.coverRect(ax, ay, sx, sy, ww, wh)
+  if not (sx and sy and sx > 0 and sy > 0) then return nil end
+  return -ax / sx, -ay / sy, ww / sx, wh / sy
+end
+
+-- Where a noted scene's art corner lands in the window, and one art
+-- pixel's size there: ax, ay, sx, sy -Elvie
+function scenes.toWindow(s, cw, ch, ww, wh, ox, oy, vpw, vph)
+  if cw == ww and ch == wh then return s.x, s.y, s.kx, s.ky end
+  local fx, fy = vpw / cw, vph / ch
+  return ox + s.x * fx, oy + s.y * fy, s.kx * fx, s.ky * fy
+end
+
+-- The window around the game screen: the same scene, at the same scale and
+-- lined up with it, so it carries on past the screen's edges instead of
+-- stopping at the borders. Drawn by the engine's render.letterbox before
+-- the game screen goes on top. Only on a frame the scene was drawn -Elvie
+function scenes.edges(info)
+  local s = shown
+  frame = frame + 1
+  if not (s and s.stamp == frame - 1 and type(info) == "table") or info.worldActive then return end
+  local cw, ch = s.canvas:getDimensions()
+  local vpw, vph = tonumber(info.vpw), tonumber(info.vph)
+  if not (cw and ch and cw > 0 and ch > 0 and vpw and vph) then return end
+  -- canvas pixels to window pixels: a window-sized canvas already is in
+  -- them; a screen-sized one is put down at (ox, oy), vpw x vph -Elvie
+  local ww, wh = tonumber(info.ww), tonumber(info.wh)
+  local ax, ay, sx, sy = scenes.toWindow(s, cw, ch, ww, wh, tonumber(info.ox) or 0, tonumber(info.oy) or 0, vpw, vph)
+  local u, v, w, h = scenes.coverRect(ax, ay, sx, sy, ww or 0, wh or 0)
+  if not u then return end
+  local G = love.graphics
+  local iw, ih = s.image:getDimensions()
+  scenes._quad = scenes._quad or G.newQuad(0, 0, 1, 1, iw, ih)
+  scenes._quad:setViewport(u, v, w, h, iw, ih)
+  -- only the borders: whatever order the engine puts the game screen down
+  -- in, the screen itself is never drawn over -Elvie
+  local ox, oy = math.floor((tonumber(info.ox) or 0) + 0.5), math.floor((tonumber(info.oy) or 0) + 0.5)
+  for _, r in ipairs(scenes.bars(ox, oy, math.floor(vpw + 0.5), math.floor(vph + 0.5), ww, wh)) do
+    G.push("all")
+    G.origin()
+    G.intersectScissor(r[1], r[2], r[3], r[4])
+    G.setColor(1, 1, 1, 1)
+    G.draw(s.image, scenes._quad, 0, 0, 0, sx, sy)
+    G.pop()
+  end
+end
+
+-- The four borders round the game screen at (ox, oy) vpw x vph in a
+-- window ww x wh, as x, y, w, h; the empty ones left out -Elvie
+function scenes.bars(ox, oy, vpw, vph, ww, wh)
+  local out = {}
+  local function add(x, y, w, h) if w > 0 and h > 0 then out[#out + 1] = { x, y, w, h } end end
+  add(0, 0, ox, wh)
+  add(ox + vpw, 0, ww - ox - vpw, wh)
+  add(ox, 0, vpw, oy)
+  add(ox, oy + vph, vpw, wh - oy - vph)
+  return out
+end
+
 local DIR = "assets/battlebg"
 local GAME = "game"
 scenes.W, scenes.H = 160, 96
+scenes.SCREEN_H = 144
+
+-- SCENE COLOURS: GBC. The scenes were painted for the GBA's screen and
+-- read pale beside Crystal's sprites, so each colour's saturation is
+-- raised, then rounded to the Game Boy Color's 32 levels a channel. One
+-- pixel in, one out: r, g, b (0-1) -Elvie
+function scenes.gbcColour(r, g, b)
+  local mx, mn = math.max(r, g, b), math.min(r, g, b)
+  local l = (mx + mn) / 2
+  if mx > mn then
+    -- push each channel away from the pixel's grey by the same factor,
+    -- kept inside 0-1 -Elvie
+    local k = 1.35
+    for _, c in ipairs({ r, g, b }) do
+      local over = c - l
+      if over > 0 then k = math.min(k, (1 - l) / over) elseif over < 0 then k = math.min(k, l / -over) end
+    end
+    r, g, b = l + (r - l) * k, l + (g - l) * k, l + (b - l) * k
+  end
+  local function q(c) return math.floor(math.max(0, math.min(1, c)) * 31 + 0.5) / 31 end
+  return q(r), q(g), q(b)
+end
 
 -- The scene name for a battle, from the map (its id, environment and
 -- tileset), whether the player is surfing and whether it's a trainer -Elvie
@@ -118,12 +222,14 @@ local function startGen1(mod, sceneFor)
       local iw, ih = s.image:getDimensions()
       local q = quads[s.image]
       if not q then
-        s.image:setWrap("mirroredrepeat", "clamp")
+        s.image:setWrap("mirroredrepeat", "mirroredrepeat")
         q = love.graphics.newQuad(math.floor((iw - W) / 2), ih - BOTTOM, W, BOTTOM, iw, ih)
         quads[s.image] = q
       end
       G.setColor(1, 1, 1, 1)
       G.draw(s.image, q, 0, 0)
+      local qx, qy = q:getViewport()
+      note(s.image, qx, qy, 0, 0)
       -- the game's own fill then goes down see-through -Elvie
       return r, g, b, 0
     end
@@ -146,6 +252,8 @@ function scenes.init(mod, rows)
     choices[#choices + 1] = { set.label, set.key }
   end
   rows[#rows + 1] = { key = "classicBattleBg", type = "choice", label = "BATTLE BG", choices = choices, default = GAME }
+  rows[#rows + 1] = { key = "classicSceneColours", type = "choice", label = "SCENE COLOURS",
+    choices = { { "ORIGINAL", "original" }, { "GBC", "gbc" } }, default = "original" }
 
   return function()
     local okB, BattleState, okC, Chrome = false, nil, false, nil
@@ -164,22 +272,40 @@ function scenes.init(mod, rows)
       local set = byKey[setKey]
       local file = set and (set.scenes[name] or set.scenes.neutral)
       if type(file) ~= "string" or not file:match("^[%w_%-%.]+%.png$") then return nil end
-      local id = setKey .. "/" .. file
+      local path = setKey .. "/" .. file
+      local gbc = mod.options:get("classicSceneColours") == "gbc"
+      local id = path .. (gbc and "#gbc" or "")
       local hit = images[id]
       if hit ~= nil then return hit or nil end
       images[id] = false
-      local ok, image = pcall(love.graphics.newImage, mod.assets:path(DIR .. "/" .. id))
+      local ok, image = pcall(function()
+        local data = love.image.newImageData(mod.assets:path(DIR .. "/" .. path))
+        if gbc then
+          data:mapPixel(function(_, _, r, g, b, a)
+            r, g, b = scenes.gbcColour(r, g, b)
+            return r, g, b, a
+          end)
+        end
+        return love.graphics.newImage(data)
+      end)
       if not ok then
-        mod.log:warn("battlebg/%s couldn't be read", id)
+        mod.log:warn("battlebg/%s couldn't be read", path)
         return nil
       end
       image:setFilter("nearest", "nearest")
+      -- past its edges the art carries on mirrored, as the wide battles'
+      -- sides do -Elvie
+      image:setWrap("mirroredrepeat", "mirroredrepeat")
       local w, h = image:getDimensions()
       local x, y, cw, ch = scenes.crop(w, h)
       -- the wide battle has room for the whole width -Elvie
       local wx, wy, ww, wh = scenes.crop(w, h, w)
-      images[id] = { image = image, quad = love.graphics.newQuad(x, y, cw, ch, w, h),
-        wide = love.graphics.newQuad(wx, wy, ww, wh, w, h), wideX = math.floor((scenes.W - ww) / 2) }
+      -- Both run on down the whole screen, so the ground carries on
+      -- behind the text box and shows round its corners -Elvie
+      local down = scenes.SCREEN_H - ch
+      images[id] = { image = image, quad = love.graphics.newQuad(x, y, cw, ch + down, w, h),
+        wide = love.graphics.newQuad(wx, wy, ww, wh + down, w, h), wideX = math.floor((scenes.W - ww) / 2),
+        x = x, y = y, wx = wx, wy = wy }
       return images[id]
     end
 
@@ -215,10 +341,11 @@ function scenes.init(mod, rows)
       -- HUD over the world, which has no field to paint -Elvie
       if setKey == GAME or not byKey[setKey] then return nil end
       if type(self.extendedWorldHUD) == "function" and self:extendedWorldHUD() then return nil end
-      if self._facetsScene == nil or self._facetsSceneSet ~= setKey then
+      local look = setKey .. "|" .. tostring(mod.options:get("classicSceneColours"))
+      if self._facetsScene == nil or self._facetsSceneSet ~= look then
         local name = scenes.pick(where(self))
         self._facetsScene = scene(setKey, name) or false
-        self._facetsSceneSet = setKey
+        self._facetsSceneSet = look
         -- the scene this battle is in, for Scenic Route -Elvie
         scenes.last = self._facetsScene and name or nil
       end
@@ -228,8 +355,10 @@ function scenes.init(mod, rows)
       love.graphics.setColor(1, 1, 1, 1)
       if wide then
         love.graphics.draw(s.image, s.wide, s.wideX, 0)
+        note(s.image, s.wx, s.wy, s.wideX, 0)
       else
         love.graphics.draw(s.image, s.quad, 0, 0)
+        note(s.image, s.x, s.y, 0, 0)
       end
     end
 
@@ -273,6 +402,16 @@ function scenes.init(mod, rows)
       Chrome.clear = clear
       if not ok then error(err, 0) end
     end
+
+    -- the window round the game screen carries the scene on -Elvie
+    pcall(function()
+      mod.hooks:wrap("render.letterbox", function(nextFn, info, ...)
+        local results = { nextFn(info, ...) }
+        local ok, err = pcall(scenes.edges, info)
+        if not ok then mod.log:warn("scenery round the screen: %s", tostring(err)) end
+        return unpack(results)
+      end)
+    end)
 
     if gen == 1 then return startGen1(mod, sceneFor) end
 

@@ -2696,5 +2696,27 @@ do
   eq(B.external({ find = function() return nil end }), false, "bw: ...or not")
 end
 
+-- SCENERY on the Game Boy games: the window round the screen, and GBC
+-- colours -Elvie
+do
+  local Sc = require("mods.facets.classic_scenes")
+  local u, v, w, h = Sc.coverRect(-88, -56, 5, 5, 1024, 768)
+  eq(("%.1f,%.1f,%.1f,%.1f"):format(u, v, w, h), "17.6,11.2,204.8,153.6", "scenes: the art rectangle that covers the window")
+  local bars = Sc.bars(112, 24, 800, 720, 1024, 768)
+  local t = {}
+  for _, r in ipairs(bars) do t[#t + 1] = table.concat(r, " ") end
+  eq(table.concat(t, ","), "0 0 112 768,912 0 112 768,112 0 800 24,112 744 800 24", "scenes: the four borders")
+  eq(#Sc.bars(0, 0, 160, 144, 160, 144), 0, "scenes: no borders, nothing drawn")
+  local ax, ay, sx = Sc.toWindow({ x = -88, y = -56, kx = 5, ky = 5 }, 1024, 768, 1024, 768, 112, 24, 800, 720)
+  eq(ax .. "," .. ay .. "," .. sx, "-88,-56,5", "scenes: a window-sized canvas is already in window pixels")
+  ax, ay, sx = Sc.toWindow({ x = -40, y = -16, kx = 1, ky = 1 }, 160, 144, 1024, 768, 112, 24, 800, 720)
+  eq(("%d,%d,%d"):format(ax, ay, sx), "-88,-56,5", "scenes: a screen-sized one is scaled out to where it's drawn")
+  local r, g, b = Sc.gbcColour(0.5, 0.5, 0.5)
+  eq(("%.3f"):format(r) .. "," .. ("%.3f"):format(b), "0.516,0.516", "scenes: GBC leaves grey grey, on 32 levels")
+  r, g, b = Sc.gbcColour(0.6, 0.5, 0.4)
+  check(r - b > 0.2 + 0.01, "scenes: GBC raises the saturation")
+  check(math.abs(r * 31 - math.floor(r * 31 + 0.5)) < 1e-9, "scenes: GBC rounds to the Game Boy Color's levels")
+end
+
 print(("%d passed, %d failed"):format(passed, failed))
 os.exit(failed == 0 and 0 or 1)
