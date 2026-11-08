@@ -400,7 +400,11 @@ function gbui.scene(mod, setKey, bgKey)
   scenes[id] = false
   if not (love and love.graphics and love.image) then return nil end
   local okI, data = pcall(love.image.newImageData, mod.assets:path(gbui.BG_DIR .. "/" .. id))
-  if okI and data then scenes[id] = image(data) end
+  if okI and data then
+    scenes[id] = image(data)
+    -- past its edges it carries on mirrored, for the window's borders -Elvie
+    pcall(scenes[id].setWrap, scenes[id], "mirroredrepeat", "mirroredrepeat")
+  end
   return scenes[id] or nil
 end
 
@@ -1163,6 +1167,24 @@ function gbui.init(mod, rows, menu)
       end
     end
 
+    local Edges
+    -- With a scene in the battle, the window's borders round the GBA
+    -- screen carry it on (the same code as the Game Boy games: the same
+    -- picture at the same size, lined up, mirrored past its edges, drawn
+    -- into the borders only) instead of the engine's flat surround -Elvie
+    local okE, EdgesMod = pcall(require, "mods.facets.classic_scenes")
+    Edges = okE and type(EdgesMod) == "table" and type(EdgesMod.edges) == "function" and EdgesMod or nil
+    if Edges then
+      pcall(function()
+        mod.hooks:wrap("render.letterbox", function(nextFn, info, ...)
+          local results = { nextFn(info, ...) }
+          local ok, err = pcall(Edges.edges, info)
+          if not ok then mod.log:warn("scenery round the screen: %s", tostring(err)) end
+          return unpack(results)
+        end)
+      end)
+    end
+
     -- A battle background set: the scene for the game's own background,
     -- in place of its terrain and platforms (and behind evolutions) -Elvie
     if okB and type(BattleChrome) == "table" then
@@ -1178,6 +1200,8 @@ function gbui.init(mod, rows, menu)
               love.graphics.rectangle("fill", 0, 112, 240, 48)
               love.graphics.setColor(1, 1, 1, 1)
               love.graphics.draw(img, 0, 0)
+              -- noted, so the window's borders carry it on -Elvie
+              if Edges then pcall(Edges._note, img, 0, 0, 0, 0) end
               return true
             end
             return orig(key, ...)
