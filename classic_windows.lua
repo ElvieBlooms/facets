@@ -422,7 +422,13 @@ function windows.init(mod, rows)
     Font.drawBox = function(tx, ty, tw, th, fill, ...)
       local kind = windows.boxKind(ty, tw, th)
       local a = kind and art()
-      local img = a and (kind == "dialogue" and a.dialogue or a.frame)
+      -- the text box only ever takes TEXT BOX's art: with the game's own
+      -- text box and a set's frames, it isn't drawn with the frame (that
+      -- left it with no inside colour and stopped the game) -Elvie
+      local img
+      if a then
+        if kind == "dialogue" then img = a.fill and a.dialogue or nil else img = a.frame end
+      end
       if not img then return own(tx, ty, tw, th, fill, ...) end
       local G = love.graphics
       local r, g, b, al = G.getColor()

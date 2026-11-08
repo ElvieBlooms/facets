@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- Red, Blue and Yellow: fixed a crash when a text box opened with **WINDOWS** on a set or a FireRed frame and **TEXT BOX** on GAME. The text box now uses the game's own, as it should.
+
 ## 1.1.0
 
 - Crystal: with **YOUR SIDE** on FRONT or MIRRORED, your Pokémon now plays its front animation when it's sent out, as the foe's does, mirrored with MIRRORED. Before, only the foe's moved. Crystal animates only the foe's front picture, so Facets now runs the same animation for your side.
