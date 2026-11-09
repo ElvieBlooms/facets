@@ -2750,6 +2750,14 @@ do
   eq(r2, 1, "hgss pikachu: its second step the first frame, a pixel up")
 end
 
+-- The start menu help box: letters in a line of game text -Elvie
+do
+  local W = require("mods.facets.classic_windows")
+  eq(W.letters("Party <PK><MN>"), 8, "help box: <PK><MN> are a letter each")
+  eq(W.letters("POKéMON"), 7, "help box: é is one letter")
+  eq(W.letters("key device"), 10, "help box: key device fills the box")
+end
+
 -- Full-colour art in four greys for Gen 1: outline black, near-white
 -- white, each colour area one flat shade -Elvie
 do

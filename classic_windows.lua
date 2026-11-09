@@ -35,6 +35,15 @@ windows.textBoxAt = nil
 function windows.styled() return false end
 function windows.textStyled() return false end
 
+-- How many letters a line of game text takes: <PK>, <MN> and the like
+-- are one each -Elvie
+function windows.letters(text)
+  local plain = tostring(text or ""):gsub("<[^>]+>", "#")
+  local n = 0
+  for _ in plain:gmatch("[%z\1-\127\194-\244][\128-\191]*") do n = n + 1 end
+  return n
+end
+
 -- The text box drawn last with a coloured inside (TITO's WOODY and the
 -- like): { x, y, w, h, fill = {r, g, b} 0-255, at = time, calls = draw
 -- calls }. Gold/Silver/Crystal print letters on a white tile, so text in
@@ -611,6 +620,19 @@ function windows.init(mod, rows)
       local ownDraw = StartMenu.draw
       StartMenu.draw = function(self, ...)
         if not windows.textStyled() then return ownDraw(self, ...) end
+        -- one letter's space on the left, as the text box's own text
+        -- has, when both lines leave room for it before the menu (the
+        -- help box is 10 letters wide; POKéGEAR's "key device" fills it) -Elvie
+        local item = type(self.list) == "table" and type(self.list.current) == "function" and self.list:current()
+        local desc = type(item) == "table" and item.desc
+        local pad = 0
+        if type(desc) == "table" then
+          local longest = 0
+          for _, line in ipairs({ desc[1] or "", desc[2] or "" }) do
+            longest = math.max(longest, windows.letters(tostring(line)))
+          end
+          if longest <= 9 then pad = 1 end
+        end
         local fill = Chrome2.paletteFill
         Chrome2.paletteFill = function(px, py, pw, ph, ...)
           if px == 0 and py == 13 * T and pw == 10 * T and ph == 5 * T then
@@ -630,8 +652,16 @@ function windows.init(mod, rows)
           end
           return fill(px, py, pw, ph, ...)
         end
+        local print = Chrome2.print
+        if pad > 0 and type(print) == "function" then
+          Chrome2.print = function(text, tx, ty, ...)
+            if tx == 0 and (ty == 14 or ty == 16) then tx = tx + pad end
+            return print(text, tx, ty, ...)
+          end
+        end
         local results = { pcall(ownDraw, self, ...) }
         Chrome2.paletteFill = fill
+        Chrome2.print = print
         if not results[1] then error(results[2], 0) end
         return unpack(results, 2)
       end

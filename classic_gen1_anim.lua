@@ -78,6 +78,8 @@ function g1.install(BattleState, source, log)
 
   local own = BattleState.picImage
   local function out(self, b)
+    -- still sliding in: Crystal's plays once the foe has stopped -Elvie
+    if (self.introSlide or 0) > 0 then return false end
     if self.enemySendingOut and b == self.enemy then return false end
     if b == self.enemy and self.showEnemyTrainer then return false end
     if type(self.growInScale) == "function" and self:growInScale(b) then return false end
