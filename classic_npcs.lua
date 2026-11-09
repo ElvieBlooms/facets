@@ -222,8 +222,10 @@ classic.PIKA_HGSS = "hgss"
 -- HeartGold/SoulSilver's walking Pikachu (Prism Importer's
 -- walking_pokemon, eight 32x32 frames: up, down, left, right, two each) in
 -- the 9-frame column the looks use: down, up and left standing, then each
--- one's two steps -Elvie
-classic.HGSS_ORDER = { 2, 0, 4, 3, 3, 1, 1, 5, 5 }
+-- one's two steps. Its two frames only move its feet; HeartGold lifts a
+-- follower a pixel as it steps, so the steps here are drawn a pixel higher
+-- and it bobs as it walks. Each entry is { frame, lift } -Elvie
+classic.HGSS_ORDER = { { 2, 0 }, { 0, 0 }, { 4, 0 }, { 3, 1 }, { 2, 1 }, { 1, 1 }, { 0, 1 }, { 5, 1 }, { 4, 1 } }
 function classic.hgssPikachu(api)
   if not (api and type(api.imageData) == "function") then return nil end
   local ok, sheet = pcall(api.imageData, "hgss", "walking_pokemon", "normal/025")
@@ -231,7 +233,10 @@ function classic.hgssPikachu(api)
   local w, h = sheet:getDimensions()
   if w < 256 or h < 32 then return nil end
   local out = love.image.newImageData(32, 32 * #classic.HGSS_ORDER)
-  for i, n in ipairs(classic.HGSS_ORDER) do out:paste(sheet, 0, (i - 1) * 32, n * 32, 0, 32, 32) end
+  for i, f in ipairs(classic.HGSS_ORDER) do
+    local n, lift = f[1], f[2]
+    out:paste(sheet, 0, (i - 1) * 32, n * 32, lift, 32, 32 - lift)
+  end
   return out
 end
 

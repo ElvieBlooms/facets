@@ -2734,6 +2734,22 @@ do
   eq(("%d,%d,%d"):format(tr, tg, tb), "1,0,0", "gen1 anim: a light grey takes the palette's second colour")
 end
 
+-- Yellow's partner as HeartGold's walking Pikachu: standing frames as
+-- they are, steps a pixel higher -Elvie
+do
+  local N = require("mods.facets.classic_npcs")
+  local sheet = love.image.newImageData(256, 32)
+  sheet:setPixel(2 * 32 + 5, 20, 1, 1, 0, 1) -- down, first frame
+  sheet:setPixel(3 * 32 + 5, 20, 0, 1, 1, 1) -- down, second frame
+  local col = N.hgssPikachu({ imageData = function() return sheet end })
+  local _, _, _, a = col:getPixel(5, 20)
+  eq(a, 1, "hgss pikachu: down stands on its first frame, where it was")
+  local r, g, b = col:getPixel(5, 3 * 32 + 19)
+  eq(("%d,%d,%d"):format(r, g, b), "0,1,1", "hgss pikachu: its first step is the second frame, a pixel up")
+  local r2 = col:getPixel(5, 4 * 32 + 19)
+  eq(r2, 1, "hgss pikachu: its second step the first frame, a pixel up")
+end
+
 -- The DS games on the Game Boy games (classic_ds.lua) -Elvie
 do
   local C = require("mods.facets.classic_ds")
