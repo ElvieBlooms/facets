@@ -273,8 +273,6 @@ local function startGen1(mod, sceneFor)
   end
   local W, H = tonumber(WideBattle.WIDTH) or 304, tonumber(WideBattle.HEIGHT) or 144
   local BOTTOM = tonumber(WideBattle.FIELD_BOTTOM) or 104
-  -- the normal screen's field ends at the text box, row 96 -Elvie
-  local BOTTOM_CLASSIC = scenes.H
   local function grey()
     local m = PaletteFX.mode
     if m == "og" or m == "og_inv" or m == "classic" then return true end
@@ -320,12 +318,13 @@ local function startGen1(mod, sceneFor)
     return unpack(results, 2)
   end
 
-  -- The 160x144 screen: the battle is drawn in the Game Boy greys, then
-  -- coloured through the SGB zones in one pass (drawZonePass), and the
-  -- Pokémon go on after. That pass is drawn aside here, and put down over
-  -- the scene with the field's paper (pure white in the greys, above the
-  -- text box) left see-through, so the boxes, the text box and everything
-  -- the zones colour stay as the game has them -Elvie
+  -- The 160x144 screen: the battle is drawn in the Game Boy greys, on a
+  -- white sheet, then coloured through the SGB zones in one pass
+  -- (drawZonePass), and the Pokémon go on after. Here the sheet's cleared
+  -- instead (the HUDs are the first thing drawn on it), that pass is drawn
+  -- aside, and put down over the scene with whatever's still clear left
+  -- see-through: the field, and round a TEXT BOX's edges, but never inside
+  -- the game's own boxes, which fill themselves -Elvie
   local okB, BattleState = pcall(require, "src.battle.BattleState")
   if not (okB and type(BattleState) == "table" and type(BattleState.drawZonePass) == "function") then
     mod.log:warn("drawZonePass not found; BATTLE BG stays wide only")
@@ -335,13 +334,11 @@ local function startGen1(mod, sceneFor)
     extern Image paper;
     extern vec2 offset;
     extern vec2 size;
-    extern float field;
     vec4 effect(vec4 colour, Image tex, vec2 uv, vec2 at) {
       vec4 c = Texel(tex, uv) * colour;
       vec2 p = uv * size - offset;
-      if (p.y < field && p.x >= 0.0 && p.y >= 0.0 && p.x < size.x) {
-        vec4 g = Texel(paper, p / size);
-        if (g.r > 0.98 && g.g > 0.98 && g.b > 0.98) return vec4(0.0);
+      if (p.x >= 0.0 && p.y >= 0.0 && p.x < size.x && p.y < size.y) {
+        if (Texel(paper, p / size).a < 0.01) return vec4(0.0);
       }
       return c;
     }
@@ -350,12 +347,24 @@ local function startGen1(mod, sceneFor)
     mod.log:warn("BATTLE BG on the normal screen: %s", tostring(shader))
     return
   end
+  local function onScreen(self)
+    return type(self) == "table" and not (type(self.wideLayout) == "function" and self:wideLayout())
+      and not grey() and not (type(self.extendedWorldHUD) == "function" and self:extendedWorldHUD())
+      and sceneFor(self)
+  end
+  if type(BattleState.drawHUDs) == "function" then
+    local ownHUDs = BattleState.drawHUDs
+    BattleState.drawHUDs = function(self, ...)
+      if self.bgCanvas and love.graphics.getCanvas() == self.bgCanvas and onScreen(self) then
+        love.graphics.clear(0, 0, 0, 0)
+      end
+      return ownHUDs(self, ...)
+    end
+  end
   local aside
   local ownZone = BattleState.drawZonePass
   BattleState.drawZonePass = function(self, src, sx, sy, ...)
-    local s = type(self) == "table" and not (type(self.wideLayout) == "function" and self:wideLayout())
-      and not grey() and not (type(self.extendedWorldHUD) == "function" and self:extendedWorldHUD())
-      and type(src) == "userdata" and sceneFor(self)
+    local s = type(src) == "userdata" and onScreen(self)
     if not s then return ownZone(self, src, sx, sy, ...) end
     local G = love.graphics
     local sw, sh = src:getDimensions()
@@ -377,7 +386,6 @@ local function startGen1(mod, sceneFor)
     shader:send("paper", src)
     shader:send("offset", { sx or 0, sy or 0 })
     shader:send("size", { sw, sh })
-    shader:send("field", BOTTOM_CLASSIC)
     G.setShader(shader)
     G.setBlendMode("alpha", "premultiplied")
     G.draw(aside, 0, 0)
