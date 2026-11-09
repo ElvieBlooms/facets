@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0
 
 - FireRed, LeafGreen and Emerald: **BATTLE BG: SCENERY** gives the woods (Petalburg Woods, Viridian Forest, Berry Forest, Pattern Bush) the Forest scene; the games fight there on their ordinary grass background, so they had the Grass one.
 - New **ANIMATION** row under POKEMON, in all three gens: **LOOP** (the default, as before) plays animated looks round and round, **INTRO** plays them once as the Pokémon comes out and then holds the still, **OFF** shows only the stills. It covers BW ANIM and the DS choices, and on the Game Boy games the Crystal and Emerald animations Facets brings. On Gen 3 it's on the in-game FACETS page too.
