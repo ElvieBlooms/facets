@@ -217,6 +217,32 @@ local function pikachuLooks(mod)
   return looks
 end
 
+classic.PIKA_HGSS = "hgss"
+
+-- HeartGold/SoulSilver's walking Pikachu (Prism Importer's
+-- walking_pokemon, eight 32x32 frames: up, down, left, right, two each) in
+-- the 9-frame column the looks use: down, up and left standing, then each
+-- one's two steps -Elvie
+classic.HGSS_ORDER = { 2, 0, 4, 3, 3, 1, 1, 5, 5 }
+function classic.hgssPikachu(api)
+  if not (api and type(api.imageData) == "function") then return nil end
+  local ok, sheet = pcall(api.imageData, "hgss", "walking_pokemon", "normal/025")
+  if not (ok and sheet) then return nil end
+  local w, h = sheet:getDimensions()
+  if w < 256 or h < 32 then return nil end
+  local out = love.image.newImageData(32, 32 * #classic.HGSS_ORDER)
+  for i, n in ipairs(classic.HGSS_ORDER) do out:paste(sheet, 0, (i - 1) * 32, n * 32, 0, 32, 32) end
+  return out
+end
+
+-- Whether HeartGold/SoulSilver is imported through Prism Importer -Elvie
+local function hgssApi(mod)
+  local ds = require("mods.facets.ds")
+  local api = ds.api(mod)
+  if api and ds.state(api, "hgss") ~= "absent" then return api end
+  return nil
+end
+
 -- Whether the running game is Yellow -Elvie
 local function yellow()
   local ok, GameVersion = pcall(require, "src.core.GameVersion")
@@ -224,6 +250,9 @@ local function yellow()
   local okV, v = pcall(GameVersion.get)
   return okV and v == "yellow"
 end
+
+classic.pikachuLooks = pikachuLooks
+classic.yellow = yellow
 
 function classic.init(mod, rows)
   local sets = findSets(mod)
@@ -241,6 +270,9 @@ function classic.init(mod, rows)
   if #looks > 0 then
     -- GAME: Yellow's own, whatever the NPC set -Elvie
     local pika = { { "GAME", classic.PIKA_GAME } }
+    -- HGSS: its walking Pikachu, from the player's own HeartGold or
+    -- SoulSilver -Elvie
+    if hgssApi(mod) then pika[#pika + 1] = { "HGSS", classic.PIKA_HGSS } end
     for _, look in ipairs(looks) do pika[#pika + 1] = { look.label, look.key } end
     rows[#rows + 1] = { key = "classicPikachu", type = "choice", label = "  PIKACHU", choices = pika,
       default = classic.PIKA_GAME }
@@ -306,6 +338,22 @@ function classic.init(mod, rows)
       local grey = false
       if pikaLook == classic.PIKA_GAME then
         return nil
+      elseif pikaLook == classic.PIKA_HGSS then
+        local api = hgssApi(mod)
+        local ds = require("mods.facets.ds")
+        -- not imported yet: Yellow's own for now, and asked again later -Elvie
+        if not (api and ds.state(api, "hgss") == "ready") then defs[key] = nil return nil end
+        fw, fh = 32, 32
+        path = PREFIX .. "pikachu/hgss.png"
+        read = function() return classic.hgssPikachu(api) end
+        if not fullColour() then
+          grey = true
+          path = path:gsub("%.png$", "@grey.png")
+          read = function()
+            local data = classic.hgssPikachu(api)
+            return data and classic.greys(data) or nil
+          end
+        end
       elseif pikaLook then
         -- one of Yellow's Pikachu looks -Elvie
         local rel = classic.PIKACHU_DIR .. "/" .. pikaLook .. ".png"

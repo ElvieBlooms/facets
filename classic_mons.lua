@@ -194,6 +194,20 @@ function classic.init(mod, rows)
   rows[#rows + 1] = { key = "sectionClassicMons", type = "choice", label = "POKEMON",
     choices = { { "", "_" } }, default = "_" }
   rows[#rows + 1] = { key = "classicMons", type = "choice", label = "  SET", choices = choices, default = OFF }
+  -- Yellow's partner Pikachu in battle: MATCH (its overworld look's, as
+  -- before, else the SET), GAME (Yellow's own whatever the SET), any SET,
+  -- or one of its looks -Elvie
+  local npcs = require("mods.facets.classic_npcs")
+  local looks = npcs.yellow() and npcs.pikachuLooks(mod) or {}
+  if #looks > 0 then
+    local pika = { { "MATCH", "match" }, { "GAME", "game" } }
+    for _, c in ipairs(choices) do
+      if c[2] ~= OFF then pika[#pika + 1] = c end
+    end
+    for _, look in ipairs(looks) do pika[#pika + 1] = { look.label, "look:" .. look.key } end
+    rows[#rows + 1] = { key = "classicPikachuBattle", type = "choice", label = "  PIKACHU", choices = pika,
+      default = "match" }
+  end
   rows[#rows + 1] = { key = "classicSide", type = "choice", label = "  YOUR SIDE", choices = classic.SIDES, default = "back" }
   rows[#rows + 1] = { key = "classicIcons", type = "choice", label = "  ICONS", choices = classic.ICONS, default = "game" }
   shared.sizeRow(rows, "classicSize")
@@ -271,6 +285,7 @@ function classic.init(mod, rows)
     end
     -- DPPT, HGSS and B2W2: the dump's animation, laid out for the game's
     -- box, its first frame the still picture (classic_ds) -Elvie
+    local partnerChoice -- Yellow's partner's battle look, set further down -Elvie
     local dsPics = cds.new(mod)
     local dsByPath = {}
     local function dsPick(game, dex, side, kind, shiny)
@@ -352,6 +367,11 @@ function classic.init(mod, rows)
       end
       local function source(battle, b)
         local set = mod.options:get("classicMons")
+        local choice = partnerChoice and partnerChoice(b.mon)
+        if choice then
+          if not choice.set then return nil end
+          set = choice.set
+        end
         local scale = tonumber(mod.options:get("classicSize"))
         local pokemon = type(battle.data) == "table" and battle.data.pokemon
         local def = type(pokemon) == "table" and pokemon[b.mon.species]
@@ -451,10 +471,29 @@ function classic.init(mod, rows)
         end
       end
     end
+    -- What the partner shows in battle: { look = key } for one of its
+    -- looks, { own = true } for Yellow's own, { set = value } for a SET,
+    -- or nil to follow the SET like any Pokémon -Elvie
+    partnerChoice = function(mon)
+      if not partnerOf or not partnerOf(mon) then return nil end
+      local pick = mod.options:get("classicPikachuBattle") or "match"
+      if pick == "match" then
+        local look = mod.options:get("classicPikachu")
+        if type(look) == "string" and look:match("^[%w_]+$") and look ~= "game" and look ~= "hgss" then
+          return { look = look }
+        end
+        return nil
+      end
+      if pick == "game" then return { own = true } end
+      local look = type(pick) == "string" and pick:match("^look:([%w_]+)$")
+      if look then return { look = look } end
+      return { set = pick }
+    end
     local function partnerPicture(ctx)
       if not partnerOf or type(ctx.kind) ~= "string" or ctx.kind:match("_anim$") then return nil end
-      local look = mod.options:get("classicPikachu")
-      if type(look) ~= "string" or not look:match("^[%w_]+$") or not partnerOf(ctx.mon) then return nil end
+      local choice = partnerChoice(ctx.mon)
+      if not (choice and choice.look) then return nil end
+      local look = choice.look
       local battle = ctx.kind == "battle"
       local side = ctx.side == "back" and "back" or "front"
       local face, mirror = side, false
@@ -484,6 +523,8 @@ function classic.init(mod, rows)
       if type(ctx) ~= "table" or not ctx.species then return nextFn(path, ctx) end
       local partner = partnerPicture(ctx)
       if partner then return partner end
+      local choice = partnerOf and type(ctx.kind) == "string" and not ctx.kind:match("_anim$") and partnerChoice(ctx.mon)
+      if choice and choice.own then return nextFn(path, ctx) end
       if ctx.kind == "battle_anim" and not gen1 then
         local got = animSheet(type(ctx.data) == "table" and ctx.data.pokemon, ctx.species, ctx.shiny, path)
         if got then
@@ -492,7 +533,7 @@ function classic.init(mod, rows)
         end
         return nextFn(path, ctx)
       end
-      opts.set = mod.options:get("classicMons")
+      opts.set = choice and choice.set or mod.options:get("classicMons")
       opts.size = mod.options:get("classicSize")
       opts.side = mod.options:get("classicSide")
       local data = ctx.data

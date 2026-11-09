@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Yellow: your partner Pikachu gets its own **PIKACHU** row under POKEMON for battle (MATCH, GAME, any POKEMON set, or a look), and **HGSS** on the map row walks it as HeartGold and SoulSilver's Pikachu, from your own dump.
 - Red, Blue, Yellow, Gold, Silver and Crystal: **POKEMON: DPPT, HGSS and B2W2**, from your own DS dumps through Prism Importer, animated in battle on both sides as on Gen 3, with the DS set for anything missing.
 - Red, Blue, Yellow, Gold and Silver: **Pokémon animations.** With your Crystal imported, **POKEMON: CRYSTAL** (now on Gold and Silver too), **FIRERED** and **EMERALD** play Crystal's animation when the foe's Pokémon comes out, as Crystal does. 
 - FireRed, LeafGreen, Ruby, Sapphire and Emerald: **BATTLE BG: SCENERY** reaches the window's edges too. The borders round the GBA screen show the scene zoomed in, blurred and a little darker, instead of the engine's flat pale surround.
