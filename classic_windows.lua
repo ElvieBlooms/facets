@@ -136,16 +136,27 @@ end
 -- put(cell, cx, cy, flip, dx), dx a pixel nudge. With shiftL / shiftR
 -- (pixels, from sideShift) the left and right sides move out that far,
 -- and the top and bottom edges reach out to meet them -Elvie
-function windows.dialogueCells(tx, ty, tw, th, put, shiftL, shiftR)
+function windows.dialogueCells(tx, ty, tw, th, put, shiftL, shiftR, hugT, hugB)
   local L, Top, W, H = tx + 2, ty + 1, tw - 4, th - 2
   local sl, sr = shiftL or 0, shiftR or 0
-  for _, edge in ipairs({ { Top - 1, false }, { Top + H, true } }) do
-    local y, f = edge[1], edge[2]
-    if sl > 0 then put(2, L - 1, y, f, 0) end
-    if sr > 0 then put(2, L + W, y, f, 0) end
-    put(0, L - 2, y, f, -sl); put(1, L - 1, y, f, -sl)
-    for i = 0, W - 1 do put(2, L + i, y, f, 0) end
-    put(3, L + W, y, f, sr); put(4, L + W + 1, y, f, sr)
+  local ht, hb = hugT or 0, hugB or 0
+  -- hugging (hugT / hugB, pixels): the top edge moves up and the bottom
+  -- one down, and the sides run on to meet them -Elvie
+  if ht > 0 then
+    put(10, L - 2, Top, false, -sl, -ht); put(11, L - 1, Top, false, -sl, -ht)
+    put(12, L + W, Top, false, sr, -ht); put(13, L + W + 1, Top, false, sr, -ht)
+  end
+  if hb > 0 then
+    put(10, L - 2, Top + H - 1, true, -sl, hb); put(11, L - 1, Top + H - 1, true, -sl, hb)
+    put(12, L + W, Top + H - 1, true, sr, hb); put(13, L + W + 1, Top + H - 1, true, sr, hb)
+  end
+  for _, edge in ipairs({ { Top - 1, false, -ht }, { Top + H, true, hb } }) do
+    local y, f, dy = edge[1], edge[2], edge[3]
+    if sl > 0 then put(2, L - 1, y, f, 0, dy) end
+    if sr > 0 then put(2, L + W, y, f, 0, dy) end
+    put(0, L - 2, y, f, -sl, dy); put(1, L - 1, y, f, -sl, dy)
+    for i = 0, W - 1 do put(2, L + i, y, f, 0, dy) end
+    put(3, L + W, y, f, sr, dy); put(4, L + W + 1, y, f, sr, dy)
   end
   local rows = { { 5, 6, 8, 9, false }, { 10, 11, 12, 13, false }, { 10, 11, 12, 13, true }, { 5, 6, 8, 9, true } }
   for r = 1, H do
@@ -235,18 +246,52 @@ function windows.insideMask(clear, w, h)
   return inside
 end
 
--- A 3x3 frame's tiles on a box's border ring: put(cell, cx, cy) -Elvie
-function windows.frameCells(tx, ty, tw, th, put)
-  put(0, tx, ty)
-  for i = 1, tw - 2 do put(1, tx + i, ty) end
-  put(2, tx + tw - 1, ty)
+-- A 3x3 frame's tiles on a box's border ring: put(cell, cx, cy, dy).
+-- Hugging (hugT / hugB, pixels) moves the top row up and the bottom one
+-- down, the sides running on to meet them -Elvie
+function windows.frameCells(tx, ty, tw, th, put, hugT, hugB)
+  local ht, hb = hugT or 0, hugB or 0
+  if ht > 0 and th > 2 then put(3, tx, ty + 1, -ht); put(5, tx + tw - 1, ty + 1, -ht) end
+  if hb > 0 and th > 2 then put(3, tx, ty + th - 2, hb); put(5, tx + tw - 1, ty + th - 2, hb) end
+  put(0, tx, ty, -ht)
+  for i = 1, tw - 2 do put(1, tx + i, ty, -ht) end
+  put(2, tx + tw - 1, ty, -ht)
   for j = 1, th - 2 do
-    put(3, tx, ty + j)
-    put(5, tx + tw - 1, ty + j)
+    put(3, tx, ty + j, 0)
+    put(5, tx + tw - 1, ty + j, 0)
   end
-  put(6, tx, ty + th - 1)
-  for i = 1, tw - 2 do put(7, tx + i, ty + th - 1) end
-  put(8, tx + tw - 1, ty + th - 1)
+  put(6, tx, ty + th - 1, hb)
+  for i = 1, tw - 2 do put(7, tx + i, ty + th - 1, hb) end
+  put(8, tx + tw - 1, ty + th - 1, hb)
+end
+
+-- How many see-through lines a cell of an atlas (cols cells across) has
+-- on one side before its drawing starts: side is "top", "bottom", "left"
+-- or "right". pixel(x, y) gives r, g, b, a -Elvie
+function windows.clearLines(pixel, cols, cell, side)
+  local x0, y0 = (cell % cols) * T, math.floor(cell / cols) * T
+  for k = 0, T - 1 do
+    for j = 0, T - 1 do
+      local x, y
+      if side == "top" then x, y = x0 + j, y0 + k
+      elseif side == "bottom" then x, y = x0 + j, y0 + T - 1 - k
+      elseif side == "left" then x, y = x0 + k, y0 + j
+      else x, y = x0 + T - 1 - k, y0 + j end
+      local _, _, _, a = pixel(x, y)
+      if (a or 0) > 0 then return k end
+    end
+  end
+  return T
+end
+
+-- Whether a box sits on a battle scene's bottom edge: then it hugs the
+-- screen's edges, so the scene never shows in a gap under the Pokémon.
+-- Only while a scene's showing; round the map the gaps stay, as in Gen 3
+-- -Elvie
+function windows.hugs(ty, th)
+  if ty + th ~= 18 then return false end
+  local ok, scenes = pcall(require, "mods.facets.classic_scenes")
+  return ok and type(scenes.showing) == "function" and scenes.showing() or false
 end
 
 -- The window sets and their styles, from meta.json -Elvie
@@ -332,6 +377,7 @@ function windows.init(mod, rows)
       return q
     end
 
+    local hugOf
     -- each text box's side shifts, worked out once from its pixels -Elvie
     local shifts = {}
     local function shift(img, a)
@@ -350,6 +396,35 @@ function windows.init(mod, rows)
       if not ok then l, r = 0, 0 end
       shifts[img] = { l, r }
       return l, r
+    end
+
+    -- how far each box's edges are from its cells' edges, for hugging:
+    -- a text box's top edge (cell 2, its bottom the same turned over) and
+    -- outer sides (cells 10 and 13); a frame's top and bottom edges (cells
+    -- 1 and 7) -Elvie
+    local hugs = {}
+    hugOf = function(img, kind)
+      local got = hugs[img]
+      if got then return got end
+      got = { top = 0, bottom = 0, left = 0, right = 0 }
+      pcall(function()
+        local data = datas[img]
+        if not data then return end
+        local cols = math.floor(data:getWidth() / T)
+        local function pixel(x, y) return data:getPixel(x, y) end
+        if kind == "dialogue" then
+          got.top = windows.clearLines(pixel, cols, 2, "top")
+          got.bottom = got.top
+          got.left = windows.clearLines(pixel, cols, 10, "left")
+          got.right = windows.clearLines(pixel, cols, 13, "right")
+        else
+          got.top = windows.clearLines(pixel, cols, 1, "top")
+          got.bottom = windows.clearLines(pixel, cols, 7, "bottom")
+        end
+        for k, v in pairs(got) do if v >= T then got[k] = 0 end end
+      end)
+      hugs[img] = got
+      return got
     end
 
     -- each frame's inside, as a white picture laid out like the frame, to
@@ -449,32 +524,41 @@ function windows.init(mod, rows)
         or (type(fill) == "table" and fill[1] and { fill[1] / 255, fill[2] / 255, fill[3] / 255 }) or { 1, 1, 1 }
       local sl, sr = 0, 0
       if kind == "dialogue" then sl, sr = shift(img, a) end
+      local ht, hb = 0, 0
+      if windows.hugs(ty, th) then
+        local h = hugOf(img, kind)
+        ht, hb = h.top, h.bottom
+        if kind == "dialogue" then
+          if tx == 0 then sl = math.max(sl, h.left) end
+          if tx + tw == 20 then sr = math.max(sr, h.right) end
+        end
+      end
       G.setColor(inside[1], inside[2], inside[3], 1)
       if kind == "dialogue" then
         -- only inside the border: the text box's own tiles carry their
         -- inside, and round its corners the map shows, as in Gen 3 -Elvie
         local L, Top, W, H = tx + 2, ty + 1, tw - 4, th - 2
-        G.rectangle("fill", L * T - sl, Top * T, W * T + sl + sr, H * T)
+        G.rectangle("fill", L * T - sl, Top * T - ht, W * T + sl + sr, H * T + ht + hb)
       else
         -- the middle, then only the frame's own inside under its border
         -- tiles, so its corners show the map -Elvie
         local mask = maskFor(img)
         if mask then
-          G.rectangle("fill", (tx + 1) * T, (ty + 1) * T, (tw - 2) * T, (th - 2) * T)
-          windows.frameCells(tx, ty, tw, th, function(i, cx, cy) G.draw(mask, quad(mask, i), cx * T, cy * T) end)
+          G.rectangle("fill", (tx + 1) * T, (ty + 1) * T - ht, (tw - 2) * T, (th - 2) * T + ht + hb)
+          windows.frameCells(tx, ty, tw, th, function(i, cx, cy, dy) G.draw(mask, quad(mask, i), cx * T, cy * T + dy) end, ht, hb)
         else
           G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
         end
       end
       G.setColor(1, 1, 1, 1)
       if kind == "dialogue" then
-        windows.dialogueCells(tx, ty, tw, th, function(i, cx, cy, flip, dx)
-          local x = cx * T + (dx or 0)
-          if flip then G.draw(img, quad(img, i), x, cy * T + T, 0, 1, -1)
-          else G.draw(img, quad(img, i), x, cy * T) end
-        end, sl, sr)
+        windows.dialogueCells(tx, ty, tw, th, function(i, cx, cy, flip, dx, dy)
+          local x, y = cx * T + (dx or 0), cy * T + (dy or 0)
+          if flip then G.draw(img, quad(img, i), x, y + T, 0, 1, -1)
+          else G.draw(img, quad(img, i), x, y) end
+        end, sl, sr, ht, hb)
       else
-        windows.frameCells(tx, ty, tw, th, function(i, cx, cy) G.draw(img, quad(img, i), cx * T, cy * T) end)
+        windows.frameCells(tx, ty, tw, th, function(i, cx, cy, dy) G.draw(img, quad(img, i), cx * T, cy * T + dy) end, ht, hb)
       end
       if shader then G.setShader(shader) end
       if kind == "dialogue" then
@@ -492,7 +576,7 @@ function windows.init(mod, rows)
       -- own colours, as full-colour pictures do, but in the Game Boy greys
       -- (CLASSIC, OG) -Elvie
       if okP and type(PaletteFX.markTrueColor) == "function" and not grey() then
-        pcall(PaletteFX.markTrueColor, tx * T, ty * T, tw * T, th * T)
+        pcall(PaletteFX.markTrueColor, tx * T, ty * T - ht, tw * T, th * T + ht + hb)
       end
       G.setColor(r, g, b, al)
     end

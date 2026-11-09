@@ -30,9 +30,18 @@ local function note(image, qx, qy, dx, dy, light)
   if not canvas then return end
   local x0, y0 = G.transformPoint(dx - qx, dy - qy)
   local x1, y1 = G.transformPoint(dx - qx + 1, dy - qy + 1)
-  shown = { image = image, canvas = canvas, x = x0, y = y0, kx = x1 - x0, ky = y1 - y0, stamp = frame, light = light }
+  shown = { image = image, canvas = canvas, x = x0, y = y0, kx = x1 - x0, ky = y1 - y0, stamp = frame, light = light,
+    at = love.timer and love.timer.getTime() or nil }
 end
 scenes._note = note
+
+-- Whether a battle scene is up: noted in the last tenth of a second (Red,
+-- Blue and Yellow's normal screen notes it after its boxes are drawn, so
+-- it's the last frame's) -Elvie
+function scenes.showing()
+  if not (shown and shown.at and love.timer) then return false end
+  return love.timer.getTime() - shown.at < 0.1
+end
 
 -- --------------------------------------------------
 -- The time of day
