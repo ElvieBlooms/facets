@@ -333,7 +333,8 @@ local function startGen1(mod, sceneFor)
   -- instead (the HUDs are the first thing drawn on it), that pass is drawn
   -- aside, and put down over the scene with whatever's still clear left
   -- see-through: the field, and round a TEXT BOX's edges, but never inside
-  -- the game's own boxes, which fill themselves -Elvie
+  -- the game's own boxes, which fill themselves. The HUDs' letters and
+  -- lines keep a one-pixel white rim, so they read over the scene -Elvie
   local okB, BattleState = pcall(require, "src.battle.BattleState")
   if not (okB and type(BattleState) == "table" and type(BattleState.drawZonePass) == "function") then
     mod.log:warn("drawZonePass not found; BATTLE BG stays wide only")
@@ -347,7 +348,17 @@ local function startGen1(mod, sceneFor)
       vec4 c = Texel(tex, uv) * colour;
       vec2 p = uv * size - offset;
       if (p.x >= 0.0 && p.y >= 0.0 && p.x < size.x && p.y < size.y) {
-        if (Texel(paper, p / size).a < 0.01) return vec4(0.0);
+        if (Texel(paper, p / size).a < 0.01) {
+          // a white rim round the boxes' letters and lines, so they read
+          // over a busy scene -Elvie
+          for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+              vec4 g = Texel(paper, (p + vec2(float(dx), float(dy))) / size);
+              if (g.a > 0.5 && g.r < 0.5) return vec4(1.0);
+            }
+          }
+          return vec4(0.0);
+        }
       }
       return c;
     }
