@@ -246,23 +246,27 @@ function windows.insideMask(clear, w, h)
   return inside
 end
 
--- A 3x3 frame's tiles on a box's border ring: put(cell, cx, cy, dy).
--- Hugging (hugT / hugB, pixels) moves the top row up and the bottom one
--- down, the sides running on to meet them -Elvie
-function windows.frameCells(tx, ty, tw, th, put, hugT, hugB)
-  local ht, hb = hugT or 0, hugB or 0
-  if ht > 0 and th > 2 then put(3, tx, ty + 1, -ht); put(5, tx + tw - 1, ty + 1, -ht) end
-  if hb > 0 and th > 2 then put(3, tx, ty + th - 2, hb); put(5, tx + tw - 1, ty + th - 2, hb) end
-  put(0, tx, ty, -ht)
-  for i = 1, tw - 2 do put(1, tx + i, ty, -ht) end
-  put(2, tx + tw - 1, ty, -ht)
+-- A 3x3 frame's tiles on a box's border ring: put(cell, cx, cy, dy, dx).
+-- Hugging (hugT / hugB / hugL / hugR, pixels) moves the top row up, the
+-- bottom one down and the sides out, the edges running on to meet them
+-- -Elvie
+function windows.frameCells(tx, ty, tw, th, put, hugT, hugB, hugL, hugR)
+  local ht, hb, hl, hr = hugT or 0, hugB or 0, hugL or 0, hugR or 0
+  local R = tx + tw - 1
+  if ht > 0 and th > 2 then put(3, tx, ty + 1, -ht, -hl); put(5, R, ty + 1, -ht, hr) end
+  if hb > 0 and th > 2 then put(3, tx, ty + th - 2, hb, -hl); put(5, R, ty + th - 2, hb, hr) end
+  if hl > 0 and tw > 2 then put(1, tx, ty, -ht, 0); put(7, tx, ty + th - 1, hb, 0) end
+  if hr > 0 and tw > 2 then put(1, R, ty, -ht, 0); put(7, R, ty + th - 1, hb, 0) end
+  put(0, tx, ty, -ht, -hl)
+  for i = 1, tw - 2 do put(1, tx + i, ty, -ht, 0) end
+  put(2, R, ty, -ht, hr)
   for j = 1, th - 2 do
-    put(3, tx, ty + j, 0)
-    put(5, tx + tw - 1, ty + j, 0)
+    put(3, tx, ty + j, 0, -hl)
+    put(5, R, ty + j, 0, hr)
   end
-  put(6, tx, ty + th - 1, hb)
-  for i = 1, tw - 2 do put(7, tx + i, ty + th - 1, hb) end
-  put(8, tx + tw - 1, ty + th - 1, hb)
+  put(6, tx, ty + th - 1, hb, -hl)
+  for i = 1, tw - 2 do put(7, tx + i, ty + th - 1, hb, 0) end
+  put(8, R, ty + th - 1, hb, hr)
 end
 
 -- How many see-through lines a cell of an atlas (cols cells across) has
@@ -420,6 +424,8 @@ function windows.init(mod, rows)
         else
           got.top = windows.clearLines(pixel, cols, 1, "top")
           got.bottom = windows.clearLines(pixel, cols, 7, "bottom")
+          got.left = windows.clearLines(pixel, cols, 3, "left")
+          got.right = windows.clearLines(pixel, cols, 5, "right")
         end
         for k, v in pairs(got) do if v >= T then got[k] = 0 end end
       end)
@@ -524,13 +530,19 @@ function windows.init(mod, rows)
         or (type(fill) == "table" and fill[1] and { fill[1] / 255, fill[2] / 255, fill[3] / 255 }) or { 1, 1, 1 }
       local sl, sr = 0, 0
       if kind == "dialogue" then sl, sr = shift(img, a) end
-      local ht, hb = 0, 0
+      local ht, hb, hl, hr = 0, 0, 0, 0
       if windows.hugs(ty, th) then
         local h = hugOf(img, kind)
         ht, hb = h.top, h.bottom
+        -- the screen's sides: 20 tiles across, or Red, Blue and Yellow's
+        -- wide battle's 38 -Elvie
+        local atLeft, atRight = tx == 0, tx + tw == 20 or tx + tw == 38
         if kind == "dialogue" then
-          if tx == 0 then sl = math.max(sl, h.left) end
-          if tx + tw == 20 then sr = math.max(sr, h.right) end
+          if atLeft then sl = math.max(sl, h.left) end
+          if atRight then sr = math.max(sr, h.right) end
+        else
+          if atLeft then hl = h.left end
+          if atRight then hr = h.right end
         end
       end
       G.setColor(inside[1], inside[2], inside[3], 1)
@@ -544,8 +556,8 @@ function windows.init(mod, rows)
         -- tiles, so its corners show the map -Elvie
         local mask = maskFor(img)
         if mask then
-          G.rectangle("fill", (tx + 1) * T, (ty + 1) * T - ht, (tw - 2) * T, (th - 2) * T + ht + hb)
-          windows.frameCells(tx, ty, tw, th, function(i, cx, cy, dy) G.draw(mask, quad(mask, i), cx * T, cy * T + dy) end, ht, hb)
+          G.rectangle("fill", (tx + 1) * T - hl, (ty + 1) * T - ht, (tw - 2) * T + hl + hr, (th - 2) * T + ht + hb)
+          windows.frameCells(tx, ty, tw, th, function(i, cx, cy, dy, dx) G.draw(mask, quad(mask, i), cx * T + dx, cy * T + dy) end, ht, hb, hl, hr)
         else
           G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
         end
@@ -558,7 +570,7 @@ function windows.init(mod, rows)
           else G.draw(img, quad(img, i), x, y) end
         end, sl, sr, ht, hb)
       else
-        windows.frameCells(tx, ty, tw, th, function(i, cx, cy, dy) G.draw(img, quad(img, i), cx * T, cy * T + dy) end, ht, hb)
+        windows.frameCells(tx, ty, tw, th, function(i, cx, cy, dy, dx) G.draw(img, quad(img, i), cx * T + dx, cy * T + dy) end, ht, hb, hl, hr)
       end
       if shader then G.setShader(shader) end
       if kind == "dialogue" then
@@ -576,7 +588,7 @@ function windows.init(mod, rows)
       -- own colours, as full-colour pictures do, but in the Game Boy greys
       -- (CLASSIC, OG) -Elvie
       if okP and type(PaletteFX.markTrueColor) == "function" and not grey() then
-        pcall(PaletteFX.markTrueColor, tx * T, ty * T - ht, tw * T, th * T + ht + hb)
+        pcall(PaletteFX.markTrueColor, tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb)
       end
       G.setColor(r, g, b, al)
     end

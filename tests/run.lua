@@ -2734,6 +2734,27 @@ do
   eq(("%d,%d,%d"):format(tr, tg, tb), "1,0,0", "gen1 anim: a light grey takes the palette's second colour")
 end
 
+-- Boxes hugging a battle scene (classic_windows.lua): the see-through
+-- lines round a border, and a frame's edges moved out to the screen's -Elvie
+do
+  local W = require("mods.facets.classic_windows")
+  -- one 8x8 cell (cols 1) drawn from row 3 and column 2 down/right -Elvie
+  local function pixel(x, y) return 0, 0, 0, (y >= 3 and x >= 2 and x <= 6) and 1 or 0 end
+  eq(W.clearLines(pixel, 1, 0, "top"), 3, "hug: clear lines on top")
+  eq(W.clearLines(pixel, 1, 0, "left"), 2, "hug: ...on the left")
+  eq(W.clearLines(pixel, 1, 0, "right"), 1, "hug: ...on the right")
+  eq(W.clearLines(pixel, 1, 0, "bottom"), 0, "hug: ...none at the bottom")
+  local got = {}
+  W.frameCells(0, 13, 4, 5, function(i, cx, cy, dy, dx)
+    got[#got + 1] = ("%d@%d,%d%+d%+d"):format(i, cx, cy, dx, dy)
+  end, 3, 2, 2, 1)
+  local all = table.concat(got, " ")
+  check(all:find("0@0,13-2-3", 1, true) ~= nil, "hug: the top-left corner goes up and out")
+  check(all:find("8@3,17+1+2", 1, true) ~= nil, "hug: the bottom-right corner goes down and out")
+  check(all:find("1@0,13+0-3", 1, true) ~= nil, "hug: the top edge runs on to the moved corner")
+  check(all:find("3@0,14-2-3", 1, true) ~= nil, "hug: the side runs up to the moved top")
+end
+
 -- Scenes in the light of the hour (classic_scenes.lua): outdoors only,
 -- on the Game Boy games' own hours -Elvie
 do
