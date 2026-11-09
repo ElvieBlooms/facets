@@ -1624,6 +1624,15 @@ function mons.init(mod, rows, menu)
       end
       local side = backs == "front"
       if not (current or borrowing() or side) then return units end
+      -- An animated set (BW ANIM, and the DS choices) cuts each frame as
+      -- it's shown, from a sheet read when that Pokémon first turns up:
+      -- building all of them ahead read every sheet in the game, minutes
+      -- of work and all of it kept in memory. Only their icons -Elvie
+      local animated = current and (current.bw or (current.ds and ANIMATE_DS))
+      if animated then
+        for sp = 1, LAST_SPECIES do add(iconLookup, sp) end
+        return units
+      end
       for sp = 1, LAST_SPECIES do
         if current then
           add(lookup, "front", sp, 0, false)
