@@ -12,10 +12,10 @@ Facets leaves the player and the rival alone: [Emerald Lens](https://github.com/
 | --- | --- | --- |
 | People on the map | COMMUNITY, DIEGO, TAIGA and ZAFFRE (every person, included); GBC and GBC 2X from your Gen 1/2 games | The same four sets, with fill-ins for everyone else (every person); FIRERED and EMERALD from your GBA games |
 | Trainer pictures | DS, GBC-ISH, GAME BOY | DS (every class); FIRERED and EMERALD |
-| Pokémon pictures | DS, GBC-ISH, GBC ANIM, GB EMERALD; DPPT, HGSS, B2W2 (your own DS games, through Prism Importer); BW ANIM (BW Animated Sprites, or Facets' own); FR/LG ANIMS | DS; FIRERED and EMERALD (with Emerald's animations on Gold, Silver and Crystal); CRYSTAL on Red, Blue and Yellow |
+| Pokémon pictures | DS, GBC-ISH, GBC ANIM, GB EMERALD; DPPT, HGSS, B2W2 (your own DS games, through Prism Importer); BW ANIM (BW Animated Sprites, or Facets' own); FR/LG ANIMS; ANIMATION: LOOP, INTRO or OFF | DS; DPPT, HGSS, B2W2 (your own DS games, animated); FIRERED and EMERALD (with Crystal's animations); CRYSTAL on Red, Blue, Yellow, Gold and Silver; ANIMATION: LOOP, INTRO or OFF |
 | Your side | YOUR SIDE: your Pokémon by their front | The same |
 | Party icons | GBC-ISH's Game Boy icons | MINIDEX; CRYSTAL on Red, Blue and Yellow |
-| Battle | SCENERY and WHITE scenes, battle box sets, GBC boxes | SCENERY and battle box sets (box sets in wide battles; on Red, Blue and Yellow, scenes too) |
+| Battle | SCENERY and WHITE scenes, lit by the time of day, battle box sets, GBC boxes | SCENERY, lit by the time of day in Gold, Silver and Crystal, and battle box sets (box sets in wide battles) |
 | Windows | GBC frames, TITO, LIBERTY and other window sets | FireRed's frames, TITO, LIBERTY |
 | Screen | The GB filter | The GB filter; COLORS keeps the game in full colour |
 | Yellow's Pikachu | | Seven looks, in battle too |
