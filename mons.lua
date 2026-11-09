@@ -1355,6 +1355,9 @@ function mons.init(mod, rows, menu)
     -- FRONTS on, flipped to face the foe. Drawn once into a picture of
     -- its own, then kept. -Elvie
     local backs, mirrored, asBack, stillRows = "back", false, {}, {}
+    -- your side's turned-round frames of an animated set, by the frame -Elvie
+    local asBackAnim = setmetatable({}, { __mode = "k" })
+    local turnRound
     -- A picture's pixels, for one with no ImageData of its own (the
     -- game's): drawn once into a canvas and read back. -Elvie
     local function measure(image)
@@ -1390,7 +1393,7 @@ function mons.init(mod, rows, menu)
       local now = mons.packName(mod)
       if now == lastPack then return false end
       lastPack = now
-      asBack, stillRows = {}, {}
+      asBack, stillRows = {}, {}; asBackAnim = setmetatable({}, { __mode = "k" })
       return true
     end
     local function frontAsBack(species, form, shiny, frame)
@@ -1404,6 +1407,24 @@ function mons.init(mod, rows, menu)
       end
       local key = sp .. suffix .. ":" .. (tonumber(form) or 0) .. ":" .. frame .. (shiny and ":s" or "")
       packChanged()
+      -- An animated set (BW ANIM, the DS choices): its front is the frame
+      -- showing now, so your side turns that one round, frame by frame,
+      -- and loops as the foe's does. Each frame's kept with the frame it
+      -- came from, never on disk -Elvie
+      local animated = current and ((current.bw and not bw.external(mod)) or (current.ds and ANIMATE_DS))
+      if animated then
+        local okU, below = pcall(origFront, sp, form, shiny)
+        if not (okU and mons.fromHook(below)) then
+          local e = lookup("front", sp, form, shiny)
+          if type(e) == "table" and e.image then
+            local got = asBackAnim[e]
+            if got ~= nil then return got or nil end
+            local made = turnRound(sp, suffix, form, shiny, 0, e)
+            asBackAnim[e] = made or false
+            return made
+          end
+        end
+      end
       local hit = asBack[key]
       if hit ~= nil then return hit or nil end
       -- kept from an earlier start, unless a sprite pack's picture is
@@ -1435,6 +1456,14 @@ function mons.init(mod, rows, menu)
         asBack[key] = false
         return nil
       end
+      local entry = turnRound(sp, suffix, form, shiny, frame, front)
+      if entry and not fromPack then disk.put(group, key, entry.imageData) end
+      asBack[key] = entry or false
+      return entry
+    end
+    -- A front turned round for your side: lifted clear of the box, and
+    -- mirrored with MIRRORED. nil if it couldn't be drawn -Elvie
+    turnRound = function(sp, suffix, form, shiny, frame, front)
       local w, h = SIZE, SIZE
       local shift = mons.frontAsBackShift(PicCoords, sp)
       -- the still picture's top sets how far every frame may go up, so
@@ -1476,12 +1505,9 @@ function mons.init(mod, rows, menu)
       end)
       if not made then
         mod.log:warn("front as back for %d: %s", sp, tostring(entry))
-        entry = false
-      elseif not fromPack then
-        disk.put(group, key, entry.imageData)
+        return nil
       end
-      asBack[key] = entry
-      return entry or nil
+      return entry
     end
     mons.frontAsBack = frontAsBack
 
@@ -1596,20 +1622,20 @@ function mons.init(mod, rows, menu)
       if palettes == false then palettes = nil end
       if crystalIcons == false then crystalIcons = nil end
       if crystalText == false then crystalText, anims = nil, {} end
-      asBack, plans, stillRows = {}, {}, {}
+      asBack, plans, stillRows = {}, {}, {}; asBackAnim = setmetatable({}, { __mode = "k" })
       -- GBC-ISH changes whether FR/LG borrows Emerald's animations -Elvie
       if AnimData and type(AnimData.reset) == "function" then AnimData.reset() end
     end
     local function configureAnims()
       borrow = mod.options:get("animMons") == "emerald"
       emPics, emPlace = {}, {}
-      asBack, stillRows = {}, {}
+      asBack, stillRows = {}, {}; asBackAnim = setmetatable({}, { __mode = "k" })
       if AnimData and type(AnimData.reset) == "function" then AnimData.reset() end
     end
     local function configureBacks()
       backs = mod.options:get("backMons") == "front" and "front" or "back"
       mirrored = mod.options:get("mirrorMons") ~= OFF
-      asBack = {}
+      asBack = {}; asBackAnim = setmetatable({}, { __mode = "k" })
     end
     -- PREBUILD: every picture the settings will ask for, one function
     -- each: the set's fronts, backs, icons and animation frames,
