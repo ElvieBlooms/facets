@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- **ANIMATION** now covers Kanto Reforged's own animated Pokémon too, on both sides: LOOP plays them round and round, INTRO keeps Kanto Reforged's way (twice through as it comes out, then still), and OFF shows only the still. Before, they always played twice and stopped, whatever ANIMATION said.
+
 ## 1.2.0
 
 - The manifest lists Prism Importer (0.3.0 or newer) and Recomp Achievements as optional, with their GitHub pages, so the launcher can find and update them.

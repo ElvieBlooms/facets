@@ -2819,6 +2819,15 @@ do
   local r = f:getPixel(3, 1)
   eq(r, 1, "kr: the second frame, mirrored")
   eq(K.cut(data, meta, 3, false), nil, "kr: past the strip's end, nothing")
+  -- ANIMATION: LOOP goes round for good, OFF stops on the still at once -Elvie
+  K.mode = function() return "loop" end
+  local looping = K.player(strip.meta)
+  local run = {}
+  for _ = 1, 8 do run[#run + 1] = tostring(looping.step()) end
+  eq(table.concat(run, ","), "2,1,2,1,2,1,2,1", "kr: LOOP, round and round")
+  K.mode = function() return "off" end
+  eq(K.player(strip.meta).step(), nil, "kr: OFF, the still from the start")
+  K.mode = function() return "intro" end
   package.loaded[K.MODULE] = nil
 end
 

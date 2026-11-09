@@ -293,6 +293,20 @@ function classic.init(mod, rows)
     -- ANIMATION: LOOP, INTRO or OFF (bw.mode) -Elvie
     local BW = require("mods.facets.bw")
     local function animMode() return BW.mode(mod) end
+    -- Kanto Reforged's animations follow ANIMATION too (classic_kr): its
+    -- step is wrapped the first battle frame it's loaded -Elvie
+    do
+      local okKr, krm = pcall(require, "mods.facets.classic_kr")
+      local okS, BS = pcall(require, gen1 and "src.battle.BattleState" or "src.ui.gen2.BattleState")
+      if okKr and okS and type(BS) == "table" and type(BS.update) == "function" then
+        krm.mode = animMode
+        local ownUpdate = BS.update
+        BS.update = function(self, ...)
+          pcall(krm.api)
+          return ownUpdate(self, ...)
+        end
+      end
+    end
     local dsPics = cds.new(mod)
     local dsByPath = {}
     local function dsPick(game, dex, side, kind, shiny)

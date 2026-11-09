@@ -1,7 +1,8 @@
--- Kanto Reforged's animations on YOUR SIDE
+-- Kanto Reforged's animations on YOUR SIDE, and ANIMATION on both
 -- Kanto Reforged (1jamie) gives its Pokémon idle strips and plays them on
 -- the foe's side only, twice through when it comes out, then holds the
--- first frame. With YOUR SIDE on FRONT or MIRRORED your Pokémon is its
+-- first frame. ANIMATION decides that for both sides here (kr.follow).
+-- With YOUR SIDE on FRONT or MIRRORED your Pokémon is its
 -- front picture, so it plays the same strip the same way when it's sent
 -- out, mirrored for MIRRORED. Everything is read from Kanto Reforged's own
 -- front_anim module while it's loaded, so its art and timings stay its
@@ -12,11 +13,40 @@ local kr = {}
 
 kr.MODULE = "mods.Kanto-Reforged.battle.front_anim"
 
+-- ANIMATION's setting (LOOP, INTRO or OFF), set by classic_mons -Elvie
+kr.mode = function() return "intro" end
+
+-- Its animations follow ANIMATION on both sides: its step (stepState,
+-- which every strip goes through, the foe's in Kanto Reforged and yours
+-- here) is wrapped once, so LOOP starts it round again where it would
+-- stop, INTRO leaves it as Kanto Reforged plays it (twice, then still)
+-- and OFF stops it on the still at once -Elvie
+function kr.follow(FA)
+  if FA._facetsFollows then return end
+  FA._facetsFollows = true
+  local own = FA.stepState
+  FA.stepState = function(st, meta, ...)
+    local okM, mode = pcall(kr.mode)
+    mode = okM and mode or "intro"
+    if type(st) == "table" and mode == "off" then
+      local moved = st.frame ~= nil and st.frame ~= 1
+      st.done, st.frame, st.timer = true, 1, 0
+      return moved
+    end
+    local moved = own(st, meta, ...)
+    if type(st) == "table" and mode == "loop" and st.done then
+      st.done, st.cycles, st.timer = false, 0, 0
+    end
+    return moved
+  end
+end
+
 -- Kanto Reforged's front_anim, if it's loaded -Elvie
 function kr.api()
   local FA = package.loaded[kr.MODULE]
   if type(FA) ~= "table" or type(FA.prefersKrAnim) ~= "function" or type(FA.meta) ~= "function"
       or type(FA.stripPath) ~= "function" or type(FA.stepState) ~= "function" then return nil end
+  kr.follow(FA)
   return FA
 end
 
@@ -57,7 +87,7 @@ end
 
 -- A player of a strip, ticked once a frame: step() gives its frame
 -- (1 = the still pose) or nil once it's done, the way Kanto Reforged plays
--- the foe's -Elvie
+-- the foe's (and as ANIMATION says, through kr.follow) -Elvie
 function kr.player(meta)
   local FA = kr.api()
   if not FA then return nil end
