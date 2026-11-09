@@ -472,8 +472,8 @@ function classic.init(mod, rows)
       end
     end
     -- What the partner shows in battle: { look = key } for one of its
-    -- looks, { own = true } for Yellow's own, { set = value } for a SET,
-    -- or nil to follow the SET like any Pokémon -Elvie
+    -- looks, { set = value } for a SET (OFF for Yellow's own), or nil to
+    -- follow the SET like any Pokémon -Elvie
     partnerChoice = function(mon)
       if not partnerOf or not partnerOf(mon) then return nil end
       local pick = mod.options:get("classicPikachuBattle") or "match"
@@ -484,7 +484,9 @@ function classic.init(mod, rows)
         end
         return nil
       end
-      if pick == "game" then return { own = true } end
+      -- GAME: Yellow's own pictures, through the same road as SET OFF, so
+      -- YOUR SIDE still turns them round as it does any other -Elvie
+      if pick == "game" then return { set = OFF } end
       local look = type(pick) == "string" and pick:match("^look:([%w_]+)$")
       if look then return { look = look } end
       return { set = pick }
@@ -524,7 +526,6 @@ function classic.init(mod, rows)
       local partner = partnerPicture(ctx)
       if partner then return partner end
       local choice = partnerOf and type(ctx.kind) == "string" and not ctx.kind:match("_anim$") and partnerChoice(ctx.mon)
-      if choice and choice.own then return nextFn(path, ctx) end
       if ctx.kind == "battle_anim" and not gen1 then
         local got = animSheet(type(ctx.data) == "table" and ctx.data.pokemon, ctx.species, ctx.shiny, path)
         if got then
