@@ -2735,6 +2735,16 @@ do
   eq(("%d,%d,%d"):format(tr, tg, tb), "1,0,0", "gen1 anim: a light grey takes the palette's second colour")
 end
 
+-- Gen 3's woods take the forest scene (gbui.lua) -Elvie
+do
+  local U = require("mods.facets.gbui")
+  eq(U.forestKey("grass", 59), "long_grass", "woods: Petalburg Woods' grass is the forest")
+  eq(U.forestKey("grass", 126), "long_grass", "woods: ...and Viridian Forest's")
+  eq(U.forestKey("grass", 16), "grass", "woods: a route's grass stays grass")
+  eq(U.forestKey("cave", 59), "cave", "woods: anything but grass stays itself")
+  eq(U.forestKey("grass", nil), "grass", "woods: no map, no change")
+end
+
 -- Boxes hugging a battle scene (classic_windows.lua): the see-through
 -- lines round a border, and a frame's edges moved out to the screen's -Elvie
 do

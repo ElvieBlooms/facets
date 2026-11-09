@@ -381,6 +381,26 @@ end
 -- loaded once; the set's default for one it doesn't map. -Elvie
 local scenes = {}
 -- The scene name a set gives one of the games' backgrounds, or nil. -Elvie
+-- The woods: Petalburg Woods, Viridian Forest, Berry Forest and Pattern
+-- Bush fight on the game's grass, but they're forests, so their scene is
+-- the forest. By region map section, the same numbers in both games -Elvie
+gbui.FORESTS = { [59] = true, [126] = true, [176] = true, [182] = true }
+gbui.WOODS_KEYS = { grass = true, long_grass = true, plain = true }
+function gbui.forestKey(bgKey, mapSec)
+  if gbui.FORESTS[tonumber(mapSec) or -1] and gbui.WOODS_KEYS[tostring(bgKey or "")] then return "long_grass" end
+  return bgKey
+end
+-- The region map section the player's in, or nil -Elvie
+function gbui.mapSec()
+  local ok, sec = pcall(function()
+    local Runtime = package.loaded["src.core.game3.runtime"]
+    local Pokemon = package.loaded["src.core.game3.pokemon"]
+    if not (Runtime and Pokemon and type(Pokemon.currentMapSec) == "function") then return nil end
+    return Pokemon.currentMapSec(Runtime.getSession and Runtime.getSession() or nil)
+  end)
+  return ok and sec or nil
+end
+
 function gbui.sceneName(setKey, bgKey)
   local set = gbui.BG_SETS[setKey]
   if not set then return nil end
@@ -1221,6 +1241,8 @@ function gbui.init(mod, rows, menu)
           BattleChrome[name] = function(key, ...)
             local _, _, bg = gbui.settings(get)
             if name == "drawTerrain" then gbui.lastTerrain = key end -- for achievements.lua -Elvie
+            -- the woods, as forests -Elvie
+            if gbui.BG_SETS[bg] then key = gbui.forestKey(key, gbui.mapSec()) end
             local img = gbui.BG_SETS[bg] and gbui.scene(mod, bg, key)
             if img then
               love.graphics.setColor(0, 0, 0, 1)
