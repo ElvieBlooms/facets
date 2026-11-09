@@ -26,6 +26,34 @@ end
 -- The frame showing after `ticks` 60ths of a second: through the whole
 -- animation once, then round from loopStartFrame, as the engine's own
 -- Black/White pack plays -Elvie
+-- ANIMATION, for every animated look in all three gens: LOOP plays it
+-- round and round, INTRO once through as the Pokémon comes out and then
+-- holds the still, OFF only the still -Elvie
+bw.MODES = { { "LOOP", "loop" }, { "INTRO", "intro" }, { "OFF", "off" } }
+function bw.mode(mod)
+  local ok, v = pcall(function() return mod.options:get("animMode") end)
+  v = ok and v or nil
+  if v == "intro" or v == "off" then return v end
+  return "loop"
+end
+
+-- How long an animation runs once through, in ticks (1/60 s) -Elvie
+function bw.total(sprite)
+  local d = type(sprite) == "table" and sprite.durations
+  if type(d) ~= "table" then return 0 end
+  local total = 0
+  for _, n in ipairs(d) do total = total + (tonumber(n) or 1) end
+  return total
+end
+
+-- The frame `ticks` in, for a mode: LOOP's goes round, INTRO's stops on
+-- the still (0) once it's been through, OFF's is always the still -Elvie
+function bw.playAt(sprite, ticks, mode)
+  if mode == "off" then return 0 end
+  if mode == "intro" and (ticks or 0) >= bw.total(sprite) then return 0 end
+  return bw.frameAt(sprite, ticks or 0)
+end
+
 function bw.frameAt(sprite, ticks)
   local d = type(sprite) == "table" and sprite.durations
   if type(d) ~= "table" or #d == 0 then return 0 end

@@ -208,6 +208,10 @@ function classic.init(mod, rows)
     rows[#rows + 1] = { key = "classicPikachuBattle", type = "choice", label = "  PIKACHU", choices = pika,
       default = "match" }
   end
+  -- every animated look: LOOP, INTRO (once as it comes out) or OFF (the
+  -- stills). The same row on Gen 3 -Elvie
+  rows[#rows + 1] = { key = "animMode", type = "choice", label = "  ANIMATION",
+    choices = require("mods.facets.bw").MODES, default = "loop" }
   rows[#rows + 1] = { key = "classicSide", type = "choice", label = "  YOUR SIDE", choices = classic.SIDES, default = "back" }
   rows[#rows + 1] = { key = "classicIcons", type = "choice", label = "  ICONS", choices = classic.ICONS, default = "game" }
   shared.sizeRow(rows, "classicSize")
@@ -286,6 +290,9 @@ function classic.init(mod, rows)
     -- DPPT, HGSS and B2W2: the dump's animation, laid out for the game's
     -- box, its first frame the still picture (classic_ds) -Elvie
     local partnerChoice -- Yellow's partner's battle look, set further down -Elvie
+    -- ANIMATION: LOOP, INTRO or OFF (bw.mode) -Elvie
+    local BW = require("mods.facets.bw")
+    local function animMode() return BW.mode(mod) end
     local dsPics = cds.new(mod)
     local dsByPath = {}
     local function dsPick(game, dex, side, kind, shiny)
@@ -318,12 +325,43 @@ function classic.init(mod, rows)
     if not gen1 then
       local okB, BattleState = pcall(require, "src.ui.gen2.BattleState")
       if okB and type(BattleState) == "table" and type(BattleState.pic) == "function" then
+        -- when each Pokémon came out (the foe's cry, your send-out), for
+        -- ANIMATION: INTRO -Elvie
+        local cameOut = setmetatable({}, { __mode = "k" })
+        local function mark(mon)
+          if type(mon) == "table" and love.timer then cameOut[mon] = love.timer.getTime() end
+        end
+        if type(BattleState.startFrontAnim) == "function" then
+          local ownStart = BattleState.startFrontAnim
+          BattleState.startFrontAnim = function(self, mon, ...)
+            mark(mon)
+            return ownStart(self, mon, ...)
+          end
+        end
+        if type(BattleState.finishSendOut) == "function" then
+          local ownFinish = BattleState.finishSendOut
+          BattleState.finishSendOut = function(self, after, ...)
+            if type(after) == "table" then mark(after.mon) end
+            return ownFinish(self, after, ...)
+          end
+        end
         local ownPic = BattleState.pic
         BattleState.pic = function(self, mon, back, ...)
           local image, trueColor, path = ownPic(self, mon, back, ...)
           local rec = type(path) == "string" and dsByPath[path]
-          if not rec or self.showPlayerTrainer then return image, trueColor, path end
-          local ok, img = pcall(dsPics.image, rec, dsPics.frameAt(rec))
+          -- the foe's moves from the start; yours once your trainer's gone -Elvie
+          if not rec or (back and self.showPlayerTrainer) then return image, trueColor, path end
+          local mode = animMode()
+          if mode == "off" then return image, trueColor, path end
+          local n
+          if mode == "intro" then
+            local at = cameOut[mon]
+            n = at and math.min(rec.count - 1, BW.playAt(rec.sprite, (love.timer.getTime() - at) * 60, "intro")) or 0
+            if n == 0 then return image, trueColor, path end
+          else
+            n = dsPics.frameAt(rec)
+          end
+          local ok, img = pcall(dsPics.image, rec, n)
           if ok and img then return img, trueColor, path end
           return image, trueColor, path
         end
@@ -341,6 +379,8 @@ function classic.init(mod, rows)
     local borrowed = {}
     local function borrow(pokemon, species)
       if not classic.borrowsAnims() then return nil end
+      -- ANIMATION: OFF, the stills -Elvie
+      if animMode() == "off" then return nil end
       local set = mod.options:get("classicMons")
       if not (set == crystal.CHOICE or gba.isChoice(set)) then return nil end
       local def = type(pokemon) == "table" and pokemon[species]
@@ -429,9 +469,21 @@ function classic.init(mod, rows)
           local pick = dsPick(game, dex, isPlayer and "back" or "front", "battle", false)
           local rec = pick and pick.rec
           if not rec or rec.count < 2 then return nil end
+          local mode = animMode()
+          if mode == "off" then return nil end
           local grey = not coloured()
-          return { trueColor = not grey,
-            frameAt = function() return dsPics.frameAt(rec) end,
+          local frameAt = function() return dsPics.frameAt(rec) end
+          -- INTRO: once through from when it's out, then the still -Elvie
+          if mode == "intro" then
+            local total = BW.total(rec.sprite)
+            frameAt = function(elapsed)
+              local t = (elapsed or 0) * 60
+              if t >= total then return nil end
+              return math.min(rec.count - 1, BW.frameAt(rec.sprite, t))
+            end
+          end
+          return { trueColor = not grey, once = mode == "intro",
+            frameAt = frameAt,
             framePath = function(n) return sheetFrame(rec.path, rec.side, n, scale, grey) end }
         end
         -- Crystal's, on the foe's side only, where its still picture is
@@ -493,7 +545,11 @@ function classic.init(mod, rows)
       local okS, sideAnim = pcall(require, "mods.facets.classic_side_anim")
       local okM, MonAnim = pcall(require, "src.render.MonAnim")
       if okS and okB and okM then
-        local done = sideAnim.install(BattleState, MonAnim, function() return mod.options:get("classicSide") end,
+        -- ANIMATION: OFF keeps your side still too -Elvie
+        local done = sideAnim.install(BattleState, MonAnim, function()
+          if animMode() == "off" then return "back" end
+          return mod.options:get("classicSide")
+        end,
           function(...) mod.log:warn(...) end)
         if not done then mod.log:warn("Gen 2's battle front animation wasn't found; YOUR SIDE stays still") end
       end

@@ -892,7 +892,7 @@ do
   check(not Pokemon.icon(414).vanilla, "gbc icons: Unown letters from Crystal's Unown")
   eq(Pokemon.icon(25).vanilla, "icon25", "gbc icons: not in Crystal's table: the game's own")
   eq(px(Pokemon.icon(1), 10, 40), "255,0,0,1", "gbc icons: the set's own Kanto icon beats Crystal's")
-  eq(#rows, 5, "mons: no icon size row (POKEMON, SET, ANIMS, YOUR SIDE, MIRROR)")
+  eq(#rows, 6, "mons: no icon size row (POKEMON, SET, ANIMS, ANIMATION, YOUR SIDE, MIRROR)")
 
   -- Crystal's animations on Game Boy fronts -Elvie
   local zanims = AnimData.anims(6)
@@ -1072,8 +1072,9 @@ do
   local t, l = monsM.drawnRows(probe)
   eq(t .. "," .. l, "1,2", "your side: the first and last drawn rows")
   eq(monsM.drawnRows(pixelData(4, 4)), nil, "your side: an empty picture has none")
-  eq(rows[4].key .. "," .. rows[4].default, "backMons,back", "your side: row, BACK by default")
-  eq(rows[5].key .. "," .. rows[5].default, "mirrorMons,on", "mirror fronts: row, ON by default")
+  eq(rows[4].key .. "," .. rows[4].default, "animMode,loop", "animation: row, LOOP by default")
+  eq(rows[5].key .. "," .. rows[5].default, "backMons,back", "your side: row, BACK by default")
+  eq(rows[6].key .. "," .. rows[6].default, "mirrorMons,on", "mirror fronts: row, ON by default")
   mod.options:set("setMons", "gbc")
   mod.options:set("backMons", "front")
   check(not Pokemon.backPic(6).vanilla and Pokemon.backPic(6).imageData, "your side: no canvas (headless): the set's back, as before")
@@ -1225,7 +1226,7 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sectionMons,setMons,animMons,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sceneTime,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sectionMons,setMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sceneTime,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
   local trainerSets = {}
   for _, c in ipairs(mod.rows[6].choices) do trainerSets[#trainerSets + 1] = c[1] end
   eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
@@ -1259,7 +1260,7 @@ for _, version in ipairs({ "firered", "emerald" }) do
   local tag = "screen (" .. version .. "): "
   local keys = {}
   for _, r in ipairs(M.rows()) do keys[#keys + 1] = r.label end
-  eq(table.concat(keys, ","), frlg and "NPCS,TRAINERS,POKéMON,ANIMS,YOUR SIDE,CREDITS" or "NPCS,TRAINERS,POKéMON,YOUR SIDE,CREDITS",
+  eq(table.concat(keys, ","), frlg and "NPCS,TRAINERS,POKéMON,ANIMS,ANIMATION,YOUR SIDE,CREDITS" or "NPCS,TRAINERS,POKéMON,ANIMATION,YOUR SIDE,CREDITS",
     tag .. "the running game's rows only")
   -- YOUR SIDE: one row here for both options -Elvie
   local side

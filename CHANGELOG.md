@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- New **ANIMATION** row under POKEMON, in all three gens: **LOOP** (the default, as before) plays animated looks round and round, **INTRO** plays them once as the Pokémon comes out and then holds the still, **OFF** shows only the stills. It covers BW ANIM and the DS choices, and on the Game Boy games the Crystal and Emerald animations Facets brings. On Gen 3 it's on the in-game FACETS page too.
+- Gold, Silver and Crystal: a DS choice's foe now animates from the start of a wild battle, not only once your trainer's gone.
 - FireRed, LeafGreen, Ruby, Sapphire and Emerald: with a DS choice or BW ANIM under POKEMON and **YOUR SIDE** on FRONT or MIRRORED, your Pokémon now loops its animation like the foe's, as on the Game Boy games. Before, it was turned round once and kept still.
 - **TEXT BOX** and **WINDOWS** sets over a battle scene, in all six Game Boy games: the boxes along the bottom now reach the screen's edges (on Red, Blue and Yellow's wide battle too, at any window size), so the scene no longer shows in a strip between the Pokémon and the text box (your Pokémon and the trainer looked like they floated). Round the map, and on the game's own battle background, the boxes keep their gaps as before.
 - Red, Blue and Yellow: **BATTLE BG: SCENERY** now shows on the normal battle screen too, not just the wide one. The battle is still coloured through the Super Game Boy's zones, so the boxes and text stay the game's; the scene is wherever the field would be white, and round a TEXT BOX or WINDOWS set's edges, while the game's own boxes keep their white.

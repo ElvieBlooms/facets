@@ -550,6 +550,9 @@ function mons.init(mod, rows, menu)
   -- plays Emerald's, read from the player's imported Emerald. -Elvie
   rows[#rows + 1] = { key = "animMons", type = "choice", label = "  FR/LG ANIMS",
     choices = { { "EMERALD", "emerald" }, { "OFF", OFF } }, default = OFF }
+  -- BW ANIM and the DS choices: LOOP, INTRO (once as it comes out) or
+  -- OFF (the stills). The same row on the Game Boy games -Elvie
+  rows[#rows + 1] = { key = "animMode", type = "choice", label = "  ANIMATION", choices = bw.MODES, default = "loop" }
   -- Your own Pokémon by its front picture instead of its back, mirrored
   -- to face the foe unless MIRROR FRONTS is off. Any set, or the
   -- game's own. -Elvie
@@ -856,6 +859,10 @@ function mons.init(mod, rows, menu)
     -- the DS choices play their own dump's frames the same way: Black 2/
     -- White 2's idles, and Gen 4's two frames on a beat -Elvie
     local dsSrcs = {}
+    -- when each Pokémon last came out in battle (its battle animation
+    -- starting), by species, for ANIMATION: INTRO -Elvie
+    local cameOut = {}
+    mons._cameOut = cameOut
     local function animLookup(kind, species, shiny, nat, letter, variant)
       local src, idGame
       if current.ds then
@@ -881,7 +888,16 @@ function mons.init(mod, rows, menu)
       end
       if not sheet then return nil end
       local now = love and love.timer and love.timer.getTime() or os.clock()
-      local n = bw.frameAt(sheet.sprite, now * 60)
+      local mode = bw.mode(mod)
+      local n
+      if mode == "intro" then
+        -- from when it came out; before that, and anywhere it hasn't, the
+        -- still -Elvie
+        local at = cameOut[tonumber(species)]
+        n = at and bw.playAt(sheet.sprite, (now - at) * 60, "intro") or 0
+      else
+        n = bw.playAt(sheet.sprite, now * 60, mode)
+      end
       local key = sheetKey .. "#" .. n
       local hit = bwPics[key]
       if hit ~= nil then return hit or nil end
@@ -1519,7 +1535,23 @@ function mons.init(mod, rows, menu)
     local okB, Battle = pcall(require, "src.core.game3.battle.mon_anim_battle")
     if okB and type(Battle) == "table" and type(Battle.start) == "function" and type(Battle.apply) == "function" then
       local origStart, origApply = Battle.start, Battle.apply
+      -- the Pokémon coming out, for ANIMATION: INTRO -Elvie
+      local function cameOutNow(key, opts)
+        pcall(function()
+          local st = type(opts) == "table" and opts.st or nil
+          if not st then
+            local B = package.loaded["src.core.game3.battle"]
+            st = B and B._st
+          end
+          if not st then return end
+          local b
+          if type(key) == "number" then b = require("src.core.game3.battle.state").battler(st, key) else b = st[key] end
+          local sp = b and tonumber(b.species or (b.mon and (b.mon.species or b.mon.speciesId)))
+          if sp then mons._cameOut[sp] = love.timer.getTime() end
+        end)
+      end
       Battle.start = function(key, kind, opts, ...)
+        cameOutNow(key, opts)
         if kind == "back" and backs == "front" then
           local copy = {}
           for k, v in pairs(type(opts) == "table" and opts or {}) do copy[k] = v end
@@ -1793,6 +1825,9 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
           choices = { { "EMERALD", "emerald" }, { "OFF", OFF } },
           value = mod.options:get("animMons") == "emerald" and "emerald" or OFF }
       end
+      local BW = require("mods.facets.bw")
+      out[#out + 1] = { key = "animMode", label = "ANIMATION", who = "animation", choices = BW.MODES,
+        value = BW.mode(mod) }
       -- YOUR SIDE and MIRROR FRONTS share one row here, to save room -Elvie
       out[#out + 1] = { key = "backMons", label = "YOUR SIDE", who = "backs", choices = mons.SIDES,
         value = mons.sideOf(mod.options:get("backMons"), mod.options:get("mirrorMons")),
@@ -1845,6 +1880,11 @@ function mons.screenPart(mod, menu, sets, choices, Pokemon)
         end
         return { lines = { { text = "Emerald's animations," }, { text = "from your Emerald." },
           { text = "Redrawn Kanto: Emerald's art." } } }
+      elseif who == "animation" then
+        local m = require("mods.facets.bw").mode(mod)
+        if m == "intro" then return { lines = { { text = "Once, as it comes out." } } } end
+        if m == "off" then return { lines = { { text = "Still pictures." } } } end
+        return { lines = { { text = "Round and round." } } }
       elseif who == "backs" then
         local side = mons.sideOf(mod.options:get("backMons"), mod.options:get("mirrorMons"))
         -- one short line: FR/LG's list leaves room for little else -Elvie
