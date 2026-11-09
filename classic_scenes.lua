@@ -38,20 +38,24 @@ scenes._note = note
 -- The time of day
 -- --------------------------------------------------
 -- Outdoor scenes take the light of the hour, as Gold, Silver and Crystal's
--- maps do: morning's warm, day's as drawn, night's dark and blue. The
--- hours are the Game Boy games' own (morning 4 to 10, day to 18, night
--- after). Indoors, caves, gyms and the rest stay as drawn -Elvie
+-- maps do, with HeartGold and SoulSilver's evening too: morning's a soft
+-- gold, day's as drawn, evening's a sunset rose, night's dark and blue.
+-- The hours are HeartGold and SoulSilver's (morning 4 to 10, day to 17,
+-- evening to 20, night after). Indoors, caves, gyms and the rest stay as
+-- drawn -Elvie
 scenes.OUTDOORS = { grass = true, forest = true, beach = true, sea = true, lake = true, mountain = true,
   route = true, town = true, snow = true, snow_mountain = true, desert = true }
-scenes.LIGHT = { MORN = { 1, 0.9, 0.8 }, DAY = { 1, 1, 1 }, NITE = { 0.5, 0.56, 0.8 } }
-scenes.MORN_HOUR, scenes.DAY_HOUR, scenes.NITE_HOUR = 4, 10, 18
+scenes.LIGHT = { MORN = { 1, 0.93, 0.82 }, DAY = { 1, 1, 1 }, EVE = { 0.96, 0.76, 0.7 },
+  NITE = { 0.5, 0.56, 0.8 } }
+scenes.MORN_HOUR, scenes.DAY_HOUR, scenes.EVE_HOUR, scenes.NITE_HOUR = 4, 10, 17, 20
 
--- MORN, DAY or NITE for an hour (0-23) -Elvie
+-- MORN, DAY, EVE or NITE for an hour (0-23) -Elvie
 function scenes.daytime(hour)
   hour = math.floor(tonumber(hour) or 12) % 24
   if hour < scenes.MORN_HOUR then return "NITE" end
   if hour < scenes.DAY_HOUR then return "MORN" end
-  if hour < scenes.NITE_HOUR then return "DAY" end
+  if hour < scenes.EVE_HOUR then return "DAY" end
+  if hour < scenes.NITE_HOUR then return "EVE" end
   return "NITE"
 end
 

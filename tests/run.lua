@@ -2738,8 +2738,10 @@ end
 -- on the Game Boy games' own hours -Elvie
 do
   local S = require("mods.facets.classic_scenes")
-  eq(S.daytime(3) .. S.daytime(4) .. S.daytime(9) .. S.daytime(10) .. S.daytime(17) .. S.daytime(18),
-    "NITEMORNMORNDAYDAYNITE", "scenes: morning 4 to 10, day to 18, night after")
+  eq(table.concat({ S.daytime(3), S.daytime(4), S.daytime(9), S.daytime(10), S.daytime(16), S.daytime(17),
+    S.daytime(19), S.daytime(20) }, ","), "NITE,MORN,MORN,DAY,DAY,EVE,EVE,NITE",
+    "scenes: morning 4 to 10, day to 17, evening to 20, night after")
+  eq(S.lightFor("town", 18), S.LIGHT.EVE, "scenes: ...in the evening, evening's")
   eq(S.lightFor("grass", 22), S.LIGHT.NITE, "scenes: outdoors at night, night's light")
   eq(S.lightFor("route", 7), S.LIGHT.MORN, "scenes: ...in the morning, morning's")
   eq(S.lightFor("grass", 13), nil, "scenes: by day, as drawn")
