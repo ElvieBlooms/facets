@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Red, Blue, Yellow, Gold, Silver and Crystal with **Kanto Reforged**: with **YOUR SIDE** on FRONT or MIRRORED, your Pokémon with Kanto Reforged art now shows its front (mirrored with MIRRORED) instead of Kanto Reforged's back, and plays Kanto Reforged's idle animation when it's sent out, as the foe's does. Before, only the foe's moved.
 - Red, Blue and Yellow: Crystal's animation on the foe (CRYSTAL and the EMERALD look) now plays once it has slid in; in the wide layout it used to play, unseen, during the slide.
 - Gold, Silver and Crystal: the start menu's help box ("Party PKMN status") now wears your TEXT BOX instead of a plain white patch, its words a letter in from the edge.
 - Red, Blue and Yellow without full colour: full-colour sets (FIRERED, EMERALD, DS, DPPT, HGSS, B2W2) are turned into the four greys by their own brightness, so each colour area comes out one shade instead of speckled by its red alone.

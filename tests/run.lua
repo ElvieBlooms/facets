@@ -2734,6 +2734,47 @@ do
   eq(("%d,%d,%d"):format(tr, tg, tb), "1,0,0", "gen1 anim: a light grey takes the palette's second colour")
 end
 
+-- Kanto Reforged's strips on YOUR SIDE (classic_kr.lua): only while it's
+-- loaded, played twice through like the foe's, mirrored when asked -Elvie
+do
+  local K = require("mods.facets.classic_kr")
+  package.loaded[K.MODULE] = nil
+  eq(K.owns({}, { species = "TREECKO" }), false, "kr: without Kanto Reforged, nothing is its")
+  local meta = { frameCount = 2, frontW = 4, frontH = 4, durations = { 1000 / 60, 1000 / 60 } }
+  package.loaded[K.MODULE] = {
+    prefersKrAnim = function(species) return species == "TREECKO" end,
+    meta = function() return meta end,
+    stripPath = function() return "strip.png" end,
+    stepState = function(st, m)
+      st.timer = st.timer + 1
+      if st.timer < 1 then return end
+      st.timer = 0
+      if st.frame + 1 > m.frameCount then
+        st.cycles = st.cycles + 1
+        if st.cycles >= 2 then st.done = true; st.frame = 1; return end
+        st.frame = 1
+      else
+        st.frame = st.frame + 1
+      end
+    end,
+  }
+  eq(K.owns({}, { species = "TREECKO" }), true, "kr: its own Pokémon are its")
+  eq(K.owns({}, { species = "PIDGEY" }), false, "kr: ...and the game's aren't")
+  local strip = K.strip({}, { species = "TREECKO" })
+  eq(strip and strip.path, "strip.png", "kr: the strip it plays")
+  local p = K.player(strip.meta)
+  local seen = {}
+  for _ = 1, 6 do seen[#seen + 1] = tostring(p.step()) end
+  eq(table.concat(seen, ","), "2,1,2,nil,nil,nil", "kr: twice through, then done")
+  local data = love.image.newImageData(8, 4)
+  data:setPixel(4, 1, 1, 0, 0, 1)
+  local f = K.cut(data, meta, 2, true)
+  local r = f:getPixel(3, 1)
+  eq(r, 1, "kr: the second frame, mirrored")
+  eq(K.cut(data, meta, 3, false), nil, "kr: past the strip's end, nothing")
+  package.loaded[K.MODULE] = nil
+end
+
 -- Yellow's partner as HeartGold's walking Pikachu: standing frames as
 -- they are, steps a pixel higher -Elvie
 do

@@ -380,7 +380,37 @@ function classic.init(mod, rows)
           return data or love.image.newImageData(1, 1)
         end)
       end
+      local okK, kr = pcall(require, "mods.facets.classic_kr")
+      -- Kanto Reforged's own Pokémon: it animates the foe's itself, and
+      -- yours plays the same strip when YOUR SIDE shows its front -Elvie
+      local function krSource(battle, b)
+        if b ~= battle.player then return nil end
+        local side = mod.options:get("classicSide")
+        if side ~= "front" and side ~= "mirrored" then return nil end
+        local strip = kr.strip(battle, b.mon)
+        local player = strip and kr.player(strip.meta)
+        if not player then return nil end
+        local mirror = side == "mirrored"
+        local ticks, showing = 0, player.frame()
+        return { trueColor = false, once = true,
+          frameAt = function(elapsed)
+            local due = math.floor(elapsed * 60)
+            while ticks < due and showing do
+              showing = player.step()
+              ticks = ticks + 1
+            end
+            return showing and showing - 1 or nil
+          end,
+          framePath = function(n)
+            local path = ("facets/classic/kr/%s@%d%s.png"):format(strip.animId, n + 1, mirror and "m" or "")
+            return pics.frame(path, nil, function()
+              local okD, data = pcall(Assets.imageData, strip.path)
+              return okD and data and kr.cut(data, strip.meta, n + 1, mirror) or love.image.newImageData(1, 1)
+            end)
+          end }
+      end
       local function source(battle, b)
+        if okK and kr.owns(battle, b.mon) then return krSource(battle, b) end
         local set = mod.options:get("classicMons")
         local choice = partnerChoice and partnerChoice(b.mon)
         if choice then
@@ -540,6 +570,8 @@ function classic.init(mod, rows)
 
     mod.hooks:wrap("pokemon.sprite", function(nextFn, path, ctx)
       if type(ctx) ~= "table" or not ctx.species then return nextFn(path, ctx) end
+      -- Kanto Reforged's own front, asked for YOUR SIDE below -Elvie
+      if ctx.facetsKr then return nextFn(path, ctx) end
       local partner = partnerPicture(ctx)
       if partner then return partner end
       local choice = partnerOf and type(ctx.kind) == "string" and not ctx.kind:match("_anim$") and partnerChoice(ctx.mon)
@@ -604,6 +636,34 @@ function classic.init(mod, rows)
       if opts.side == "mirrored" then return pics.flipped(fpath) end
       return fpath
     end)
+    -- Kanto Reforged answers for its own art before this hook is asked, so
+    -- YOUR SIDE would show its back. For those, your side is turned round
+    -- out here, ahead of it: its front, from it, mirrored if asked -Elvie
+    local okKr, kr = pcall(require, "mods.facets.classic_kr")
+    if okKr then
+      mod.hooks:wrap("pokemon.sprite", function(nextFn, path, ctx)
+        if not (type(ctx) == "table" and ctx.side == "back" and ctx.kind == "battle" and ctx.species) then return nextFn(path, ctx) end
+        local yourSide = mod.options:get("classicSide")
+        if yourSide ~= "front" and yourSide ~= "mirrored" then return nextFn(path, ctx) end
+        if not kr.answers(ctx.species, "back", path) then return nextFn(path, ctx) end
+        local partner = partnerPicture(ctx)
+        if partner then return partner end
+        local data = ctx.data
+        local def = type(data) == "table" and type(data.pokemon) == "table" and data.pokemon[ctx.species]
+        local front = classic.frontFor(def, path)
+        if not front then return nextFn(path, ctx) end
+        local fctx = {}
+        for k, v in pairs(ctx) do fctx[k] = v end
+        fctx.side, fctx.facetsKr = "front", true
+        local fpath = nextFn(front, fctx)
+        if type(fpath) ~= "string" or fpath == "" then return nextFn(path, ctx) end
+        -- its own art is in four greys, for the game's colours -Elvie
+        if fpath:find("/assets/gs/", 1, true) then fctx.trueColor = false end
+        ctx.trueColor = fctx.trueColor and true or false
+        if yourSide == "mirrored" then return pics.flipped(fpath) end
+        return fpath
+      end, 10)
+    end
     -- ICONS: party and naming screen icons -Elvie
     -- Gen 1's party menu keeps the game's icon class (MON, BIRD...) after
     -- the hook, and draws by it: the left half mirrored, and the class's

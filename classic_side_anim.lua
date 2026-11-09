@@ -6,8 +6,9 @@
 -- front picture, so it gets the same animation when it's sent out, from
 -- the same data and sheet (the game's, or the POKEMON set's through
 -- pokemon.sprite), each frame copied out once, mirrored for MIRRORED, and
--- handed to drawPic as your side's picture while it plays. Gold and Silver
--- have no animations, so there it does nothing -Elvie
+-- handed to drawPic as your side's picture while it plays. Kanto
+-- Reforged's own Pokémon play its strip instead, as it plays the foe's
+-- (classic_kr) -Elvie
 -- --------------------------------------------------
 
 local sideAnim = {}
@@ -57,10 +58,35 @@ function sideAnim.install(BattleState, MonAnim, side, log)
     return img
   end
 
+  -- Kanto Reforged's strips, a frame each, by strip path and mirror -Elvie
+  local okK, kr = pcall(require, "mods.facets.classic_kr")
+  local function stripImage(strip, n, mirror)
+    local bySheet = cut[strip.path] or {}
+    cut[strip.path] = bySheet
+    local key = "kr" .. (mirror and "m" or "") .. n
+    if bySheet[key] ~= nil then return bySheet[key] or nil end
+    bySheet[key] = false
+    local okD, data = pcall(Assets.imageData, strip.path)
+    local out = okD and data and kr.cut(data, strip.meta, n, mirror)
+    if not out then return nil end
+    local okI, img = pcall(love.graphics.newImage, out)
+    if not okI then return nil end
+    img:setFilter("nearest", "nearest")
+    bySheet[key] = img
+    return img
+  end
+
   local function start(self, mon)
     self.facetsSideAnim = nil
     local s = side()
     if s ~= "front" and s ~= "mirrored" or type(mon) ~= "table" then return end
+    -- one of Kanto Reforged's: its strip, played as it plays the foe's -Elvie
+    if okK and kr.owns(self.battle, mon) then
+      local strip = kr.strip(self.battle, mon)
+      local player = strip and kr.player(strip.meta)
+      if player then self.facetsSideAnim = { mon = mon, kr = strip, player = player, mirror = s == "mirrored" } end
+      return
+    end
     local data = self:animData(mon)
     if type(data) ~= "table" or not data.tiles then return end
     local sheetPath, replaced = self:animSheetPath(mon, data)
@@ -98,7 +124,9 @@ function sideAnim.install(BattleState, MonAnim, side, log)
   local ownUpdate = BattleState.update
   BattleState.update = function(self, ...)
     local state = self.facetsSideAnim
-    if state then
+    if state and state.player then
+      if not state.player.step() then self.facetsSideAnim = nil end
+    elseif state then
       local ok = pcall(state.runner.update, state.runner)
       local okF, done = pcall(state.runner.finished, state.runner)
       if not ok or (okF and done) then self.facetsSideAnim = nil end
@@ -111,6 +139,11 @@ function sideAnim.install(BattleState, MonAnim, side, log)
     local image, trueColor, path = ownPic(self, mon, back, ...)
     local state = back and self.facetsSideAnim
     if not (state and image and state.mon == mon) or self.showPlayerTrainer then return image, trueColor, path end
+    if state.player then
+      local n = state.player.frame()
+      local img = n and n > 1 and stripImage(state.kr, n, state.mirror)
+      return img or image, trueColor, path
+    end
     local okF, frame = pcall(state.runner.currentFrame, state.runner)
     if not okF then return image, trueColor, path end
     local img = frameImage(state.sheetPath, frame, state.size, state.mirror)
