@@ -598,6 +598,45 @@ function windows.init(mod, rows)
       end
     end
 
+    -- Gold, Silver and Crystal's start menu help box ("Party PKMN
+    -- status"): the game clears a plain 10x5 patch for it (ClearBox, no
+    -- border). With a TEXT BOX of ours it's that text box instead, tucked
+    -- into the screen's corner so only its top edge shows, and cut at the
+    -- menu, so the words stay where the game puts them -Elvie
+    local okSM, StartMenu = false, nil
+    if not gen1 then okSM, StartMenu = pcall(require, "src.ui.gen2.StartMenu") end
+    local okC2, Chrome2 = pcall(require, "src.ui.gen2.Chrome")
+    if okSM and okC2 and type(StartMenu) == "table" and type(StartMenu.draw) == "function"
+        and type(Chrome2.paletteFill) == "function" and type(Chrome2.box) == "function" then
+      local ownDraw = StartMenu.draw
+      StartMenu.draw = function(self, ...)
+        if not windows.textStyled() then return ownDraw(self, ...) end
+        local fill = Chrome2.paletteFill
+        Chrome2.paletteFill = function(px, py, pw, ph, ...)
+          if px == 0 and py == 13 * T and pw == 10 * T and ph == 5 * T then
+            local G = love.graphics
+            local ok = pcall(function()
+              G.push("all")
+              local x0, y0 = G.transformPoint(0, 12 * T)
+              local x1, y1 = G.transformPoint(10 * T, 18 * T)
+              G.intersectScissor(x0, y0, x1 - x0, y1 - y0)
+              windows.textBoxAt = 12
+              Chrome2.box(-1, 12, 12, 7)
+              windows.textBoxAt = nil
+              G.pop()
+            end)
+            windows.textBoxAt = nil
+            if ok then return end
+          end
+          return fill(px, py, pw, ph, ...)
+        end
+        local results = { pcall(ownDraw, self, ...) }
+        Chrome2.paletteFill = fill
+        if not results[1] then error(results[2], 0) end
+        return unpack(results, 2)
+      end
+    end
+
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
         if type(change) == "table" and change.mod == mod.id and (change.key == "classicWindows" or change.key == "classicTextBox") then

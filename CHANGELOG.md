@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Gold, Silver and Crystal: the start menu's help box ("Party PKMN status") now wears your TEXT BOX instead of a plain white patch.
+- Red, Blue and Yellow without full colour: full-colour sets (FIRERED, EMERALD, DS, DPPT, HGSS, B2W2) are turned into the four greys by their own brightness, so each colour area comes out one shade instead of speckled by its red alone.
 - PERFORMANCE: with PREBUILD on, BW ANIM and the DS choices no longer read every Pokémon's animation at the start, which kept the game busy for minutes; each is read when that Pokémon turns up.
 - Gold, Silver and Crystal: the wide battle's sides and boxes are no longer covered by the window's scenery, and its scene now reaches both ends of the field.
 - Yellow: your partner Pikachu gets its own **PIKACHU** row under POKEMON for battle (MATCH, GAME, any POKEMON set, or a look), and **HGSS** on the map row walks it as HeartGold and SoulSilver's Pikachu, from your own dump, bobbing a pixel on each step as it does there.

@@ -299,6 +299,15 @@ function classic.init(mod, rows)
       if kind == "hof" and side == "back" and classic.BOX.hofBack then box = classic.BOX.hofBack end
       local rec = dsPics.record(game, dex, face, shiny, mirror, box)
       if not rec then return nil end
+      -- Gen 1 without full colour: the whole animation in four greys at
+      -- once, so every frame shares the same shades as the still -Elvie
+      if gen1 and not coloured() then
+        rec.grey = rec.grey or shared.shades(rec.sheet)
+        local path = rec.path:gsub("%.png$", "@still@g.png")
+        dsByPath[path] = rec
+        return { rel = rec.path, raw = true, box = box, scale = scale, path = path, rec = rec, grey = true,
+          load = function() return cds.slot(rec.grey, rec.side, 0) end }
+      end
       local path = rec.path:gsub("%.png$", "@still.png")
       dsByPath[path] = rec
       return { rel = rec.path, raw = true, box = box, scale = scale, path = path, rec = rec,
@@ -357,10 +366,16 @@ function classic.init(mod, rows)
       local okB, BattleState = pcall(require, "src.battle.BattleState")
       local okM, MonAnim = pcall(require, "src.render.MonAnim")
       local okG, g1 = pcall(require, "mods.facets.classic_gen1_anim")
-      local function sheetFrame(sheetPath, size, n, scale)
-        local path = sheetPath:gsub("%.png$", "") .. "@f" .. n .. ".png"
+      -- grey: the sheet in four greys, worked out over all its frames -Elvie
+      local greySheets = {}
+      local function sheetFrame(sheetPath, size, n, scale, grey)
+        local path = sheetPath:gsub("%.png$", "") .. "@f" .. n .. (grey and "@g" or "") .. ".png"
         return pics.frame(path, scale, function()
           local okS, sheet = pcall(Assets.imageData, sheetPath)
+          if okS and sheet and grey then
+            greySheets[sheetPath] = greySheets[sheetPath] or shared.shades(sheet)
+            sheet = greySheets[sheetPath]
+          end
           local data = okS and sheet and g1.slot(sheet, size, n)
           return data or love.image.newImageData(1, 1)
         end)
@@ -384,9 +399,10 @@ function classic.init(mod, rows)
           local pick = dsPick(game, dex, isPlayer and "back" or "front", "battle", false)
           local rec = pick and pick.rec
           if not rec or rec.count < 2 then return nil end
-          return { trueColor = true,
+          local grey = not coloured()
+          return { trueColor = not grey,
             frameAt = function() return dsPics.frameAt(rec) end,
-            framePath = function(n) return sheetFrame(rec.path, rec.side, n, scale) end }
+            framePath = function(n) return sheetFrame(rec.path, rec.side, n, scale, grey) end }
         end
         -- Crystal's, on the foe's side only, where its still picture is
         -- laid out like its animation -Elvie
@@ -400,8 +416,9 @@ function classic.init(mod, rows)
         copy.tiles = got.side / 8
         local frameAt = g1.once(MonAnim, copy)
         if not frameAt then return nil end
-        return { trueColor = got.trueColor, once = true, frameAt = frameAt,
-          framePath = function(n) return sheetFrame(got.path, got.side, n, scale) end }
+        local grey = got.trueColor and not coloured()
+        return { trueColor = got.trueColor and not grey, once = true, frameAt = frameAt,
+          framePath = function(n) return sheetFrame(got.path, got.side, n, scale, grey) end }
       end
       if okB and okM and okG then
         local done = g1.install(BattleState, source, function(...) mod.log:warn(...) end)
@@ -554,6 +571,16 @@ function classic.init(mod, rows)
         end
       else
         pick = classic.choose(opts, dex, ctx.side, ctx.kind, ctx.shiny)
+      end
+      -- Gen 1 without full colour: art drawn in colour is handed over in
+      -- four greys of its own (classic.shades) for the game to tint -Elvie
+      if pick and gen1 and not pick.grey and not opts.coloured then
+        local copy = {}
+        for k, v in pairs(pick) do copy[k] = v end
+        copy.shade, copy.grey = true, true
+        copy.path = pick.path:gsub("%.png$", "") .. "@g.png"
+        if copy.rec then dsByPath[copy.path] = copy.rec end
+        pick = copy
       end
       if pick then
         ctx.trueColor = not pick.grey

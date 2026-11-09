@@ -2750,6 +2750,25 @@ do
   eq(r2, 1, "hgss pikachu: its second step the first frame, a pixel up")
 end
 
+-- Full-colour art in four greys for Gen 1: outline black, near-white
+-- white, each colour area one flat shade -Elvie
+do
+  local C = require("mods.facets.classic")
+  local src = love.image.newImageData(5, 1)
+  src:setPixel(0, 0, 0.05, 0.05, 0.05, 1) -- outline
+  src:setPixel(1, 0, 0.95, 0.95, 0.95, 1) -- white
+  src:setPixel(2, 0, 0.9, 0.8, 0.1, 1)    -- yellow
+  src:setPixel(3, 0, 0.92, 0.82, 0.12, 1) -- the same yellow, a touch lighter
+  src:setPixel(4, 0, 0.6, 0.2, 0.1, 1)    -- dark red
+  local out = C.shades(src)
+  local function v(x) local r = out:getPixel(x, 0) return ("%.2f"):format(r) end
+  eq(v(0), "0.00", "shades: the outline stays black")
+  eq(v(1), "1.00", "shades: near-white stays white")
+  eq(v(2) == v(3), true, "shades: one colour area is one shade")
+  eq(v(4), "0.33", "shades: a dark red is the darker grey, not the outline")
+  eq(v(2), "0.67", "shades: the yellow is the lighter grey")
+end
+
 -- The DS games on the Game Boy games (classic_ds.lua) -Elvie
 do
   local C = require("mods.facets.classic_ds")

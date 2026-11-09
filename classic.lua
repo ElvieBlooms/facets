@@ -136,6 +136,42 @@ function classic.greys(src)
   return out
 end
 
+-- Full-colour art in a Game Boy's four shades, for Gen 1 when COLORS
+-- doesn't show full colour. The game sorts a picture's pixels by their red
+-- alone at fixed points, which speckles anything drawn in colour (a yellow
+-- and an orange land a shade apart, a dark red with the outline). Here
+-- it's by brightness, and the points are this picture's own: its outline
+-- and near-black stay black, near-white stays white, and the rest is
+-- split into darker and lighter at its own middle, so each colour area
+-- comes out one flat shade -Elvie
+classic.SHADES = { black = 0.16, white = 0.9 }
+function classic.shades(src)
+  local w, h = src:getDimensions()
+  local lum, list = {}, {}
+  for y = 0, h - 1 do
+    for x = 0, w - 1 do
+      local r, g, b, a = src:getPixel(x, y)
+      if a > 0 then
+        local l = 0.299 * r + 0.587 * g + 0.114 * b
+        lum[y * w + x] = l
+        if l >= classic.SHADES.black and l < classic.SHADES.white then list[#list + 1] = l end
+      end
+    end
+  end
+  table.sort(list)
+  local mid = #list > 0 and list[math.max(1, math.floor(#list * 0.45))] or 0.5
+  local out = love.image.newImageData(w, h)
+  for i, l in pairs(lum) do
+    local v
+    if l < classic.SHADES.black then v = 0
+    elseif l >= classic.SHADES.white then v = 1
+    elseif l <= mid then v = 1 / 3
+    else v = 2 / 3 end
+    out:setPixel(i % w, math.floor(i / w), v, v, v, 1)
+  end
+  return out
+end
+
 -- A picture flipped left to right, kept the same size -Elvie
 function classic.flip(src)
   local w, h = src:getDimensions()
@@ -208,6 +244,7 @@ function classic.setup(mod)
         -- raw: already laid out (an animation's still frame) -Elvie
         local out = ok and src and (pick.raw and src or classic.build(src, pick.box, pick.mirror, pick.shrink))
         if out and pick.square then out = classic.square(out, pick.box) end
+        if out and pick.shade then out = classic.shades(out) end
         if out then return out end
         mod.log:warn("%s couldn't be read", pick.rel)
         return love.image.newImageData(1, 1)
