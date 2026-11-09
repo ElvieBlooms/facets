@@ -87,7 +87,7 @@ end
 function scenes.edges(info)
   local s = shown
   frame = frame + 1
-  if not (s and s.stamp == frame - 1 and type(info) == "table") or info.worldActive then return end
+  if not (s and s.stamp == frame - 1 and type(info) == "table") or info.worldActive or s.wide then return end
   local cw, ch = s.canvas:getDimensions()
   local vpw, vph = tonumber(info.vpw), tonumber(info.vph)
   if not (cw and ch and cw > 0 and ch > 0 and vpw and vph) then return end
@@ -130,6 +130,7 @@ end
 local DIR = "assets/battlebg"
 local GAME = "game"
 scenes.W, scenes.H = 160, 96
+scenes.WIDE_W = 304
 scenes.SCREEN_H = 144
 
 -- SCENE COLOURS: GBC. The scenes were painted for the GBA's screen and
@@ -335,8 +336,12 @@ function scenes.init(mod, rows)
       image:setWrap("mirroredrepeat", "mirroredrepeat")
       local w, h = image:getDimensions()
       local x, y, cw, ch = scenes.crop(w, h)
-      -- the wide battle has room for the whole width -Elvie
+      -- the wide battle has room for the whole width, and more: its field
+      -- is 304 across, so the art carries on mirrored to both its edges
+      -- (it's drawn from the 160 screen's left, 72 in) -Elvie
       local wx, wy, ww, wh = scenes.crop(w, h, w)
+      ww = scenes.WIDE_W
+      wx = math.floor((w - ww) / 2)
       -- Both run on down the whole screen, so the ground carries on
       -- behind the text box and shows round its corners -Elvie
       local down = scenes.SCREEN_H - ch
@@ -393,6 +398,10 @@ function scenes.init(mod, rows)
       if wide then
         love.graphics.draw(s.image, s.wide, s.wideX, 0)
         note(s.image, s.wx, s.wy, s.wideX, 0)
+        -- Gold, Silver and Crystal's wide battle draws past the Game Boy
+        -- screen, over the window's borders: they're its own, so they're
+        -- left alone (the blur there covered its sides and its boxes) -Elvie
+        if shown then shown.wide = true end
       else
         love.graphics.draw(s.image, s.quad, 0, 0)
         note(s.image, s.x, s.y, 0, 0)
