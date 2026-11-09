@@ -9,7 +9,7 @@
   "category": "GRAPHICS",
   "priority": 100,
   "dependencies": [],
-  "optional_dependencies": ["recomp_achievements@>=0.1.0", "prism_importer@>=0.1.0"],
+  "optional_dependencies": ["recomp_achievements@>=0.1.0#ElvieBlooms/recomp_achievements", "prism_importer@>=0.3.0#ElvieBlooms/prism_importer"],
   "conflicts": [],
   "incompatible": [],
   "experimental": false,
