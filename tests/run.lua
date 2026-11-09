@@ -1225,7 +1225,7 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sectionMons,setMons,animMons,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sectionMons,setMons,animMons,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sceneTime,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
   local trainerSets = {}
   for _, c in ipairs(mod.rows[6].choices) do trainerSets[#trainerSets + 1] = c[1] end
   eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
@@ -2732,6 +2732,19 @@ do
   G1.tint(f, { { 255, 255, 255 }, { 255, 0, 0 }, { 0, 0, 255 }, { 0, 0, 0 } })
   local tr, tg, tb = f:getPixel(1, 2)
   eq(("%d,%d,%d"):format(tr, tg, tb), "1,0,0", "gen1 anim: a light grey takes the palette's second colour")
+end
+
+-- Scenes in the light of the hour (classic_scenes.lua): outdoors only,
+-- on the Game Boy games' own hours -Elvie
+do
+  local S = require("mods.facets.classic_scenes")
+  eq(S.daytime(3) .. S.daytime(4) .. S.daytime(9) .. S.daytime(10) .. S.daytime(17) .. S.daytime(18),
+    "NITEMORNMORNDAYDAYNITE", "scenes: morning 4 to 10, day to 18, night after")
+  eq(S.lightFor("grass", 22), S.LIGHT.NITE, "scenes: outdoors at night, night's light")
+  eq(S.lightFor("route", 7), S.LIGHT.MORN, "scenes: ...in the morning, morning's")
+  eq(S.lightFor("grass", 13), nil, "scenes: by day, as drawn")
+  eq(S.lightFor("cave", 22), nil, "scenes: indoors and underground, as drawn")
+  eq(S.lightFor(nil, 22), nil, "scenes: no scene, nothing")
 end
 
 -- Kanto Reforged's strips on YOUR SIDE (classic_kr.lua): only while it's

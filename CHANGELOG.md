@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Red, Blue and Yellow: **BATTLE BG: SCENERY** now shows on the normal battle screen too, not just the wide one. The battle is still coloured through the Super Game Boy's zones, so the boxes and text stay the game's; the scene is wherever the field would be white.
+- Gold, Silver, Crystal, FireRed, LeafGreen, Ruby, Sapphire and Emerald: new **SCENE TIME** (ON by default) gives outdoor scenes the light of the hour: warm in the morning, as drawn by day, dark and blue at night, round the screen too. Gold, Silver and Crystal follow the game's clock, Ruby, Sapphire and Emerald theirs, and FireRed and LeafGreen, which have none, yours. Indoors, caves and gyms stay as drawn.
 - Red, Blue, Yellow, Gold, Silver and Crystal with **Kanto Reforged**: with **YOUR SIDE** on FRONT or MIRRORED, your Pokémon with Kanto Reforged art now shows its front (mirrored with MIRRORED) instead of Kanto Reforged's back, and plays Kanto Reforged's idle animation when it's sent out, as the foe's does. Before, only the foe's moved.
 - Red, Blue and Yellow: Crystal's animation on the foe (CRYSTAL and the EMERALD look) now plays once it has slid in; in the wide layout it used to play, unseen, during the slide.
 - Gold, Silver and Crystal: the start menu's help box ("Party PKMN status") now wears your TEXT BOX instead of a plain white patch, its words a letter in from the edge.

@@ -22,7 +22,7 @@ local blurOf
 -- Notes the scene drawn this frame, for the borders to show blurred. The
 -- position arguments are kept for the callers; the blurred backdrop only
 -- needs the picture -Elvie
-local function note(image, qx, qy, dx, dy)
+local function note(image, qx, qy, dx, dy, light)
   local G = love.graphics
   if type(G.transformPoint) ~= "function" or type(G.getCanvas) ~= "function" then return end
   local canvas = G.getCanvas()
@@ -30,9 +30,46 @@ local function note(image, qx, qy, dx, dy)
   if not canvas then return end
   local x0, y0 = G.transformPoint(dx - qx, dy - qy)
   local x1, y1 = G.transformPoint(dx - qx + 1, dy - qy + 1)
-  shown = { image = image, canvas = canvas, x = x0, y = y0, kx = x1 - x0, ky = y1 - y0, stamp = frame }
+  shown = { image = image, canvas = canvas, x = x0, y = y0, kx = x1 - x0, ky = y1 - y0, stamp = frame, light = light }
 end
 scenes._note = note
+
+-- --------------------------------------------------
+-- The time of day
+-- --------------------------------------------------
+-- Outdoor scenes take the light of the hour, as Gold, Silver and Crystal's
+-- maps do: morning's warm, day's as drawn, night's dark and blue. The
+-- hours are the Game Boy games' own (morning 4 to 10, day to 18, night
+-- after). Indoors, caves, gyms and the rest stay as drawn -Elvie
+scenes.OUTDOORS = { grass = true, forest = true, beach = true, sea = true, lake = true, mountain = true,
+  route = true, town = true, snow = true, snow_mountain = true, desert = true }
+scenes.LIGHT = { MORN = { 1, 0.9, 0.8 }, DAY = { 1, 1, 1 }, NITE = { 0.5, 0.56, 0.8 } }
+scenes.MORN_HOUR, scenes.DAY_HOUR, scenes.NITE_HOUR = 4, 10, 18
+
+-- MORN, DAY or NITE for an hour (0-23) -Elvie
+function scenes.daytime(hour)
+  hour = math.floor(tonumber(hour) or 12) % 24
+  if hour < scenes.MORN_HOUR then return "NITE" end
+  if hour < scenes.DAY_HOUR then return "MORN" end
+  if hour < scenes.NITE_HOUR then return "DAY" end
+  return "NITE"
+end
+
+-- The colour to draw a scene in, { r, g, b }, or nil for as drawn: its
+-- light at this hour if it's outdoors -Elvie
+function scenes.lightFor(name, hour)
+  if not (name and scenes.OUTDOORS[name] and hour) then return nil end
+  local l = scenes.LIGHT[scenes.daytime(hour)]
+  if not l or (l[1] == 1 and l[2] == 1 and l[3] == 1) then return nil end
+  return l
+end
+
+-- Sets the colour for a scene in that light -Elvie
+function scenes.setLight(light, dim)
+  dim = dim or 1
+  local l = light or scenes.LIGHT.DAY
+  love.graphics.setColor(l[1] * dim, l[2] * dim, l[3] * dim, 1)
+end
 
 -- The borders show the scene zoomed in and blurred, a little darker, so
 -- the sharp battle sits in front of a soft backdrop of itself -Elvie
@@ -109,7 +146,7 @@ function scenes.edges(info)
     G.push("all")
     G.origin()
     G.intersectScissor(r[1], r[2], r[3], r[4])
-    G.setColor(scenes.DIM, scenes.DIM, scenes.DIM, 1)
+    scenes.setLight(s.light, scenes.DIM)
     G.draw(blur, (ww - dw) / 2, (wh - dh) / 2, 0, dw / bw, dh / bh)
     G.pop()
   end
@@ -219,9 +256,9 @@ end
 
 -- Gen 1's wide battle: the field's paper fill (PaletteFX.paperShade, then
 -- one rectangle) is painted with the scene instead, all 304 across, its
--- sides carried on mirrored. Only there: the 160x144 screen is coloured
--- through the SGB zones, which would shade a scene too, and so is the wide
--- one in the Game Boy greys (CLASSIC, OG) -Elvie
+-- sides carried on mirrored. The 160x144 screen goes under the SGB zones'
+-- colouring instead (below). Neither in the Game Boy greys (CLASSIC, OG),
+-- where a scene would be shaded too -Elvie
 local function startGen1(mod, sceneFor)
   local okW, WideBattle = pcall(require, table.concat({ "src", "battle", "WideBattle" }, "."))
   local okP, PaletteFX = pcall(require, "src.render.PaletteFX")
@@ -232,6 +269,8 @@ local function startGen1(mod, sceneFor)
   end
   local W, H = tonumber(WideBattle.WIDTH) or 304, tonumber(WideBattle.HEIGHT) or 144
   local BOTTOM = tonumber(WideBattle.FIELD_BOTTOM) or 104
+  -- the normal screen's field ends at the text box, row 96 -Elvie
+  local BOTTOM_CLASSIC = scenes.H
   local function grey()
     local m = PaletteFX.mode
     if m == "og" or m == "og_inv" or m == "classic" then return true end
@@ -276,6 +315,70 @@ local function startGen1(mod, sceneFor)
     if not results[1] then error(results[2], 0) end
     return unpack(results, 2)
   end
+
+  -- The 160x144 screen: the battle is drawn in the Game Boy greys, then
+  -- coloured through the SGB zones in one pass (drawZonePass), and the
+  -- Pokémon go on after. That pass is drawn aside here, and put down over
+  -- the scene with the field's paper (pure white in the greys, above the
+  -- text box) left see-through, so the boxes, the text box and everything
+  -- the zones colour stay as the game has them -Elvie
+  local okB, BattleState = pcall(require, "src.battle.BattleState")
+  if not (okB and type(BattleState) == "table" and type(BattleState.drawZonePass) == "function") then
+    mod.log:warn("drawZonePass not found; BATTLE BG stays wide only")
+    return
+  end
+  local okS, shader = pcall(love.graphics.newShader, [[
+    extern Image paper;
+    extern vec2 offset;
+    extern vec2 size;
+    extern float field;
+    vec4 effect(vec4 colour, Image tex, vec2 uv, vec2 at) {
+      vec4 c = Texel(tex, uv) * colour;
+      vec2 p = uv * size - offset;
+      if (p.y < field && p.x >= 0.0 && p.y >= 0.0 && p.x < size.x) {
+        vec4 g = Texel(paper, p / size);
+        if (g.r > 0.98 && g.g > 0.98 && g.b > 0.98) return vec4(0.0);
+      }
+      return c;
+    }
+  ]])
+  if not okS then
+    mod.log:warn("BATTLE BG on the normal screen: %s", tostring(shader))
+    return
+  end
+  local aside
+  local ownZone = BattleState.drawZonePass
+  BattleState.drawZonePass = function(self, src, sx, sy, ...)
+    local s = type(self) == "table" and not (type(self.wideLayout) == "function" and self:wideLayout())
+      and not grey() and not (type(self.extendedWorldHUD) == "function" and self:extendedWorldHUD())
+      and type(src) == "userdata" and sceneFor(self)
+    if not s then return ownZone(self, src, sx, sy, ...) end
+    local G = love.graphics
+    local sw, sh = src:getDimensions()
+    if not aside or aside:getWidth() ~= sw or aside:getHeight() ~= sh then
+      aside = G.newCanvas(sw, sh)
+      aside:setFilter("nearest", "nearest")
+    end
+    G.push("all")
+    G.setCanvas(aside)
+    G.origin()
+    G.clear(0, 0, 0, 0)
+    local ok, err = pcall(ownZone, self, src, sx, sy, ...)
+    G.pop()
+    if not ok then error(err, 0) end
+    G.push("all")
+    G.setColor(1, 1, 1, 1)
+    G.draw(s.image, s.quad, sx or 0, sy or 0)
+    note(s.image, s.x, s.y, sx or 0, sy or 0)
+    shader:send("paper", src)
+    shader:send("offset", { sx or 0, sy or 0 })
+    shader:send("size", { sw, sh })
+    shader:send("field", BOTTOM_CLASSIC)
+    G.setShader(shader)
+    G.setBlendMode("alpha", "premultiplied")
+    G.draw(aside, 0, 0)
+    G.pop()
+  end
 end
 
 function scenes.init(mod, rows)
@@ -292,6 +395,10 @@ function scenes.init(mod, rows)
   rows[#rows + 1] = { key = "classicBattleBg", type = "choice", label = "BATTLE BG", choices = choices, default = GAME }
   rows[#rows + 1] = { key = "classicSceneColours", type = "choice", label = "SCENE COLOURS",
     choices = { { "ORIGINAL", "original" }, { "GBC", "gbc" } }, default = "original" }
+  if gen == 2 then
+    rows[#rows + 1] = { key = "sceneTime", type = "choice", label = "SCENE TIME",
+      choices = { { "ON", "on" }, { "OFF", "off" } }, default = "on" }
+  end
 
   return function()
     local okB, BattleState, okC, Chrome = false, nil, false, nil
@@ -375,6 +482,24 @@ function scenes.init(mod, rows)
       end
     end
 
+    -- the light outdoor scenes are in now: Gold, Silver and Crystal's own
+    -- clock (the one their maps follow), read once a second -Elvie
+    local light, lightAt, lightName = nil, -1, nil
+    local function lightOf(self, name)
+      if gen ~= 2 or mod.options:get("sceneTime") == "off" then return nil end
+      local now = os.time()
+      if now == lightAt and name == lightName then return light end
+      lightAt, lightName = now, name
+      local hour
+      pcall(function()
+        local world = self.game and self.game.world
+        if world and type(world.hour) == "function" then hour = world:hour() end
+      end)
+      light = scenes.lightFor(name, hour or tonumber(os.date("%H")))
+      return light
+    end
+    local lit = nil
+
     -- this battle's scene, or nil for the game's own -Elvie
     local function sceneFor(self)
       local setKey = mod.options:get("classicBattleBg")
@@ -390,22 +515,25 @@ function scenes.init(mod, rows)
         self._facetsSceneSet = look
         -- the scene this battle is in, for Scenic Route -Elvie
         scenes.last = self._facetsScene and name or nil
+        self._facetsSceneName = name
       end
+      lit = self._facetsScene and lightOf(self, self._facetsSceneName) or nil
       return self._facetsScene or nil
     end
     local function drawScene(s, wide)
-      love.graphics.setColor(1, 1, 1, 1)
+      scenes.setLight(lit)
       if wide then
         love.graphics.draw(s.image, s.wide, s.wideX, 0)
-        note(s.image, s.wx, s.wy, s.wideX, 0)
+        note(s.image, s.wx, s.wy, s.wideX, 0, lit)
         -- Gold, Silver and Crystal's wide battle draws past the Game Boy
         -- screen, over the window's borders: they're its own, so they're
         -- left alone (the blur there covered its sides and its boxes) -Elvie
         if shown then shown.wide = true end
       else
         love.graphics.draw(s.image, s.quad, 0, 0)
-        note(s.image, s.x, s.y, 0, 0)
+        note(s.image, s.x, s.y, 0, 0, lit)
       end
+      love.graphics.setColor(1, 1, 1, 1)
     end
 
     -- A move's animation (and the intro slide) draws the battle into a

@@ -786,6 +786,8 @@ function gbui.init(mod, rows, menu)
   rows[#rows + 1] = { key = "gbcTextBox", type = "choice", label = "  TEXT BOX", choices = gbui.TEXTBOX, default = "match" }
   rows[#rows + 1] = { key = "gbcHud", type = "choice", label = "  BATTLE UI", choices = gbui.HUD, default = "game" }
   rows[#rows + 1] = { key = "gbcBattleBg", type = "choice", label = "  BATTLE BG", choices = gbui.BG, default = "game" }
+  rows[#rows + 1] = { key = "sceneTime", type = "choice", label = "  SCENE TIME",
+    choices = { { "ON", "on" }, { "OFF", "off" } }, default = "on" }
 
   local function imported()
     local gb = package.loaded["mods.facets.gb"] or require("mods.facets.gb")
@@ -1185,6 +1187,31 @@ function gbui.init(mod, rows, menu)
       end)
     end
 
+    -- The hour, for the scenes' light: Ruby, Sapphire and Emerald's own
+    -- clock, and the real one in FireRed and LeafGreen, which have none.
+    -- Read once a second -Elvie
+    local okR, Rtc = pcall(require, "src.core.game3.rtc")
+    local okS, Rse = pcall(require, "src.core.game3.rse.init")
+    local okV, GameVersion = pcall(require, "src.core.GameVersion")
+    local CLOCKED = { ruby = true, sapphire = true, emerald = true }
+    local hourNow, hourAt = nil, -1
+    local function hour()
+      local now = os.time()
+      if now == hourAt then return hourNow end
+      hourAt, hourNow = now, tonumber(os.date("%H"))
+      local version = okV and type(GameVersion) == "table" and type(GameVersion.get) == "function" and GameVersion.get()
+      if CLOCKED[version] and okR and okS and type(Rtc) == "table" and type(Rse) == "table"
+          and type(Rse.session) == "function" then
+        local ok, t = pcall(function() return Rtc.calcLocalTime(Rse.session()) end)
+        if ok and type(t) == "table" and tonumber(t.hours) then hourNow = tonumber(t.hours) end
+      end
+      return hourNow
+    end
+    local function lightFor(bg, key)
+      if not Edges or get("sceneTime") == "off" then return nil end
+      return Edges.lightFor(gbui.sceneName(bg, key), hour())
+    end
+
     -- A battle background set: the scene for the game's own background,
     -- in place of its terrain and platforms (and behind evolutions) -Elvie
     if okB and type(BattleChrome) == "table" then
@@ -1198,10 +1225,12 @@ function gbui.init(mod, rows, menu)
             if img then
               love.graphics.setColor(0, 0, 0, 1)
               love.graphics.rectangle("fill", 0, 112, 240, 48)
-              love.graphics.setColor(1, 1, 1, 1)
+              local light = lightFor(bg, key)
+              if light then Edges.setLight(light) else love.graphics.setColor(1, 1, 1, 1) end
               love.graphics.draw(img, 0, 0)
+              love.graphics.setColor(1, 1, 1, 1)
               -- noted, so the window's borders carry it on -Elvie
-              if Edges then pcall(Edges._note, img, 0, 0, 0, 0) end
+              if Edges then pcall(Edges._note, img, 0, 0, 0, 0, light) end
               return true
             end
             return orig(key, ...)
