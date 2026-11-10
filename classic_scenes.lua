@@ -88,12 +88,46 @@ end
 -- the sharp battle sits in front of a soft backdrop of itself -Elvie
 scenes.ZOOM, scenes.DIM = 1.15, 0.8
 
--- BORDERS: BLUR (that), SCENE (the scene itself, sharp, zoomed to fill
--- the whole window behind the screen) or OFF (the engine's own
--- surround). Set from the options
--- by whichever part is running -Elvie
-scenes.BORDERS = { { "BLUR", "blur" }, { "SCENE", "scene" }, { "OFF", "off" } }
+-- BORDERS: BLUR (that), FILL (one big scene behind the whole battle:
+-- sharp, zoomed until it covers the window, the screen's own field showing
+-- its middle) or OFF (the engine's own surround). Set from the options by
+-- whichever part is running -Elvie
+scenes.BORDERS = { { "BLUR", "blur" }, { "FILL", "fill" }, { "OFF", "off" } }
 scenes.borders = function() return "blur" end
+
+-- FILL: where the big scene lies in the window, from the last frame's
+-- borders: the screen's rectangle and the window's size -Elvie
+local fillAt = nil
+
+-- The big scene's place in the window for a picture: its quad's source
+-- rectangle (the scene inside it, gba_bg.core), the window spot of its
+-- corner and its scale -Elvie
+function scenes.fillPlace(iw, ih, ww, wh)
+  local cx, cy, cw, ch = require("mods.facets.gba_bg").core(iw, ih)
+  local k = scenes.coverScale(cw, ch, ww, wh)
+  return cx, cy, cw, ch, (ww - cw * k) / 2, (wh - ch * k) / 2, k
+end
+
+-- FILL inside the game screen: the part of the big scene the screen
+-- covers, drawn in the screen's own coordinates (gx0, gy0 its corner,
+-- gameW across), so the field shows the same picture as the window round
+-- it. false when there's nothing to go by yet (the first frame) -Elvie
+function scenes.fillDraw(image, gx0, gy0, gameW)
+  local m = fillAt
+  if not (m and scenes.borders() == "fill" and m.sw and m.sw > 0) then return false end
+  local iw, ih = image:getDimensions()
+  local cx, cy, cw, ch, x0, y0, k = scenes.fillPlace(iw, ih, m.ww, m.wh)
+  local f = m.sw / gameW
+  local q = scenes._fillQuad
+  if not q then
+    q = love.graphics.newQuad(cx, cy, cw, ch, iw, ih)
+    scenes._fillQuad = q
+  else
+    q:setViewport(cx, cy, cw, ch, iw, ih)
+  end
+  love.graphics.draw(image, q, gx0 + (x0 - m.ox) / f, gy0 + (y0 - m.oy) / f, 0, k / f, k / f)
+  return true
+end
 
 -- Where the scene's picture sits in the window, for SCENE: x, y of its
 -- top-left corner and the window pixels to one of its pixels. Straight
@@ -165,8 +199,9 @@ function scenes.edges(info)
   if not (ww and wh and ww > 0 and wh > 0) then return end
   local mode = scenes.borders()
   if mode == "off" then return end
-  local blur = mode ~= "scene" and blurOf(s.image)
-  if mode ~= "scene" and not blur then return end
+  if mode ~= "fill" then fillAt = nil end
+  local blur = mode ~= "fill" and blurOf(s.image)
+  if mode ~= "fill" and not blur then return end
   local G = love.graphics
   -- the whole scene, zoomed to cover the window a little past its edges
   -- and centred on it -Elvie
@@ -183,12 +218,12 @@ function scenes.edges(info)
   -- canvas (BATTLE SIZE: FILL draws it bigger than the letterbox) -Elvie
   local real = scenes.screenRect(s, G.getCanvas and G.getCanvas())
   if real then ox, oy, sw, sh = real[1], real[2], real[3], real[4] end
-  if mode == "scene" then
+  if mode == "fill" then
     -- the scene, sharp, zoomed until it covers the whole window and
     -- centred on it (some of it goes past the edges, never mirrored);
     -- the borders only, so the screen stays in front -Elvie
-    local cx, cy, cw2, ch2 = require("mods.facets.gba_bg").core(iw, ih)
-    local kc = scenes.coverScale(cw2, ch2, ww, wh)
+    local cx, cy, cw2, ch2, fx, fy, kc = scenes.fillPlace(iw, ih, ww, wh)
+    fillAt = { ox = ox, oy = oy, sw = sw, ww = ww, wh = wh }
     local q = scenes._borderQuad
     if not q then
       q = love.graphics.newQuad(cx, cy, cw2, ch2, iw, ih)
@@ -201,7 +236,7 @@ function scenes.edges(info)
       G.origin()
       G.intersectScissor(r[1], r[2], r[3], r[4])
       scenes.setLight(s.light)
-      G.draw(s.image, q, (ww - cw2 * kc) / 2, (wh - ch2 * kc) / 2, 0, kc, kc)
+      G.draw(s.image, q, fx, fy, 0, kc, kc)
       G.pop()
     end
     return
@@ -464,7 +499,7 @@ local function startGen1(mod, sceneFor)
     if not ok then error(err, 0) end
     G.push("all")
     G.setColor(1, 1, 1, 1)
-    G.draw(s.image, s.quad, sx or 0, sy or 0)
+    if not scenes.fillDraw(s.image, sx or 0, sy or 0, scenes.W) then G.draw(s.image, s.quad, sx or 0, sy or 0) end
     note(s.image, s.x, s.y, sx or 0, sy or 0)
     shader:send("paper", src)
     shader:send("offset", { sx or 0, sy or 0 })
@@ -649,7 +684,8 @@ function scenes.init(mod, rows)
         -- left alone (the blur there covered its sides and its boxes) -Elvie
         if shown then shown.wide = true end
       else
-        love.graphics.draw(s.image, s.quad, 0, 0)
+        -- FILL: the screen's part of the one big scene -Elvie
+        if not scenes.fillDraw(s.image, 0, 0, scenes.W) then love.graphics.draw(s.image, s.quad, 0, 0) end
         note(s.image, s.x, s.y, 0, 0, lit)
         -- where the game screen itself landed in the window: with BATTLE
         -- SIZE on FILL it's drawn bigger than the letterbox the borders are

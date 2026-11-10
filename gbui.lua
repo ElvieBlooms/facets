@@ -1285,7 +1285,10 @@ function gbui.init(mod, rows, menu)
               -- a GBA background has its surroundings round it, for the
               -- borders: the scene is the 240x112 at pad, pad -Elvie
               local pad = gbui.BG_SETS[bg].gba and require("mods.facets.gba_bg").PAD or 0
-              if pad > 0 then
+              -- BORDERS: FILL, the screen's part of one big scene -Elvie
+              if Edges and Edges.fillDraw(img, 0, 0, 240) then
+                -- drawn -Elvie
+              elseif pad > 0 then
                 local iw, ih = img:getDimensions()
                 gbui._gbaQuad = gbui._gbaQuad or love.graphics.newQuad(pad, pad, 240, 112, iw, ih)
                 gbui._gbaQuad:setViewport(pad, pad, 240, 112, iw, ih)
