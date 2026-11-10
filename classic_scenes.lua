@@ -428,7 +428,8 @@ local function startGen1(mod, sceneFor)
         quads[s.image] = q
       end
       G.setColor(1, 1, 1, 1)
-      G.draw(s.image, q, 0, 0)
+      -- FILL: the field's part of the one big scene -Elvie
+      if not scenes.fillDraw(s.image, 0, 0, W) then G.draw(s.image, q, 0, 0) end
       local qx, qy = q:getViewport()
       note(s.image, qx, qy, 0, 0)
       -- the game's own fill then goes down see-through -Elvie
