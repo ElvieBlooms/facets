@@ -87,21 +87,30 @@ local function read(game, file)
 end
 
 -- A background and its platforms laid together, the part above the text
--- box (240x112), as ImageData; nil when they can't be read -Elvie
-function gbaBg.compose(bg, enemy, player)
-  local w, h = gbaBg.W, gbaBg.H
-  local layers = {}
-  for _, raw in ipairs({ bg, enemy, player }) do
-    if raw then layers[#layers + 1] = love.image.newImageData(256, 160, "rgba8", raw:sub(1, 256 * 160 * 4)) end
+-- box (240x112), as ImageData; nil when they can't be read. pad widens it
+-- by that much on each side for the wide battles: the background carries
+-- on as the GBA's own does when it scrolls (it repeats every 256), and
+-- the platforms stay where they are, so there's never a second one -Elvie
+gbaBg.PAD = 48
+function gbaBg.compose(bg, enemy, player, pad)
+  pad = pad or 0
+  local w, h = gbaBg.W + 2 * pad, gbaBg.H
+  local function layer(raw)
+    return raw and love.image.newImageData(256, 160, "rgba8", raw:sub(1, 256 * 160 * 4)) or nil
   end
-  if #layers == 0 then return nil end
+  local back, plats = layer(bg), {}
+  for _, raw in ipairs({ enemy, player }) do plats[#plats + 1] = layer(raw) end
+  if not back then return nil end
   local out = love.image.newImageData(w, h)
   for y = 0, h - 1 do
     for x = 0, w - 1 do
-      local r, g, b = 0, 0, 0
-      for _, l in ipairs(layers) do
-        local lr, lg, lb, la = l:getPixel(x, y)
-        if la > 0 then r, g, b = lr * la + r * (1 - la), lg * la + g * (1 - la), lb * la + b * (1 - la) end
+      local sx = x - pad
+      local r, g, b = back:getPixel(sx % 256, y)
+      if sx >= 0 and sx < 256 then
+        for _, l in ipairs(plats) do
+          local lr, lg, lb, la = l:getPixel(sx, y)
+          if la > 0 then r, g, b = lr * la + r * (1 - la), lg * la + g * (1 - la), lb * la + b * (1 - la) end
+        end
       end
       out:setPixel(x, y, r, g, b, 1)
     end
@@ -109,24 +118,25 @@ function gbaBg.compose(bg, enemy, player)
   return out
 end
 
--- A set's background for a terrain or scene name: ImageData and the
+-- A set's background for a terrain or scene name (pad as compose):
+-- ImageData and the
 -- terrain it came from, or nil (not imported, or nothing to show).
 -- Built once each -Elvie
 local built = {}
-function gbaBg.imageData(setKey, name)
+function gbaBg.imageData(setKey, name, pad)
   local set = gbaBg.BY_KEY[setKey]
   local game = set and gbaBg.game(set)
   if not game then return nil end
   for _, key in ipairs(gbaBg.candidates(name)) do
     if key:match("^[%w_]+$") then
-      local id = game .. "/" .. key
+      local id = game .. "/" .. key .. "/" .. tostring(pad or 0)
       local hit = built[id]
       if hit == nil then
         local bg = read(game, "terrain_bg_" .. key .. ".rgba")
         local ok, data = false, nil
         if bg then
           ok, data = pcall(gbaBg.compose, bg, read(game, "terrain_enemy_" .. key .. ".rgba"),
-            read(game, "terrain_player_" .. key .. ".rgba"))
+            read(game, "terrain_player_" .. key .. ".rgba"), pad)
         end
         hit = ok and data or false
         built[id] = hit

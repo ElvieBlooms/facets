@@ -474,7 +474,9 @@ function scenes.init(mod, rows)
       local file
       if set and set.gba then
         local terrain
-        gbaData, terrain = gbaBg.imageData(setKey, name)
+        -- widened, so the wide battles' sides carry the background on
+        -- rather than mirroring a platform in -Elvie
+        gbaData, terrain = gbaBg.imageData(setKey, name, gbaBg.PAD)
         if not gbaData then return nil end
         file = terrain
       else
