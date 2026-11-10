@@ -2910,6 +2910,9 @@ do
     eq(table.concat(GB.candidates("forest"), ","), "forest,long_grass,grass,building", "gba bg: a forest is tall grass")
     eq(table.concat(GB.candidates("lorelei"), ","), "lorelei,glacia,leader,building,grass", "gba bg: Lorelei's room is Glacia's in Hoenn")
     eq(GB.candidates("grass")[1], "grass", "gba bg: grass is grass")
+    eq(table.concat({ GB.core(240 + 2 * GB.PAD, 112 + 2 * GB.PAD) }, ","), GB.PAD .. "," .. GB.PAD .. ",240,112",
+      "gba bg: the scene sits inside its surroundings")
+    eq(table.concat({ GB.core(240, 112) }, ","), "0,0,240,112", "gba bg: a plain scene is all scene")
     eq(GB.sceneName("long_grass") .. "," .. GB.sceneName("building"), "forest,indoors", "gba bg: SCENE TIME reads them as scenes")
     -- Gen 3 SIZE -Elvie
     local Size = require("mods.facets.gen3_size")

@@ -154,6 +154,14 @@ function gbaBg.imageData(setKey, name, pad)
   return nil
 end
 
+-- The scene itself inside a picture: x, y, w, h. A GBA background is
+-- built with PAD round it; anything else is all scene -Elvie
+function gbaBg.core(w, h)
+  local p = gbaBg.PAD
+  if w == gbaBg.W + 2 * p and h == gbaBg.H + 2 * p then return p, p, gbaBg.W, gbaBg.H end
+  return 0, 0, w, h
+end
+
 -- The scene name SCENE TIME goes by for a terrain -Elvie
 function gbaBg.sceneName(key)
   return gbaBg.SCENE_OF[tostring(key or "")] or "neutral"

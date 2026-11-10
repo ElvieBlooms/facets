@@ -88,9 +88,9 @@ end
 -- the sharp battle sits in front of a soft backdrop of itself -Elvie
 scenes.ZOOM, scenes.DIM = 1.15, 0.8
 
--- BORDERS: BLUR (that), SCENE (the scene itself carried on round the
--- screen, sharp and at the screen's own size, as if the screen were the
--- whole window) or OFF (the engine's own surround). Set from the options
+-- BORDERS: BLUR (that), SCENE (the scene itself, sharp, zoomed to fill
+-- the whole window behind the screen) or OFF (the engine's own
+-- surround). Set from the options
 -- by whichever part is running -Elvie
 scenes.BORDERS = { { "BLUR", "blur" }, { "SCENE", "scene" }, { "OFF", "off" } }
 scenes.borders = function() return "blur" end
@@ -184,27 +184,24 @@ function scenes.edges(info)
   local real = scenes.screenRect(s, G.getCanvas and G.getCanvas())
   if real then ox, oy, sw, sh = real[1], real[2], real[3], real[4] end
   if mode == "scene" then
-    -- the picture where the screen has it, at its size, carried on
-    -- mirrored past its edges to the window's -Elvie
-    local cv = G.getCanvas and G.getCanvas()
-    if type(cv) == "table" and cv[1] then cv = cv[1].texture or cv[1] end
-    local px, py, kx, ky = scenes.placed(s, cv == s.canvas, ox, oy, sw)
-    if not (px and kx and kx > 0 and ky > 0) then return end
-    local qx, qy, qw, qh = -px / kx, -py / ky, ww / kx, wh / ky
+    -- the scene, sharp, zoomed until it covers the whole window and
+    -- centred on it (some of it goes past the edges, never mirrored);
+    -- the borders only, so the screen stays in front -Elvie
+    local cx, cy, cw2, ch2 = require("mods.facets.gba_bg").core(iw, ih)
+    local kc = scenes.coverScale(cw2, ch2, ww, wh)
     local q = scenes._borderQuad
     if not q then
-      q = love.graphics.newQuad(qx, qy, qw, qh, iw, ih)
+      q = love.graphics.newQuad(cx, cy, cw2, ch2, iw, ih)
       scenes._borderQuad = q
     else
-      q:setViewport(qx, qy, qw, qh, iw, ih)
+      q:setViewport(cx, cy, cw2, ch2, iw, ih)
     end
-    pcall(s.image.setWrap, s.image, "mirroredrepeat", "mirroredrepeat")
     for _, r in ipairs(scenes.bars(ox, oy, sw, sh, ww, wh)) do
       G.push("all")
       G.origin()
       G.intersectScissor(r[1], r[2], r[3], r[4])
       scenes.setLight(s.light)
-      G.draw(s.image, q, 0, 0, 0, kx, ky)
+      G.draw(s.image, q, (ww - cw2 * kc) / 2, (wh - ch2 * kc) / 2, 0, kc, kc)
       G.pop()
     end
     return
