@@ -2905,6 +2905,12 @@ do
   eq(Sc.coverScale(240, 160, 800, 720, 1), 4.5, "scenes: ...or its height, whichever needs more")
   eq(Sc.coverScale(100, 100, 200, 100, 1.5), 3, "scenes: ...zoomed in a little more")
   do
+    -- the GBA games' battle backgrounds -Elvie
+    local GB = require("mods.facets.gba_bg")
+    eq(table.concat(GB.candidates("forest"), ","), "forest,long_grass,grass,building", "gba bg: a forest is tall grass")
+    eq(table.concat(GB.candidates("lorelei"), ","), "lorelei,glacia,leader,building,grass", "gba bg: Lorelei's room is Glacia's in Hoenn")
+    eq(GB.candidates("grass")[1], "grass", "gba bg: grass is grass")
+    eq(GB.sceneName("long_grass") .. "," .. GB.sceneName("building"), "forest,indoors", "gba bg: SCENE TIME reads them as scenes")
     -- Gen 3 SIZE -Elvie
     local Size = require("mods.facets.gen3_size")
     eq(Size.scaleOf("fit"), nil, "size: FIT leaves pictures be")

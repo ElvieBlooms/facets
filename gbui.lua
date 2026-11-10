@@ -372,6 +372,13 @@ function gbui.loadBgSets(mod)
     end
   end
   table.sort(list, function(a, b) return a.label < b.label end)
+  -- FRLG, EMERALD and R/S: the GBA games' own backgrounds, from the
+  -- player's imports, so one game can fight on another's (gba_bg) -Elvie
+  for _, g in ipairs(require("mods.facets.gba_bg").SETS) do
+    gbui.BG_SETS[g.key] = { key = g.key, label = g.label, gba = true, scenes = {}, keys = {},
+      credit = { "From your own " .. g.name .. "." } }
+    list[#list + 1] = gbui.BG_SETS[g.key]
+  end
   gbui.BG = { { "GAME", "game" }, { "WHITE", "white" } }
   for _, set in ipairs(list) do gbui.BG[#gbui.BG + 1] = { set.label, set.key } end
   return list
@@ -404,6 +411,7 @@ end
 function gbui.sceneName(setKey, bgKey)
   local set = gbui.BG_SETS[setKey]
   if not set then return nil end
+  if set.gba then return require("mods.facets.gba_bg").sceneName(bgKey) end
   local name = set.keys[tostring(bgKey or "")] or set.default
   return type(name) == "string" and set.scenes[name] and name or nil
 end
@@ -411,6 +419,15 @@ end
 function gbui.scene(mod, setKey, bgKey)
   local set = gbui.BG_SETS[setKey]
   if not set then return nil end
+  if set.gba then
+    local id = setKey .. "/" .. tostring(bgKey or "")
+    local hit = scenes[id]
+    if hit ~= nil then return hit or nil end
+    local data = require("mods.facets.gba_bg").imageData(setKey, bgKey)
+    scenes[id] = data and image(data) or false
+    if scenes[id] then pcall(scenes[id].setWrap, scenes[id], "mirroredrepeat", "mirroredrepeat") end
+    return scenes[id] or nil
+  end
   local name = set.keys[tostring(bgKey or "")] or set.default
   local file = name and set.scenes[name]
   if type(file) ~= "string" or not file:match("^[%w_%-%.]+%.png$") then return nil end
@@ -867,7 +884,15 @@ function gbui.init(mod, rows, menu)
           end
         elseif who == "gbcBattleBg" then
           local bset = gbui.BG_SETS[bg]
-          if bset then
+          if bset and bset.gba then
+            local g = require("mods.facets.gba_bg")
+            if g.game(bg) then
+              lines[#lines + 1] = { text = "Its battle backgrounds," }
+              lines[#lines + 1] = { text = "from your own game." }
+            else
+              lines[#lines + 1] = { text = "Needs " .. g.BY_KEY[bg].name .. " imported.", red = true }
+            end
+          elseif bset then
             lines[#lines + 1] = { text = "New scenes for every battle." }
             local credit = type(bset.credit) == "table" and bset.credit[1] or bset.credit
             if type(credit) == "string" then lines[#lines + 1] = { text = credit } end

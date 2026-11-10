@@ -30,13 +30,14 @@ credits.DIRS = {
 }
 
 -- Choices read from the player's own games, not shipped -Elvie
-local OWN = { firered = true, emerald = true, crystal = true, fr = true, gbc = true }
+local OWN = { firered = true, emerald = true, crystal = true, fr = true, gbc = true,
+  gba_frlg = true, gba_emerald = true, gba_rs = true }
 
 -- Called once the last line is on screen (Roll the Credits) -Elvie
 credits.onEnd = nil
 
 credits.MINIDEX = "Kanto and Johto icons from the Minidex 001-251, by Chamber, Soloo993, Blue Emerald, Lake, Neslug and Pikachu25, used with credit"
-credits.OWN_GAMES = "FIRERED, EMERALD and CRYSTAL choices are read while you play from the games you imported yourself (Nintendo / Game Freak). None of it is included with Facets."
+credits.OWN_GAMES = "FIRERED, EMERALD, CRYSTAL, FRLG and R/S choices are read while you play from the games you imported yourself (Nintendo / Game Freak). None of it is included with Facets."
 
 -- Text as lines of at most n letters, split at spaces; a word longer than
 -- a line is cut -Elvie

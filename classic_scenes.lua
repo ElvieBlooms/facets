@@ -434,6 +434,12 @@ function scenes.init(mod, rows)
   local gen = require("mods.facets.classic").generation()
   if gen ~= 2 and gen ~= 1 then return nil end
   local sets = findSets(mod)
+  -- FRLG, EMERALD and R/S: the GBA games' own, from the player's
+  -- imports (gba_bg) -Elvie
+  local gbaBg = require("mods.facets.gba_bg")
+  for _, g in ipairs(gbaBg.SETS) do
+    sets[#sets + 1] = { key = g.key, label = g.label, gba = true, scenes = {} }
+  end
   if #sets == 0 then return nil end
   local byKey = {}
   local choices = { { "GAME", GAME } }
@@ -464,8 +470,17 @@ function scenes.init(mod, rows)
     local images = {} -- [set/file] = { image, quad }, or false -Elvie
     local function scene(setKey, name)
       local set = byKey[setKey]
-      local file = set and (set.scenes[name] or set.scenes.neutral)
-      if type(file) ~= "string" or not file:match("^[%w_%-%.]+%.png$") then return nil end
+      local gbaData
+      local file
+      if set and set.gba then
+        local terrain
+        gbaData, terrain = gbaBg.imageData(setKey, name)
+        if not gbaData then return nil end
+        file = terrain
+      else
+        file = set and (set.scenes[name] or set.scenes.neutral)
+        if type(file) ~= "string" or not file:match("^[%w_%-%.]+%.png$") then return nil end
+      end
       local path = setKey .. "/" .. file
       local gbc = mod.options:get("classicSceneColours") == "gbc"
       local id = path .. (gbc and "#gbc" or "")
@@ -473,7 +488,7 @@ function scenes.init(mod, rows)
       if hit ~= nil then return hit or nil end
       images[id] = false
       local ok, image = pcall(function()
-        local data = love.image.newImageData(mod.assets:path(DIR .. "/" .. path))
+        local data = gbaData and gbaData:clone() or love.image.newImageData(mod.assets:path(DIR .. "/" .. path))
         if gbc then
           data:mapPixel(function(_, _, r, g, b, a)
             r, g, b = scenes.gbcColour(r, g, b)
