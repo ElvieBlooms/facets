@@ -9,6 +9,7 @@
 - Gold, Silver and Crystal's wide battle with **BATTLE HUD: EXTENDED**: on a tall or large screen the boxes sit at the top and bottom of the window with white between them and the field. With a BATTLE BG scene that space now follows **BORDERS**: BLUR (the default) fills it with the scene blurred, as round the screen, FILL makes the whole column one zoomed picture, and OFF leaves the white.
 - The borders round a battle scene (BLUR and FILL) no longer leave a faint line of the surround along the game screen's edge on high-resolution phones.
 - Red, Blue and Yellow's wide battle: with BORDERS: FILL its field showed a scene of its own over the big picture; it now shows its part of it. Gold, Silver and Crystal's wide battle now gets BORDERS too (it was left white round the screen, which showed on tall phones). With BATTLE HUD: EXTENDED, the column and the borders round it are one picture, the window's.
+- Gold, Silver and Crystal with a BATTLE BG scene and the game's own trainer pictures: the trainer you battle stood in a white square. Their pictures come out of the import with no see-through; the white round them now is, so they stand on the scene (white inside the trainer stays).
 
 ## 1.2.1
 

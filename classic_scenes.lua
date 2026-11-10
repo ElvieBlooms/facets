@@ -817,6 +817,69 @@ function scenes.init(mod, rows)
       painted(s, false, own, self, ...)
     end
 
+    -- Gold, Silver and Crystal's own trainer pictures come out of the
+    -- import with no see-through (their Pokémon have it): over a scene the
+    -- trainer stood in a white square. While a scene's up, the white round
+    -- the edge of a game trainer picture is made see-through (a flood from
+    -- its border, so white inside the trainer stays), once a picture -Elvie
+    local okA, Assets = pcall(require, "src.render.Assets")
+    local keyed = {}
+    function scenes.floodClear(data)
+      local w, h = data:getDimensions()
+      local seen, stack = {}, {}
+      local function push(x, y)
+        local i = y * w + x
+        if seen[i] then return end
+        seen[i] = true
+        local r, g, b, a = data:getPixel(x, y)
+        if a > 0 and r >= 0.99 and g >= 0.99 and b >= 0.99 then stack[#stack + 1] = i end
+      end
+      for x = 0, w - 1 do push(x, 0); push(x, h - 1) end
+      for y = 0, h - 1 do push(0, y); push(w - 1, y) end
+      while #stack > 0 do
+        local i = table.remove(stack)
+        local x, y = i % w, math.floor(i / w)
+        data:setPixel(x, y, 1, 1, 1, 0)
+        if x > 0 then push(x - 1, y) end
+        if x < w - 1 then push(x + 1, y) end
+        if y > 0 then push(x, y - 1) end
+        if y < h - 1 then push(x, y + 1) end
+      end
+      return data
+    end
+    local function keyedTrainer(path)
+      if type(path) ~= "string" or not (okA and type(Assets.imageData) == "function") then return nil end
+      local hit = keyed[path]
+      if hit ~= nil then return hit or nil end
+      keyed[path] = false
+      local okD, data = pcall(Assets.imageData, path)
+      if not (okD and data) then return nil end
+      local ok, img = pcall(function()
+        local copy = scenes.floodClear(data:clone())
+        local image = love.graphics.newImage(copy)
+        image:setFilter("nearest", "nearest")
+        return image
+      end)
+      keyed[path] = ok and img or false
+      return keyed[path] or nil
+    end
+    if type(BattleState.drawPic) == "function" then
+      local ownPic = BattleState.drawPic
+      BattleState.drawPic = function(self, mon, back, ...)
+        if back or not (self.showEnemyTrainer and self.enemyTrainerImage) or self.enemyTrainerTrueColor
+            or not sceneFor(self) then
+          return ownPic(self, mon, back, ...)
+        end
+        local img = keyedTrainer(self.enemyTrainerPath)
+        if not img then return ownPic(self, mon, back, ...) end
+        local saved = self.enemyTrainerImage
+        self.enemyTrainerImage = img
+        local ok, err = pcall(ownPic, self, mon, back, ...)
+        self.enemyTrainerImage = saved
+        if not ok then error(err, 0) end
+      end
+    end
+
     local okW, WideBattle = pcall(require, "src.ui.gen2.WideBattle")
     if okW and type(WideBattle) == "table" and type(WideBattle.drawField) == "function" then
       local ownField = WideBattle.drawField
