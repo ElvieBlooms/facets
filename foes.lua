@@ -171,7 +171,7 @@ function trainers.init(mod, rows, menu)
   rows[#rows + 1] = { key = "setTrainers", type = "choice", label = "  SET", choices = choices, default = OFF }
   -- SIZE: FIT, or the set's pictures shrunk in battle (gen3_size) -Elvie
   rows[#rows + 1] = { key = "sizeTrainers", type = "choice", label = "  SIZE",
-    choices = require("mods.facets.gen3_size").SIZES, default = "fit" }
+    choices = require("mods.facets.gen3_size").TRAINER_SIZES, default = "fit" }
   if menu then trainers.screenPart(mod, menu, sets, choices) end
 
   return function()

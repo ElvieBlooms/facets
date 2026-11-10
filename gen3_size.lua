@@ -1,7 +1,8 @@
 -- SIZE on the GBA games (FireRed, LeafGreen, Ruby, Sapphire, Emerald)
 -- Every battle picture there is a 64x64 slot, which is what the sets are
 -- drawn for, and DS art is already fitted into it (ds.lua), so FIT is how
--- they've always looked. SMALL (0.75x) and TINY (0.5x) shrink a set's
+-- they've always looked. FULL shows DS and BW art at its own size, past
+-- the slot where it's bigger. SMALL (0.75x) and TINY (0.5x) shrink a set's
 -- picture inside its slot, about the spot it stands on: a Pokémon's feet
 -- (or, for your side, the top of the text box) and a trainer's lowest
 -- row, so they stay on the ground. Battles only; the summary, Pokédex and
@@ -10,10 +11,44 @@
 
 local size = {}
 
-size.SIZES = { { "FIT", "fit" }, { "SMALL", "0.75" }, { "TINY", "0.5" } }
+size.SIZES = { { "FIT", "fit" }, { "FULL", "1" }, { "SMALL", "0.75" }, { "TINY", "0.5" } }
+-- Trainers' set pictures are drawn for the 64x64 slot, so FULL would be
+-- the same as FIT for them -Elvie
+size.TRAINER_SIZES = { { "FIT", "fit" }, { "SMALL", "0.75" }, { "TINY", "0.5" } }
 
--- The scale a SIZE value means, or nil for FIT (anything unknown is FIT,
--- FULL included, since it isn't offered yet) -Elvie
+-- Whether a SIZE value is FULL: DS and BW art at its own size in battle,
+-- running past the slot where it's bigger (mons.layOut's big) -Elvie
+function size.isFull(value) return tostring(value) == "1" end
+
+-- Pictures bigger than the slot, by Image, with how far past it they run
+-- on each side. The battle draws a Pokémon from its slot's middle (32, 32
+-- in the picture); for one of these the middle is m further in, so the
+-- draw call's origin gets m more on both axes. Every other draw is left
+-- exactly as it was -Elvie
+size.big = setmetatable({}, { __mode = "k" })
+function size.markBig(entry, margin)
+  if type(entry) == "table" and entry.image and margin and margin > 0 then size.big[entry.image] = margin end
+  return entry
+end
+function size.drawArgs(margin, a, b, c, d, e, f, g, h, i)
+  -- draw(image, quad, x, y, r, sx, sy, ox, oy) or draw(image, x, y, r, sx, sy, ox, oy) -Elvie
+  if type(a) == "userdata" or type(a) == "table" then
+    return a, b, c, d, e, f, (g or 0) + margin, (h or 0) + margin, i
+  end
+  return a, b, c, d, e, (f or 0) + margin, (g or 0) + margin, h, i
+end
+function size.hookDraw()
+  if not (love and love.graphics and love.graphics.draw) or size.hooked then return end
+  size.hooked = true
+  local own = love.graphics.draw
+  love.graphics.draw = function(img, ...)
+    local m = size.big[img]
+    if m then return own(img, size.drawArgs(m, ...)) end
+    return own(img, ...)
+  end
+end
+
+-- The scale SMALL or TINY means, or nil for FIT and FULL -Elvie
 function size.scaleOf(value)
   local s = tonumber(value)
   if not s or s >= 1 or s <= 0 then return nil end

@@ -172,8 +172,8 @@ end
 
 -- Frame n of a sheet, fitted to 64x64 the way the DS choices are. box
 -- (from bw.box) is the part to cut, the same for every frame; without it
--- the whole frame -Elvie
-function bw.cut(data, sprite, n, back, box)
+-- the whole frame. With full, at its own size -Elvie
+function bw.cut(data, sprite, n, back, box, full)
   local fw, fh = tonumber(sprite.width), tonumber(sprite.height)
   local cols = math.max(1, tonumber(sprite.columns) or 1)
   if not (fw and fh) then return nil end
@@ -182,7 +182,7 @@ function bw.cut(data, sprite, n, back, box)
   if sx0 + fw > sw or sy0 + fh > sh then return nil end
   local bx, by, bw_, bh = 0, 0, fw, fh
   if box then bx, by, bw_, bh = box[1], box[2], box[3], box[4] end
-  local keepH, scale = ds.fitPlan(bw_, bh, back)
+  local keepH, scale = ds.fitPlan(bw_, bh, back, full)
   local ow, oh = math.max(1, math.floor(bw_ * scale + 0.5)), math.max(1, math.floor(keepH * scale + 0.5))
   local out = love.image.newImageData(ow, oh)
   for y = 0, oh - 1 do

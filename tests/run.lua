@@ -2944,6 +2944,26 @@ do
     eq(sized(e, 0.5), got, "size: made once")
     eq(sized(got, 0.5), got, "size: never shrunk twice")
     eq(sized(e, nil), e, "size: FIT hands it back")
+    -- FULL -Elvie
+    check(Size.isFull("1") and not Size.isFull("fit"), "size: FULL is its own value")
+    local M = require("mods.facets.mons")
+    local wide = love.image.newImageData(80, 70)
+    for x = 0, 79 do wide:setPixel(x, 69, 0, 0, 0, 1) end
+    wide:setPixel(40, 0, 0, 0, 0, 1)
+    local own = function(r, g, b, a) if a > 0 then return { r * 255, g * 255, b * 255, 255 } end end
+    eq(M.layOut(wide, 60, own), nil, "full: too big for the slot without it")
+    local big = M.layOut(wide, 60, own, nil, true)
+    local bw_, bh_ = big:getDimensions()
+    eq(bw_ .. "x" .. bh_, "84x84", "full: the picture grows on every side by its furthest overhang (10 above)")
+    eq(M.bigMargin(bw_, bh_), 10, "full: ...so the slot sits 10 in")
+    local _, _, _, a = big:getPixel(-8 + 10, 59 + 10)
+    check(a > 0, "full: feet still on the ground line, the middle still the middle")
+    eq(M.bigMargin(64, 64), 0, "full: a slot-sized picture runs nowhere")
+    local q = setmetatable({}, {})
+    eq(table.concat({ select(2, Size.drawArgs(5, 10, 20, 0, 1, 1, 32, 32)) }, ","), "20,0,1,1,37,37",
+      "full: drawn from its middle")
+    local a1, _, _, _, _, _, ox, oy = Size.drawArgs(5, q, 10, 20, 0, 1, 1, 32, 0)
+    eq(tostring(a1 == q) .. "," .. ox .. "," .. oy, "true,37,5", "full: ...row by row too")
   end
   do
     local cv = {}

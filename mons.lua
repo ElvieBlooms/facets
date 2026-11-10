@@ -75,11 +75,15 @@ end
 -- colour(r, g, b, a) gives the colour to draw, or nil for see-through; it's
 -- called once per pixel, row by row. place, if given, keeps the spot: an
 -- empty table gets this sprite's, a filled one is reused, so every frame of
--- an animation sits where its first frame did. -Elvie
-function mons.layOut(src, bottom, colour, place)
+-- an animation sits where its first frame did. With big (SIZE: FULL) a
+-- sprite may be bigger than the slot and run past it: the picture then
+-- grows by the same amount on every side (mons.bigMargin), so the slot
+-- stays in its middle and the battle can draw it from there -Elvie
+function mons.layOut(src, bottom, colour, place, big)
   local sw, sh = src:getDimensions()
-  if sw > SIZE or sh > SIZE then return nil, ("%dx%d is bigger than 64x64"):format(sw, sh) end
+  if not big and (sw > SIZE or sh > SIZE) then return nil, ("%dx%d is bigger than 64x64"):format(sw, sh) end
   local px, top, low = {}, nil, nil
+  local left, right
   for y = 0, sh - 1 do
     for x = 0, sw - 1 do
       local c = colour(src:getPixel(x, y))
@@ -87,6 +91,8 @@ function mons.layOut(src, bottom, colour, place)
         px[#px + 1] = { x, y, c }
         top = top or y
         low = y
+        left = (not left or x < left) and x or left
+        right = (not right or x > right) and x or right
       end
     end
   end
@@ -97,19 +103,32 @@ function mons.layOut(src, bottom, colour, place)
   else
     ox = math.floor((SIZE - sw) / 2)
     oy = (bottom or SIZE) - 1 - low
-    if oy + top < 0 then oy = -top end
+    if not big and oy + top < 0 then oy = -top end
     if oy + low > SIZE - 1 then oy = SIZE - 1 - low end
     if place then place.ox, place.oy = ox, oy end
   end
-  local out = love.image.newImageData(SIZE, SIZE)
+  -- how far past the slot it runs, on its furthest side -Elvie
+  local m = 0
+  if big and low then
+    m = math.max(0, -(ox + left), -(oy + top), ox + right - (SIZE - 1), oy + low - (SIZE - 1))
+  end
+  local n = SIZE + 2 * m
+  local out = love.image.newImageData(n, n)
   for _, p in ipairs(px) do
     local c = p[3]
-    local x, y = ox + p[1], oy + p[2]
-    if x >= 0 and y >= 0 and x < SIZE and y < SIZE then
+    local x, y = ox + p[1] + m, oy + p[2] + m
+    if x >= 0 and y >= 0 and x < n and y < n then
       out:setPixel(x, y, c[1] / 255, c[2] / 255, c[3] / 255, c[4] or 1)
     end
   end
   return out
+end
+
+-- How far a picture runs past the 64x64 slot on each side: 0 for one the
+-- slot's size, else half of what it has over -Elvie
+function mons.bigMargin(w, h)
+  if not (w and h) or w ~= h or w <= SIZE then return 0 end
+  return math.floor((w - SIZE) / 2)
 end
 
 -- Crystal's front animations
@@ -578,6 +597,10 @@ function mons.init(mod, rows, menu)
     end
     local function setGroup() return "mons-" .. gameName() .. "-" .. (current and current.key or "own") end
     local cache = {}   -- [kind:species(:s)] = picture entry, or false
+    -- SIZE: FULL, while the battle asks for a picture: DS and BW art at
+    -- its own size, past the slot, kept apart from the fitted ones -Elvie
+    local fullNow = false
+    local F = function() return fullNow and "#F" or "" end
     local palettes     -- Crystal's, read when first needed; false if missing
 
     -- Where the game's own picture ends: 64 minus the species' y offset. -Elvie
@@ -797,14 +820,15 @@ function mons.init(mod, rows, menu)
     -- game's ground line; a front keeps its spot for its second frame -Elvie
     local function dsBuild(kind, species, shiny, nat, letter, variant, alt)
       local id = ds.monId(current.ds, kind, shiny, nat, letter, variant)
-      local src = ds.monPicture(dsApi, current.ds, id, kind == "back", alt)
+      local src = ds.monPicture(dsApi, current.ds, id, kind == "back", alt, fullNow)
       if not src then return nil end
       local place
       if kind == "front" and variant == "" then
-        placements[species] = placements[species] or {}
-        place = placements[species]
+        local pk = species .. F()
+        placements[pk] = placements[pk] or {}
+        place = placements[pk]
       end
-      local out, why = mons.layOut(src, bottomFor(kind, species), ownColour, place)
+      local out, why = mons.layOut(src, bottomFor(kind, species), ownColour, place, fullNow)
       if not out then mod.log:warn("%s %s %s: %s", current.label, kind, tostring(nat), tostring(why)) end
       return out
     end
@@ -901,20 +925,22 @@ function mons.init(mod, rows, menu)
       else
         n = bw.playAt(sheet.sprite, now * 60, mode)
       end
-      local key = sheetKey .. "#" .. n
+      local key = sheetKey .. "#" .. n .. F()
       local hit = bwPics[key]
       if hit ~= nil then return hit or nil end
       bwPics[key] = false
-      local ok, cut = pcall(bw.cut, sheet.data, sheet.sprite, n, kind == "back", sheet.box)
+      local ok, cut = pcall(bw.cut, sheet.data, sheet.sprite, n, kind == "back", sheet.box, fullNow)
       if not (ok and cut) then return nil end
       -- the whole animation's bottom on the ground line, every frame in
-      -- the same spot -Elvie
-      if not sheet.place then
+      -- the same spot (at FULL it may start above the slot) -Elvie
+      local placeKey = fullNow and "placeFull" or "place"
+      if not sheet[placeKey] then
         local cw, ch = cut:getDimensions()
-        local oy = math.max(0, bottomFor(kind, species) - ch)
-        sheet.place = { ox = math.floor((SIZE - cw) / 2), oy = oy }
+        local oy = bottomFor(kind, species) - ch
+        if not fullNow then oy = math.max(0, oy) end
+        sheet[placeKey] = { ox = math.floor((SIZE - cw) / 2), oy = oy }
       end
-      local out = mons.layOut(cut, nil, ownColour, sheet.place)
+      local out = mons.layOut(cut, nil, ownColour, sheet[placeKey], fullNow)
       if not (out and love and love.graphics) then return nil end
       local image = love.graphics.newImage(out)
       image:setFilter("nearest", "nearest")
@@ -961,7 +987,7 @@ function mons.init(mod, rows, menu)
         local e = animLookup(kind, species, shiny, nat, letter, variant)
         if e then return e end
       end
-      local key = kind .. ":" .. species .. variant .. (shiny and ":s" or "")
+      local key = kind .. ":" .. species .. variant .. (shiny and ":s" or "") .. F()
       local hit = cache[key]
       if hit ~= nil then return hit or nil end
       local ok, data, fromGb, fromSet
@@ -1329,7 +1355,7 @@ function mons.init(mod, rows, menu)
     -- White 2's idle), in the spot its first frame took -Elvie
     local dsFrames = {}
     local function dsFrame(species, shiny)
-      local key = species .. (shiny and ":s" or "")
+      local key = species .. (shiny and ":s" or "") .. F()
       local hit = dsFrames[key]
       if hit ~= nil then return hit or nil end
       dsFrames[key] = false
@@ -1424,7 +1450,7 @@ function mons.init(mod, rows, menu)
         local okS, got = pcall(Pokemon.deoxysFormSuffix, sp)
         suffix = okS and type(got) == "string" and got or ""
       end
-      local key = sp .. suffix .. ":" .. (tonumber(form) or 0) .. ":" .. frame .. (shiny and ":s" or "")
+      local key = sp .. suffix .. ":" .. (tonumber(form) or 0) .. ":" .. frame .. (shiny and ":s" or "") .. F()
       packChanged()
       -- An animated set (BW ANIM, the DS choices): its front is the frame
       -- showing now, so your side turns that one round, frame by frame,
@@ -1451,7 +1477,7 @@ function mons.init(mod, rows, menu)
       local okP, under = pcall(origFront, sp, form, shiny)
       local fromPack = okP and mons.fromHook(under)
       local group = "side2-" .. gameName() .. "-" .. (current and current.key or "own")
-        .. (borrowing() and "-em" or "") .. (mirrored and "-m" or "")
+        .. (borrowing() and "-em" or "") .. (mirrored and "-m" or "") .. (fullNow and "-full" or "")
       local kept = not fromPack and disk.get(group, key)
       if kept then
         local image = love.graphics.newImage(kept)
@@ -1486,13 +1512,18 @@ function mons.init(mod, rows, menu)
     -- A front turned round for your side: lifted clear of the box, and
     -- mirrored with MIRRORED. nil if it couldn't be drawn -Elvie
     turnRound = function(sp, suffix, form, shiny, frame, front)
+      -- a FULL front runs past the slot by m on every side; its rows are
+      -- counted from the slot's top here -Elvie
       local w, h = SIZE, SIZE
+      if front.image and front.image.getDimensions then w, h = front.image:getDimensions() end
+      local m = mons.bigMargin(w, h)
+      if m == 0 then w, h = SIZE, SIZE end
       local shift = mons.frontAsBackShift(PicCoords, sp)
       -- the still picture's top sets how far every frame may go up, so
       -- the frames don't jump against each other -Elvie
       -- Measured once per Pokémon: reading a picture back from the GPU
       -- waits for everything queued, so it's kept to one. -Elvie
-      local rowsKey = sp .. suffix .. ":" .. (tonumber(form) or 0) .. (shiny and ":s" or "")
+      local rowsKey = sp .. suffix .. ":" .. (tonumber(form) or 0) .. (shiny and ":s" or "") .. F()
       local rows = stillRows[rowsKey]
       if not rows then
         local still = front
@@ -1501,12 +1532,14 @@ function mons.init(mod, rows, menu)
           still = okS and type(got) == "table" and got or front
         end
         local top, low = mons.drawnRows(still.imageData or measure(still.image))
-        rows = { top = top, low = low }
+        local sm = 0
+        if still.image and still.image.getDimensions then sm = mons.bigMargin(still.image:getDimensions()) end
+        rows = { top = top and top - sm, low = low and low - sm }
         stillRows[rowsKey] = rows
       end
       shift = mons.aboveBoxShift(shift, mons.sideFrameTop(PicCoords, sp, rsLayout()), rows.low)
       -- too tall to clear the box: the top stays, the feet go behind it -Elvie
-      shift = mons.keptShift(shift, rows.top, rows.low, h)
+      shift = mons.keptShift(shift, rows.top and rows.top + m, rows.low and rows.low + m, h)
       local made, entry = pcall(function()
         -- dpiscale 1: on a high-DPI screen (Android) a canvas is otherwise
         -- 2-3x as many pixels, and the picture came out that much bigger -Elvie
@@ -1662,10 +1695,28 @@ function mons.init(mod, rows, menu)
       if not (current and type(B) == "table" and B._st ~= nil) then return nil end
       return Size.scaleOf(mod.options:get("sizeMons"))
     end
+    -- FULL: the battle's picture calls run with fullNow on, and what
+    -- comes back bigger than the slot is drawn from its middle -Elvie
+    local function fullBattle()
+      local B = package.loaded["src.core.game3.battle"]
+      return current and type(B) == "table" and B._st ~= nil and Size.isFull(mod.options:get("sizeMons")) or false
+    end
+    local function atFull(fn, ...)
+      fullNow = true
+      local ok, e = pcall(fn, ...)
+      fullNow = false
+      if not ok then error(e, 0) end
+      if type(e) == "table" and e.image and e.image.getDimensions then
+        Size.markBig(e, mons.bigMargin(e.image:getDimensions()))
+      end
+      return e
+    end
+    Size.hookDraw()
     if okA and type(MonAnim) == "table" and type(MonAnim.framePic) == "function" then
       local fullFrame = MonAnim.framePic
       mons.rawFramePic = fullFrame
       MonAnim.framePic = function(species, frame, shiny, ...)
+        if fullBattle() then return atFull(fullFrame, species, frame, shiny, ...) end
         local e = fullFrame(species, frame, shiny, ...)
         local s = sizeNow()
         if not s then return e end
@@ -1677,6 +1728,7 @@ function mons.init(mod, rows, menu)
     if okU and type(Ui) == "table" and type(Ui.sidePic) == "function" then
       local fullSide = Ui.sidePic
       Ui.sidePic = function(back, ignoreDeoxys, picSp, ...)
+        if fullBattle() then return atFull(fullSide, back, ignoreDeoxys, picSp, ...) end
         local e = fullSide(back, ignoreDeoxys, picSp, ...)
         local s = sizeNow()
         if not s then return e end

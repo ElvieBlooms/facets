@@ -87,9 +87,12 @@ end
 -- shrink to fit whole; backs keep their top 64 rows (the DS hides a back's
 -- lower part behind the text box), then shrink if still too wide. Returns
 -- the rows to keep and the scale -Elvie
-function ds.fitPlan(w, h, back)
+-- With full (SIZE: FULL, in battle) nothing shrinks: the picture keeps
+-- its own size and runs past the slot -Elvie
+function ds.fitPlan(w, h, back, full)
   local keepH = h
   if back and h > SIZE then keepH = SIZE end
+  if full then return keepH, 1 end
   local scale = math.min(1, SIZE / w, SIZE / keepH)
   return keepH, scale
 end
@@ -126,10 +129,11 @@ local function drawnBox(sheet, fw, fh, frames)
 end
 
 -- A battle sprite's picture for Gen 3: frame 0 (or, with alt, the
--- animation's second frame), fitted to 64x64 or less, as ImageData; nil
+-- animation's second frame), fitted to 64x64 or less (or, with full, at
+-- its own size), as ImageData; nil
 -- when the dump or the picture isn't there. Both frames are cut from the
 -- same rectangle, so they line up -Elvie
-function ds.monPicture(api, game, id, back, alt)
+function ds.monPicture(api, game, id, back, alt, full)
   if not (api and type(api.imageData) == "function" and id) then return nil end
   local ok, sheet, entry = pcall(api.imageData, game, "battle_sprites", id)
   if not (ok and sheet and type(entry) == "table") then return nil end
@@ -145,7 +149,7 @@ function ds.monPicture(api, game, id, back, alt)
   if alt and not second then return nil end
   local bx, by, bw, bh = drawnBox(sheet, fw, fh, frames)
   if not bx then return nil end
-  local keepH, scale = ds.fitPlan(bw, bh, back)
+  local keepH, scale = ds.fitPlan(bw, bh, back, full)
   local from = alt and frames[2] or frames[1]
   local ow, oh = math.max(1, math.floor(bw * scale + 0.5)), math.max(1, math.floor(keepH * scale + 0.5))
   local out = love.image.newImageData(ow, oh)

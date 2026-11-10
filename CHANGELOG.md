@@ -2,7 +2,7 @@
 
 ## 1.2.2
 
-- FireRed, LeafGreen, Ruby, Sapphire and Emerald: **SIZE** under POKEMON and under TRAINERS, as on the Game Boy games. **FIT** (the default) is as before; **SMALL** shows the set's pictures at three quarters in battle and **TINY** at half, standing on the same ground (your Pokémon on the text box). Outside battle they stay full size. There's no FULL on the GBA yet, since a DS Pokémon bigger than the game's 64x64 slot would be cut off.
+- FireRed, LeafGreen, Ruby, Sapphire and Emerald: **SIZE** under POKEMON and under TRAINERS, as on the Game Boy games. **FIT** (the default) is as before. **FULL** (Pokémon) shows the DS choices and BW ANIM at their own size in battle, so big Pokémon run past the game's 64x64 slot instead of being shrunk into it. **SMALL** shows the set's pictures at three quarters in battle and **TINY** at half, standing on the same ground (your Pokémon on the text box). Outside battle they stay as at FIT.
 - Gold, Silver and Crystal with **BATTLE BG: SCENERY** and the game's **BATTLE SIZE** on FILL (normal battle screen): the blurred scene round the screen covered its edges, cutting off the foe's name along the top and the sides of the boxes. That showed most with bigger letters, such as a Japanese translation, and on handhelds whose screen isn't a whole multiple of the Game Boy's. The borders now keep to the screen as it's really drawn.
 
 ## 1.2.1
