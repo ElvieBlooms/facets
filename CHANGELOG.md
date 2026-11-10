@@ -8,6 +8,7 @@
 - Gold, Silver and Crystal with **BATTLE BG: SCENERY** and the game's **BATTLE SIZE** on FILL (normal battle screen): the blurred scene round the screen covered its edges, cutting off the foe's name along the top and the sides of the boxes. That showed most with bigger letters, such as a Japanese translation, and on handhelds whose screen isn't a whole multiple of the Game Boy's. The borders now keep to the screen as it's really drawn.
 - Gold, Silver and Crystal's wide battle with **BATTLE HUD: EXTENDED**: on a tall or large screen the boxes sit at the top and bottom of the window with white between them and the field. With a BATTLE BG scene that space now follows **BORDERS**: BLUR (the default) fills it with the scene blurred, as round the screen, FILL makes the whole column one zoomed picture, and OFF leaves the white.
 - The borders round a battle scene (BLUR and FILL) no longer leave a faint line of the surround along the game screen's edge on high-resolution phones.
+- Gold, Silver and Crystal's wide battle now gets BORDERS too (it was left white round the screen, which showed on tall phones). With BATTLE HUD: EXTENDED, the column and the borders round it are one picture, the window's.
 
 ## 1.2.1
 

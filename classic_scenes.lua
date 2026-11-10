@@ -191,7 +191,7 @@ end
 function scenes.edges(info)
   local s = shown
   frame = frame + 1
-  if not (s and s.stamp == frame - 1 and type(info) == "table") or info.worldActive or s.wide then return end
+  if not (s and s.stamp == frame - 1 and type(info) == "table") or info.worldActive then return end
   local cw, ch = s.canvas:getDimensions()
   local vpw, vph = tonumber(info.vpw), tonumber(info.vph)
   if not (cw and ch and cw > 0 and ch > 0 and vpw and vph) then return end
@@ -696,10 +696,15 @@ function scenes.init(mod, rows)
     -- window), the field showing its part, so there's no white between the
     -- Pokémon and the boxes. { ox, oy, scale, x, y, w, h } while it draws -Elvie
     local dock = nil
+    -- the docked column while it draws, whatever BORDERS is: the borders
+    -- go round all of it, not just the field, so they never cover its
+    -- boxes -Elvie
+    local column = nil
+    -- FILL's picture is the window's (as the borders have it), so the
+    -- column and the borders round it are one -Elvie
     local function dockPlace(s)
       local iw, ih = s.image:getDimensions()
-      local cx, cy, cw, ch, x0, y0, k = scenes.fillPlace(iw, ih, dock.w, dock.h)
-      return cx, cy, cw, ch, dock.x + x0, dock.y + y0, k
+      return scenes.fillPlace(iw, ih, dock.ww, dock.wh)
     end
     local function dockQuad(s)
       local iw, ih = s.image:getDimensions()
@@ -719,14 +724,22 @@ function scenes.init(mod, rows)
         love.graphics.draw(s.image, q, s.wideX + (x0 - dock.ox) / dock.scale, (y0 - dock.oy) / dock.scale, 0,
           k / dock.scale, k / dock.scale)
         note(s.image, s.wx, s.wy, s.wideX, 0, lit)
-        if shown then shown.wide = true end
+        if shown and column then shown.screen = { column.x, column.y, column.w, column.h } end
       elseif wide then
-        love.graphics.draw(s.image, s.wide, s.wideX, 0)
+        -- FILL: the field's part of the one big scene -Elvie
+        if not scenes.fillDraw(s.image, s.wideX, 0, scenes.WIDE_W) then
+          love.graphics.draw(s.image, s.wide, s.wideX, 0)
+        end
         note(s.image, s.wx, s.wy, s.wideX, 0, lit)
-        -- Gold, Silver and Crystal's wide battle draws past the Game Boy
-        -- screen, over the window's borders: they're its own, so they're
-        -- left alone (the blur there covered its sides and its boxes) -Elvie
-        if shown then shown.wide = true end
+        -- the borders go round the wide screen (or the docked column), so
+        -- they keep off its sides and boxes -Elvie
+        if shown and column then
+          shown.screen = { column.x, column.y, column.w, column.h }
+        elseif shown and type(love.graphics.transformPoint) == "function" then
+          local x0, y0 = love.graphics.transformPoint(s.wideX, 0)
+          local x1, y1 = love.graphics.transformPoint(s.wideX + scenes.WIDE_W, scenes.SCREEN_H)
+          shown.screen = { x0, y0, x1 - x0, y1 - y0 }
+        end
       else
         -- FILL: the screen's part of the one big scene -Elvie
         if not scenes.fillDraw(s.image, 0, 0, scenes.W) then love.graphics.draw(s.image, s.quad, 0, 0) end
@@ -832,26 +845,27 @@ function scenes.init(mod, rows)
           local scale = battle:battlePanelScale(winW, winH)
           local ox, oy = Chrome.fitOriginFor(winW, winH, scale, WideBattle.TILES_W, WideBattle.TILES_H)
           local _, py, _, ph = Chrome.playfieldRect(winW, winH)
-          return { ox = ox, oy = oy, scale = scale, x = ox, y = py, w = WideBattle.WIDTH * scale, h = ph }
+          return { ox = ox, oy = oy, scale = scale, x = ox, y = py, w = WideBattle.WIDTH * scale, h = ph,
+            ww = winW, wh = winH }
         end)
         if not okP then return ownDraw(battle, winW, winH, ...) end
         -- the column's paper fill gets the scene painted over it -Elvie
         local fill = Chrome.paletteFill
-        local column = true
+        local firstFill = true
         Chrome.paletteFill = function(...)
           local r = { fill(...) }
-          if column and not baking then
-            column = false
+          if firstFill and not baking then
+            firstFill = false
             local G = love.graphics
             G.push("all")
             G.setScissor(place.x, place.y, place.w, place.h)
             if blur then
+              -- the window's blur, as the borders draw it -Elvie
               local iw, ih = s.image:getDimensions()
-              local k = scenes.coverScale(iw, ih, place.w, place.h, scenes.ZOOM)
+              local k = scenes.coverScale(iw, ih, place.ww, place.wh, scenes.ZOOM)
               local bw, bh = blur:getDimensions()
               scenes.setLight(lit, scenes.DIM)
-              G.draw(blur, place.x + (place.w - iw * k) / 2, place.y + (place.h - ih * k) / 2, 0,
-                iw * k / bw, ih * k / bh)
+              G.draw(blur, (place.ww - iw * k) / 2, (place.wh - ih * k) / 2, 0, iw * k / bw, ih * k / bh)
             else
               dock = place
               local q, x0, y0, k = dockQuad(s)
@@ -863,8 +877,9 @@ function scenes.init(mod, rows)
           return unpack(r)
         end
         dock = not blur and place or nil
+        column = place
         local ok, err = pcall(ownDraw, battle, winW, winH, ...)
-        Chrome.paletteFill, dock = fill, nil
+        Chrome.paletteFill, dock, column = fill, nil, nil
         if not ok then error(err, 0) end
       end
     end
