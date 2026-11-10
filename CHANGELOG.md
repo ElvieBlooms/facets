@@ -7,6 +7,7 @@
 - FireRed, LeafGreen, Ruby, Sapphire and Emerald: **SIZE** under POKEMON and under TRAINERS, as on the Game Boy games. **FIT** (the default) is as before. **FULL** (Pokémon) shows the DS choices and BW ANIM at their own size in battle, so big Pokémon run past the game's 64x64 slot instead of being shrunk into it. **SMALL** shows the set's pictures at three quarters in battle and **TINY** at half, standing on the same ground (your Pokémon on the text box). Outside battle they stay as at FIT.
 - Gold, Silver and Crystal with **BATTLE BG: SCENERY** and the game's **BATTLE SIZE** on FILL (normal battle screen): the blurred scene round the screen covered its edges, cutting off the foe's name along the top and the sides of the boxes. That showed most with bigger letters, such as a Japanese translation, and on handhelds whose screen isn't a whole multiple of the Game Boy's. The borders now keep to the screen as it's really drawn.
 - Gold, Silver and Crystal's wide battle with **BATTLE HUD: EXTENDED**: on a tall or large screen the boxes sit at the top and bottom of the window with white between them and the field. With a BATTLE BG scene that space now follows **BORDERS**: BLUR (the default) fills it with the scene blurred, as round the screen, FILL makes the whole column one zoomed picture, and OFF leaves the white.
+- The borders round a battle scene (BLUR and FILL) no longer leave a faint line of the surround along the game screen's edge on high-resolution phones.
 
 ## 1.2.1
 

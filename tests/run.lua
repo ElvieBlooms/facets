@@ -2977,7 +2977,11 @@ do
   do
     local cv = {}
     local r = Sc.screenRect({ canvas = cv, screen = { 10.4, 3.6, 777.6, 699.8 } }, cv)
-    eq(r and table.concat(r, ","), "10,3,778,701", "scenes: the screen as drawn, rounded outward")
+    eq(r and string.format("%g,%g,%g,%g", r[1], r[2], r[3], r[4]), "10.4,3.6,777.6,699.8", "scenes: the screen as drawn")
+    eq(string.format("%g,%g,%g,%g", Sc.borderEdges(10.4, 3.6, 777.6, 699.8, 1)), "11,4,777,699",
+      "scenes: the borders run over the pixels the screen's edges cut through")
+    eq(string.format("%g,%g,%g,%g", Sc.borderEdges(250.3, 0, 500.2, 400, 2)), "250.5,0,500,400",
+      "scenes: ...counted in the screen's own pixels at high DPI")
     eq(Sc.screenRect({ canvas = cv, screen = { 0, 0, 160, 144 } }, {}), nil,
       "scenes: ...but not from another canvas")
     eq(Sc.screenRect({ canvas = cv }, cv), nil, "scenes: ...nor when it wasn't noted")

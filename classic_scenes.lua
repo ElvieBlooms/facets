@@ -212,12 +212,14 @@ function scenes.edges(info)
   local dw, dh = iw * k, ih * k
   -- only the borders: whatever order the engine puts the game screen down
   -- in, the screen itself is never drawn over -Elvie
-  local ox, oy = math.floor((tonumber(info.ox) or 0) + 0.5), math.floor((tonumber(info.oy) or 0) + 0.5)
-  local sw, sh = math.floor(vpw + 0.5), math.floor(vph + 0.5)
+  local ox, oy = tonumber(info.ox) or 0, tonumber(info.oy) or 0
+  local sw, sh = vpw, vph
   -- the screen as it was really drawn, when that's known and on the same
   -- canvas (BATTLE SIZE: FILL draws it bigger than the letterbox) -Elvie
   local real = scenes.screenRect(s, G.getCanvas and G.getCanvas())
   if real then ox, oy, sw, sh = real[1], real[2], real[3], real[4] end
+  local d = type(G.getDPIScale) == "function" and G.getDPIScale() or 1
+  local bl, bt, bw2, bh2 = scenes.borderEdges(ox, oy, sw, sh, d)
   if mode == "fill" then
     -- the scene, sharp, zoomed until it covers the whole window and
     -- centred on it (some of it goes past the edges, never mirrored);
@@ -231,7 +233,7 @@ function scenes.edges(info)
     else
       q:setViewport(cx, cy, cw2, ch2, iw, ih)
     end
-    for _, r in ipairs(scenes.bars(ox, oy, sw, sh, ww, wh)) do
+    for _, r in ipairs(scenes.bars(bl, bt, bw2, bh2, ww, wh)) do
       G.push("all")
       G.origin()
       G.intersectScissor(r[1], r[2], r[3], r[4])
@@ -241,7 +243,7 @@ function scenes.edges(info)
     end
     return
   end
-  for _, r in ipairs(scenes.bars(ox, oy, sw, sh, ww, wh)) do
+  for _, r in ipairs(scenes.bars(bl, bt, bw2, bh2, ww, wh)) do
     G.push("all")
     G.origin()
     G.intersectScissor(r[1], r[2], r[3], r[4])
@@ -251,16 +253,29 @@ function scenes.edges(info)
   end
 end
 
--- The game screen's rectangle as it was really drawn this frame, in whole
--- pixels and rounded outward, or nil if it wasn't noted or was drawn into
--- another canvas than the one the borders go on -Elvie
+-- The game screen's rectangle as it was really drawn this frame (it can
+-- end part way through a pixel), or nil if it wasn't noted or was drawn
+-- into another canvas than the one the borders go on -Elvie
 function scenes.screenRect(s, canvas)
   local r = type(s) == "table" and s.screen
   if not (r and r[3] and r[4] and r[3] > 0 and r[4] > 0) then return nil end
   if type(canvas) == "table" and canvas[1] then canvas = canvas[1].texture or canvas[1] end
   if canvas ~= s.canvas then return nil end
-  local x0, y0 = math.floor(r[1]), math.floor(r[2])
-  return { x0, y0, math.ceil(r[1] + r[3]) - x0, math.ceil(r[2] + r[4]) - y0 }
+  return { r[1], r[2], r[3], r[4] }
+end
+
+-- The screen's edges, moved out to the window's pixels for the borders:
+-- each border runs on over the pixel the screen's edge cuts through, so no
+-- sliver of the surround shows between them (on a high-DPI screen a whole
+-- unit is two or three pixels, which used to leave a faint line). d is
+-- pixels to a unit -Elvie
+function scenes.borderEdges(ox, oy, sw, sh, d)
+  d = d or 1
+  local l = math.ceil(ox * d - 1e-6) / d
+  local t = math.ceil(oy * d - 1e-6) / d
+  local r = math.floor((ox + sw) * d + 1e-6) / d
+  local b = math.floor((oy + sh) * d + 1e-6) / d
+  return l, t, math.max(0, r - l), math.max(0, b - t)
 end
 
 -- The four borders round the game screen at (ox, oy) vpw x vph in a
