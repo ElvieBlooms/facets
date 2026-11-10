@@ -423,7 +423,8 @@ function gbui.scene(mod, setKey, bgKey)
     local id = setKey .. "/" .. tostring(bgKey or "")
     local hit = scenes[id]
     if hit ~= nil then return hit or nil end
-    local data = require("mods.facets.gba_bg").imageData(setKey, bgKey)
+    local G = require("mods.facets.gba_bg")
+    local data = G.imageData(setKey, bgKey, G.PAD)
     scenes[id] = data and image(data) or false
     if scenes[id] then pcall(scenes[id].setWrap, scenes[id], "mirroredrepeat", "mirroredrepeat") end
     return scenes[id] or nil
@@ -825,6 +826,13 @@ function gbui.init(mod, rows, menu)
   rows[#rows + 1] = { key = "gbcBattleBg", type = "choice", label = "  BATTLE BG", choices = gbui.BG, default = "game" }
   rows[#rows + 1] = { key = "sceneTime", type = "choice", label = "  SCENE TIME",
     choices = { { "ON", "on" }, { "OFF", "off" } }, default = "on" }
+  -- the window's borders round a battle scene: blurred, the scene
+  -- itself, or the engine's own (classic_scenes) -Elvie
+  do
+    local Sc = require("mods.facets.classic_scenes")
+    rows[#rows + 1] = { key = "sceneBorders", type = "choice", label = "  BORDERS", choices = Sc.BORDERS, default = "blur" }
+    Sc.borders = function() return mod.options:get("sceneBorders") or "blur" end
+  end
 
   local function imported()
     local gb = package.loaded["mods.facets.gb"] or require("mods.facets.gb")
@@ -1274,10 +1282,20 @@ function gbui.init(mod, rows, menu)
               love.graphics.rectangle("fill", 0, 112, 240, 48)
               local light = lightFor(bg, key)
               if light then Edges.setLight(light) else love.graphics.setColor(1, 1, 1, 1) end
-              love.graphics.draw(img, 0, 0)
+              -- a GBA background has its surroundings round it, for the
+              -- borders: the scene is the 240x112 at pad, pad -Elvie
+              local pad = gbui.BG_SETS[bg].gba and require("mods.facets.gba_bg").PAD or 0
+              if pad > 0 then
+                local iw, ih = img:getDimensions()
+                gbui._gbaQuad = gbui._gbaQuad or love.graphics.newQuad(pad, pad, 240, 112, iw, ih)
+                gbui._gbaQuad:setViewport(pad, pad, 240, 112, iw, ih)
+                love.graphics.draw(img, gbui._gbaQuad, 0, 0)
+              else
+                love.graphics.draw(img, 0, 0)
+              end
               love.graphics.setColor(1, 1, 1, 1)
               -- noted, so the window's borders carry it on -Elvie
-              if Edges then pcall(Edges._note, img, 0, 0, 0, 0, light) end
+              if Edges then pcall(Edges._note, img, pad, pad, 0, 0, light) end
               return true
             end
             return orig(key, ...)

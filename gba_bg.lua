@@ -88,13 +88,15 @@ end
 
 -- A background and its platforms laid together, the part above the text
 -- box (240x112), as ImageData; nil when they can't be read. pad widens it
--- by that much on each side for the wide battles: the background carries
--- on as the GBA's own does when it scrolls (it repeats every 256), and
--- the platforms stay where they are, so there's never a second one -Elvie
-gbaBg.PAD = 48
+-- by that much on every side, for the wide battles and BORDERS: SCENE:
+-- the background carries on across as the GBA's own does when it scrolls
+-- (it repeats every 256) and up and down mirrored, and the platforms stay
+-- where they are, so there's never a second one. The 240x112 is then at
+-- pad, pad -Elvie
+gbaBg.PAD = 96
 function gbaBg.compose(bg, enemy, player, pad)
   pad = pad or 0
-  local w, h = gbaBg.W + 2 * pad, gbaBg.H
+  local w, h = gbaBg.W + 2 * pad, gbaBg.H + 2 * pad
   local function layer(raw)
     return raw and love.image.newImageData(256, 160, "rgba8", raw:sub(1, 256 * 160 * 4)) or nil
   end
@@ -103,12 +105,17 @@ function gbaBg.compose(bg, enemy, player, pad)
   if not back then return nil end
   local out = love.image.newImageData(w, h)
   for y = 0, h - 1 do
+    local sy = y - pad
     for x = 0, w - 1 do
       local sx = x - pad
-      local r, g, b = back:getPixel(sx % 256, y)
-      if sx >= 0 and sx < 256 then
+      -- up and down it's mirrored within the 112 rows above the text
+      -- box (below them the GBA's background is black) -Elvie
+      local my = sy % 224
+      if my >= gbaBg.H then my = 223 - my end
+      local r, g, b = back:getPixel(sx % 256, my)
+      if sx >= 0 and sx < 256 and sy >= 0 and sy < gbaBg.H then
         for _, l in ipairs(plats) do
-          local lr, lg, lb, la = l:getPixel(sx, y)
+          local lr, lg, lb, la = l:getPixel(sx, sy)
           if la > 0 then r, g, b = lr * la + r * (1 - la), lg * la + g * (1 - la), lb * la + b * (1 - la) end
         end
       end

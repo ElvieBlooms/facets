@@ -1227,7 +1227,7 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sceneTime,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sceneTime,sceneBorders,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
   local trainerSets = {}
   for _, c in ipairs(mod.rows[6].choices) do trainerSets[#trainerSets + 1] = c[1] end
   eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
@@ -2978,6 +2978,9 @@ do
     eq(Sc.screenRect({ canvas = cv, screen = { 0, 0, 160, 144 } }, {}), nil,
       "scenes: ...but not from another canvas")
     eq(Sc.screenRect({ canvas = cv }, cv), nil, "scenes: ...nor when it wasn't noted")
+    local px, py, kx = Sc.placed({ x = 2, y = 3, kx = 1, ky = 1, canvas = { getDimensions = function() return 240, 160 end } },
+      false, 100, 50, 960)
+    eq(string.format("%g,%g,%g", px, py, kx), "108,62,4", "borders: SCENE puts the picture where the screen has it, at its size")
   end
   local bars = Sc.bars(112, 24, 800, 720, 1024, 768)
   local t = {}

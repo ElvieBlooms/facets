@@ -88,6 +88,26 @@ end
 -- the sharp battle sits in front of a soft backdrop of itself -Elvie
 scenes.ZOOM, scenes.DIM = 1.15, 0.8
 
+-- BORDERS: BLUR (that), SCENE (the scene itself carried on round the
+-- screen, sharp and at the screen's own size, as if the screen were the
+-- whole window) or OFF (the engine's own surround). Set from the options
+-- by whichever part is running -Elvie
+scenes.BORDERS = { { "BLUR", "blur" }, { "SCENE", "scene" }, { "OFF", "off" } }
+scenes.borders = function() return "blur" end
+
+-- Where the scene's picture sits in the window, for SCENE: x, y of its
+-- top-left corner and the window pixels to one of its pixels. Straight
+-- from the note when the scene went on the window's own canvas; else (the
+-- GBA games, Red, Blue and Yellow's normal screen) the note's canvas is the
+-- game screen, put down at ox, oy, vpw wide -Elvie
+function scenes.placed(s, onCanvas, ox, oy, vpw)
+  if onCanvas then return s.x, s.y, s.kx, s.ky end
+  local cw = s.canvas and s.canvas.getDimensions and s.canvas:getDimensions()
+  if not (cw and cw > 0 and vpw) then return nil end
+  local f = vpw / cw
+  return ox + s.x * f, oy + s.y * f, s.kx * f, s.ky * f
+end
+
 -- The scale that makes a w x h picture cover a ww x wh window, zoomed in a
 -- little more -Elvie
 function scenes.coverScale(w, h, ww, wh, zoom)
@@ -143,14 +163,17 @@ function scenes.edges(info)
   if not (cw and ch and cw > 0 and ch > 0 and vpw and vph) then return end
   local ww, wh = tonumber(info.ww), tonumber(info.wh)
   if not (ww and wh and ww > 0 and wh > 0) then return end
-  local blur = blurOf(s.image)
-  if not blur then return end
+  local mode = scenes.borders()
+  if mode == "off" then return end
+  local blur = mode ~= "scene" and blurOf(s.image)
+  if mode ~= "scene" and not blur then return end
   local G = love.graphics
   -- the whole scene, zoomed to cover the window a little past its edges
   -- and centred on it -Elvie
   local iw, ih = s.image:getDimensions()
   local k = scenes.coverScale(iw, ih, ww, wh, scenes.ZOOM)
-  local bw, bh = blur:getDimensions()
+  local bw, bh = 1, 1
+  if blur then bw, bh = blur:getDimensions() end
   local dw, dh = iw * k, ih * k
   -- only the borders: whatever order the engine puts the game screen down
   -- in, the screen itself is never drawn over -Elvie
@@ -160,6 +183,32 @@ function scenes.edges(info)
   -- canvas (BATTLE SIZE: FILL draws it bigger than the letterbox) -Elvie
   local real = scenes.screenRect(s, G.getCanvas and G.getCanvas())
   if real then ox, oy, sw, sh = real[1], real[2], real[3], real[4] end
+  if mode == "scene" then
+    -- the picture where the screen has it, at its size, carried on
+    -- mirrored past its edges to the window's -Elvie
+    local cv = G.getCanvas and G.getCanvas()
+    if type(cv) == "table" and cv[1] then cv = cv[1].texture or cv[1] end
+    local px, py, kx, ky = scenes.placed(s, cv == s.canvas, ox, oy, sw)
+    if not (px and kx and kx > 0 and ky > 0) then return end
+    local qx, qy, qw, qh = -px / kx, -py / ky, ww / kx, wh / ky
+    local q = scenes._borderQuad
+    if not q then
+      q = love.graphics.newQuad(qx, qy, qw, qh, iw, ih)
+      scenes._borderQuad = q
+    else
+      q:setViewport(qx, qy, qw, qh, iw, ih)
+    end
+    pcall(s.image.setWrap, s.image, "mirroredrepeat", "mirroredrepeat")
+    for _, r in ipairs(scenes.bars(ox, oy, sw, sh, ww, wh)) do
+      G.push("all")
+      G.origin()
+      G.intersectScissor(r[1], r[2], r[3], r[4])
+      scenes.setLight(s.light)
+      G.draw(s.image, q, 0, 0, 0, kx, ky)
+      G.pop()
+    end
+    return
+  end
   for _, r in ipairs(scenes.bars(ox, oy, sw, sh, ww, wh)) do
     G.push("all")
     G.origin()
@@ -328,7 +377,7 @@ local function startGen1(mod, sceneFor)
         -- on down past the field to the bottom of the screen, so the
         -- ground carries on behind the text box instead of a white band
         -- (the art's last rows mirrored) -Elvie
-        q = love.graphics.newQuad(math.floor((iw - W) / 2), ih - BOTTOM, W, H, iw, ih)
+        q = love.graphics.newQuad(math.floor((iw - W) / 2), (s.coreBottom or ih) - BOTTOM, W, H, iw, ih)
         quads[s.image] = q
       end
       G.setColor(1, 1, 1, 1)
@@ -450,6 +499,8 @@ function scenes.init(mod, rows)
   rows[#rows + 1] = { key = "classicBattleBg", type = "choice", label = "BATTLE BG", choices = choices, default = GAME }
   rows[#rows + 1] = { key = "classicSceneColours", type = "choice", label = "SCENE COLOURS",
     choices = { { "ORIGINAL", "original" }, { "GBC", "gbc" } }, default = "original" }
+  rows[#rows + 1] = { key = "sceneBorders", type = "choice", label = "BORDERS", choices = scenes.BORDERS, default = "blur" }
+  scenes.borders = function() return mod.options:get("sceneBorders") or "blur" end
   if gen == 2 then
     rows[#rows + 1] = { key = "sceneTime", type = "choice", label = "SCENE TIME",
       choices = { { "ON", "on" }, { "OFF", "off" } }, default = "on" }
@@ -508,11 +559,16 @@ function scenes.init(mod, rows)
       -- sides do -Elvie
       image:setWrap("mirroredrepeat", "mirroredrepeat")
       local w, h = image:getDimensions()
-      local x, y, cw, ch = scenes.crop(w, h)
+      -- a GBA background is built with its surroundings round it: the
+      -- scene itself is the 240x112 at pad, pad (gba_bg) -Elvie
+      local pad = gbaData and gbaBg.PAD or 0
+      local x, y, cw, ch = scenes.crop(w - 2 * pad, h - 2 * pad)
+      x, y = x + pad, y + pad
       -- the wide battle has room for the whole width, and more: its field
       -- is 304 across, so the art carries on mirrored to both its edges
       -- (it's drawn from the 160 screen's left, 72 in) -Elvie
-      local wx, wy, ww, wh = scenes.crop(w, h, w)
+      local wx, wy, ww, wh = scenes.crop(w - 2 * pad, h - 2 * pad, w - 2 * pad)
+      wy = wy + pad
       ww = scenes.WIDE_W
       wx = math.floor((w - ww) / 2)
       -- Both run on down the whole screen, so the ground carries on
@@ -520,7 +576,7 @@ function scenes.init(mod, rows)
       local down = scenes.SCREEN_H - ch
       images[id] = { image = image, quad = love.graphics.newQuad(x, y, cw, ch + down, w, h),
         wide = love.graphics.newQuad(wx, wy, ww, wh + down, w, h), wideX = math.floor((scenes.W - ww) / 2),
-        x = x, y = y, wx = wx, wy = wy }
+        x = x, y = y, wx = wx, wy = wy, coreBottom = h - pad }
       return images[id]
     end
 
