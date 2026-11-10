@@ -155,7 +155,12 @@ function scenes.edges(info)
   -- only the borders: whatever order the engine puts the game screen down
   -- in, the screen itself is never drawn over -Elvie
   local ox, oy = math.floor((tonumber(info.ox) or 0) + 0.5), math.floor((tonumber(info.oy) or 0) + 0.5)
-  for _, r in ipairs(scenes.bars(ox, oy, math.floor(vpw + 0.5), math.floor(vph + 0.5), ww, wh)) do
+  local sw, sh = math.floor(vpw + 0.5), math.floor(vph + 0.5)
+  -- the screen as it was really drawn, when that's known and on the same
+  -- canvas (BATTLE SIZE: FILL draws it bigger than the letterbox) -Elvie
+  local real = scenes.screenRect(s, G.getCanvas and G.getCanvas())
+  if real then ox, oy, sw, sh = real[1], real[2], real[3], real[4] end
+  for _, r in ipairs(scenes.bars(ox, oy, sw, sh, ww, wh)) do
     G.push("all")
     G.origin()
     G.intersectScissor(r[1], r[2], r[3], r[4])
@@ -163,6 +168,18 @@ function scenes.edges(info)
     G.draw(blur, (ww - dw) / 2, (wh - dh) / 2, 0, dw / bw, dh / bh)
     G.pop()
   end
+end
+
+-- The game screen's rectangle as it was really drawn this frame, in whole
+-- pixels and rounded outward, or nil if it wasn't noted or was drawn into
+-- another canvas than the one the borders go on -Elvie
+function scenes.screenRect(s, canvas)
+  local r = type(s) == "table" and s.screen
+  if not (r and r[3] and r[4] and r[3] > 0 and r[4] > 0) then return nil end
+  if type(canvas) == "table" and canvas[1] then canvas = canvas[1].texture or canvas[1] end
+  if canvas ~= s.canvas then return nil end
+  local x0, y0 = math.floor(r[1]), math.floor(r[2])
+  return { x0, y0, math.ceil(r[1] + r[3]) - x0, math.ceil(r[2] + r[4]) - y0 }
 end
 
 -- The four borders round the game screen at (ox, oy) vpw x vph in a
@@ -564,6 +581,14 @@ function scenes.init(mod, rows)
       else
         love.graphics.draw(s.image, s.quad, 0, 0)
         note(s.image, s.x, s.y, 0, 0, lit)
+        -- where the game screen itself landed in the window: with BATTLE
+        -- SIZE on FILL it's drawn bigger than the letterbox the borders are
+        -- told about, so they go by this instead and keep off it -Elvie
+        if shown and type(love.graphics.transformPoint) == "function" then
+          local x0, y0 = love.graphics.transformPoint(0, 0)
+          local x1, y1 = love.graphics.transformPoint(scenes.W, scenes.SCREEN_H)
+          shown.screen = { x0, y0, x1 - x0, y1 - y0 }
+        end
       end
       love.graphics.setColor(1, 1, 1, 1)
     end

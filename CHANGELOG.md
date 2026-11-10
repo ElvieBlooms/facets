@@ -3,6 +3,7 @@
 ## 1.2.1
 
 - **ANIMATION** now covers Kanto Reforged's own animated Pokémon too, on both sides: LOOP plays them round and round, INTRO keeps Kanto Reforged's way (twice through as it comes out, then still), and OFF shows only the still. Before, they always played twice and stopped, whatever ANIMATION said.
+- Gold, Silver and Crystal with **BATTLE BG: SCENERY** and the game's **BATTLE SIZE** on FILL (normal battle screen): the blurred scene round the screen covered its edges, cutting off the foe's name along the top and the sides of the boxes. That showed most with bigger letters, such as a Japanese translation, and on handhelds whose screen isn't a whole multiple of the Game Boy's. The borders now keep to the screen as it's really drawn.
 
 ## 1.2.0
 

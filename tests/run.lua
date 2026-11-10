@@ -2903,6 +2903,14 @@ do
   eq(Sc.coverScale(160, 144, 1024, 768, 1), 6.4, "scenes: the backdrop covers the window's width")
   eq(Sc.coverScale(240, 160, 800, 720, 1), 4.5, "scenes: ...or its height, whichever needs more")
   eq(Sc.coverScale(100, 100, 200, 100, 1.5), 3, "scenes: ...zoomed in a little more")
+  do
+    local cv = {}
+    local r = Sc.screenRect({ canvas = cv, screen = { 10.4, 3.6, 777.6, 699.8 } }, cv)
+    eq(r and table.concat(r, ","), "10,3,778,701", "scenes: the screen as drawn, rounded outward")
+    eq(Sc.screenRect({ canvas = cv, screen = { 0, 0, 160, 144 } }, {}), nil,
+      "scenes: ...but not from another canvas")
+    eq(Sc.screenRect({ canvas = cv }, cv), nil, "scenes: ...nor when it wasn't noted")
+  end
   local bars = Sc.bars(112, 24, 800, 720, 1024, 768)
   local t = {}
   for _, r in ipairs(bars) do t[#t + 1] = table.concat(r, " ") end
