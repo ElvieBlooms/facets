@@ -674,9 +674,38 @@ function scenes.init(mod, rows)
       lit = self._facetsScene and lightOf(self, self._facetsSceneName) or nil
       return self._facetsScene or nil
     end
+    -- Gold, Silver and Crystal's wide battle with BATTLE HUD: EXTENDED
+    -- docks its boxes to the top and bottom of a column as tall as the
+    -- window, and paints the rest of the column paper: the scene fills the
+    -- whole column instead (zoomed to cover it, as BORDERS: FILL does the
+    -- window), the field showing its part, so there's no white between the
+    -- Pokémon and the boxes. { ox, oy, scale, x, y, w, h } while it draws -Elvie
+    local dock = nil
+    local function dockPlace(s)
+      local iw, ih = s.image:getDimensions()
+      local cx, cy, cw, ch, x0, y0, k = scenes.fillPlace(iw, ih, dock.w, dock.h)
+      return cx, cy, cw, ch, dock.x + x0, dock.y + y0, k
+    end
+    local function dockQuad(s)
+      local iw, ih = s.image:getDimensions()
+      local cx, cy, cw, ch, x0, y0, k = dockPlace(s)
+      local q = scenes._dockQuad
+      if not q then q = love.graphics.newQuad(cx, cy, cw, ch, iw, ih); scenes._dockQuad = q
+      else q:setViewport(cx, cy, cw, ch, iw, ih) end
+      return q, x0, y0, k
+    end
+
     local function drawScene(s, wide)
       scenes.setLight(lit)
-      if wide then
+      if wide and dock then
+        -- the field's part of the column's scene: the field's 0, 0 is the
+        -- window's ox, oy, drawn from s.wideX here -Elvie
+        local q, x0, y0, k = dockQuad(s)
+        love.graphics.draw(s.image, q, s.wideX + (x0 - dock.ox) / dock.scale, (y0 - dock.oy) / dock.scale, 0,
+          k / dock.scale, k / dock.scale)
+        note(s.image, s.wx, s.wy, s.wideX, 0, lit)
+        if shown then shown.wide = true end
+      elseif wide then
         love.graphics.draw(s.image, s.wide, s.wideX, 0)
         note(s.image, s.wx, s.wy, s.wideX, 0, lit)
         -- Gold, Silver and Crystal's wide battle draws past the Game Boy
@@ -768,6 +797,45 @@ function scenes.init(mod, rows)
         local results
         painted(s, true, function(...) results = { ownField(...) } end, battle, ...)
         return results and results[1]
+      end
+    end
+    if okW and type(WideBattle) == "table" and type(WideBattle.draw) == "function"
+        and type(WideBattle.docked) == "function" and type(Chrome.paletteFill) == "function"
+        and type(Chrome.fitOriginFor) == "function" and type(Chrome.playfieldRect) == "function" then
+      local ownDraw = WideBattle.draw
+      WideBattle.draw = function(battle, winW, winH, ...)
+        local s = sceneFor(battle)
+        local okD, docked = pcall(WideBattle.docked, battle)
+        if not (s and okD and docked) then return ownDraw(battle, winW, winH, ...) end
+        local okP, place = pcall(function()
+          local scale = battle:battlePanelScale(winW, winH)
+          local ox, oy = Chrome.fitOriginFor(winW, winH, scale, WideBattle.TILES_W, WideBattle.TILES_H)
+          local _, py, _, ph = Chrome.playfieldRect(winW, winH)
+          return { ox = ox, oy = oy, scale = scale, x = ox, y = py, w = WideBattle.WIDTH * scale, h = ph }
+        end)
+        if not okP then return ownDraw(battle, winW, winH, ...) end
+        -- the column's paper fill gets the scene painted over it -Elvie
+        local fill = Chrome.paletteFill
+        local column = true
+        Chrome.paletteFill = function(...)
+          local r = { fill(...) }
+          if column and not baking then
+            column = false
+            local G = love.graphics
+            G.push("all")
+            G.setScissor(place.x, place.y, place.w, place.h)
+            dock = place
+            local q, x0, y0, k = dockQuad(s)
+            scenes.setLight(lit)
+            G.draw(s.image, q, x0, y0, 0, k, k)
+            G.pop()
+          end
+          return unpack(r)
+        end
+        dock = place
+        local ok, err = pcall(ownDraw, battle, winW, winH, ...)
+        Chrome.paletteFill, dock = fill, nil
+        if not ok then error(err, 0) end
       end
     end
   end
