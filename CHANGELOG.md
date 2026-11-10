@@ -1,11 +1,14 @@
 # Changelog
 
-## 1.2.1
+## 1.2.2
 
 - **BORDERS**, under BATTLE BG in all eleven games: **BLUR** (the default) keeps the soft, blurred backdrop round the game screen; **FILL** makes the battle one big picture: the scene, sharp, zoomed in until it fills the whole window, with the battle on top (the game screen shows the middle of it rather than a scene of its own); **OFF** leaves the engine's own surround. With a GBA background, Gold, Silver and Crystal's wide battle carries the background on at its sides, with no second platform.
 - **BATTLE BG: FRLG, EMERALD and R/S**, in all eleven games: the GBA games' own battle backgrounds, platforms and all, read from your own imported FireRed or LeafGreen, Emerald, or Ruby or Sapphire. On Red, Blue, Yellow, Gold, Silver and Crystal they work like SCENERY, each place getting the nearest background that game has; in the GBA games one game can fight on another's, FireRed on Emerald's backgrounds, say.
 - FireRed, LeafGreen, Ruby, Sapphire and Emerald: **SIZE** under POKEMON and under TRAINERS, as on the Game Boy games. **FIT** (the default) is as before. **FULL** (Pokémon) shows the DS choices and BW ANIM at their own size in battle, so big Pokémon run past the game's 64x64 slot instead of being shrunk into it. **SMALL** shows the set's pictures at three quarters in battle and **TINY** at half, standing on the same ground (your Pokémon on the text box). Outside battle they stay as at FIT.
 - Gold, Silver and Crystal with **BATTLE BG: SCENERY** and the game's **BATTLE SIZE** on FILL (normal battle screen): the blurred scene round the screen covered its edges, cutting off the foe's name along the top and the sides of the boxes. That showed most with bigger letters, such as a Japanese translation, and on handhelds whose screen isn't a whole multiple of the Game Boy's. The borders now keep to the screen as it's really drawn.
+
+## 1.2.1
+
 - **ANIMATION** now covers Kanto Reforged's own animated Pokémon too, on both sides: LOOP plays them round and round, INTRO keeps Kanto Reforged's way (twice through as it comes out, then still), and OFF shows only the still. Before, they always played twice and stopped, whatever ANIMATION said.
 
 ## 1.2.0
