@@ -169,6 +169,9 @@ function trainers.init(mod, rows, menu)
   rows[#rows + 1] = { key = "sectionTrainers", type = "choice", label = "TRAINERS",
     choices = { { "", "_" } }, default = "_" }
   rows[#rows + 1] = { key = "setTrainers", type = "choice", label = "  SET", choices = choices, default = OFF }
+  -- SIZE: FIT, or the set's pictures shrunk in battle (gen3_size) -Elvie
+  rows[#rows + 1] = { key = "sizeTrainers", type = "choice", label = "  SIZE",
+    choices = require("mods.facets.gen3_size").SIZES, default = "fit" }
   if menu then trainers.screenPart(mod, menu, sets, choices) end
 
   return function()
@@ -286,6 +289,14 @@ function trainers.init(mod, rows, menu)
       return entry or nil
     end
 
+    -- SIZE is for battles: the Hall of Fame, the PokéNav and the rest
+    -- keep the full picture -Elvie
+    local Size = require("mods.facets.gen3_size")
+    local sized = Size.sizer()
+    local function inBattle()
+      local B = package.loaded["src.core.game3.battle"]
+      return type(B) == "table" and B._st ~= nil
+    end
     local origFront = TrainerPic.front
     TrainerPic.front = function(picId, ...)
       local vanilla = origFront(picId, ...)
@@ -294,7 +305,11 @@ function trainers.init(mod, rows, menu)
       -- another mod's picture (Emerald Lens's rival) stays -Elvie
       local own = type(TrainerPic._front) == "table" and TrainerPic._front[id] or nil
       if vanilla and own and vanilla ~= own then return vanilla end
-      return lookup(id) or vanilla
+      local e = lookup(id)
+      if not e then return vanilla end
+      -- SIZE: shrunk on its lowest row, so it keeps its footing -Elvie
+      local s = inBattle() and Size.scaleOf(mod.options:get("sizeTrainers"))
+      return s and sized(e, s) or e
     end
 
     -- PREBUILD: every picture the set has -Elvie

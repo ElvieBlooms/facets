@@ -829,8 +829,9 @@ do
   local labels = {}
   for _, c in ipairs(rows[2].choices) do labels[#labels + 1] = c[2] end
   eq(table.concat(labels, ","), "gbc,gbca,zzz,__off", "mons: sets in label order, then OFF")
-  eq(rows[3].key, "animMons", "mons: FR/LG ANIMS row")
-  eq(rows[3].default, "__off", "mons: FR/LG ANIMS off by default")
+  eq(rows[3].key .. "," .. rows[3].default, "sizeMons,fit", "mons: SIZE row under SET, FIT by default")
+  eq(rows[4].key, "animMons", "mons: FR/LG ANIMS row")
+  eq(rows[4].default, "__off", "mons: FR/LG ANIMS off by default")
   start()
   eq(Pokemon.frontPic(6).vanilla, "front6", "mons: OFF leaves the game's own")
 
@@ -892,7 +893,7 @@ do
   check(not Pokemon.icon(414).vanilla, "gbc icons: Unown letters from Crystal's Unown")
   eq(Pokemon.icon(25).vanilla, "icon25", "gbc icons: not in Crystal's table: the game's own")
   eq(px(Pokemon.icon(1), 10, 40), "255,0,0,1", "gbc icons: the set's own Kanto icon beats Crystal's")
-  eq(#rows, 6, "mons: no icon size row (POKEMON, SET, ANIMS, ANIMATION, YOUR SIDE, MIRROR)")
+  eq(#rows, 7, "mons: no icon size row (POKEMON, SET, SIZE, ANIMS, ANIMATION, YOUR SIDE, MIRROR)")
 
   -- Crystal's animations on Game Boy fronts -Elvie
   local zanims = AnimData.anims(6)
@@ -1072,9 +1073,9 @@ do
   local t, l = monsM.drawnRows(probe)
   eq(t .. "," .. l, "1,2", "your side: the first and last drawn rows")
   eq(monsM.drawnRows(pixelData(4, 4)), nil, "your side: an empty picture has none")
-  eq(rows[4].key .. "," .. rows[4].default, "animMode,loop", "animation: row, LOOP by default")
-  eq(rows[5].key .. "," .. rows[5].default, "backMons,back", "your side: row, BACK by default")
-  eq(rows[6].key .. "," .. rows[6].default, "mirrorMons,on", "mirror fronts: row, ON by default")
+  eq(rows[5].key .. "," .. rows[5].default, "animMode,loop", "animation: row, LOOP by default")
+  eq(rows[6].key .. "," .. rows[6].default, "backMons,back", "your side: row, BACK by default")
+  eq(rows[7].key .. "," .. rows[7].default, "mirrorMons,on", "mirror fronts: row, ON by default")
   mod.options:set("setMons", "gbc")
   mod.options:set("backMons", "front")
   check(not Pokemon.backPic(6).vanilla and Pokemon.backPic(6).imageData, "your side: no canvas (headless): the set's back, as before")
@@ -1226,13 +1227,13 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sectionMons,setMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sceneTime,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sceneTime,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
   local trainerSets = {}
   for _, c in ipairs(mod.rows[6].choices) do trainerSets[#trainerSets + 1] = c[1] end
   eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
   eq(mod.rows[6].default, "__off", "TRAINERS: OFF by default")
   local monSets = {}
-  for _, c in ipairs(mod.rows[8].choices) do monSets[#monSets + 1] = c[1] end
+  for _, c in ipairs(mod.rows[9].choices) do monSets[#monSets + 1] = c[1] end
   eq(table.concat(monSets, ","), "DS,GB EMERALD,GBC ANIM,GBC-ISH,OFF", "shipped: Pokémon sets DS, GB EMERALD, GBC ANIM and GBC-ISH, then OFF")
   package.loaded["src.core.game3.pokemon"] = nil
 end
@@ -2903,6 +2904,47 @@ do
   eq(Sc.coverScale(160, 144, 1024, 768, 1), 6.4, "scenes: the backdrop covers the window's width")
   eq(Sc.coverScale(240, 160, 800, 720, 1), 4.5, "scenes: ...or its height, whichever needs more")
   eq(Sc.coverScale(100, 100, 200, 100, 1.5), 3, "scenes: ...zoomed in a little more")
+  do
+    -- Gen 3 SIZE -Elvie
+    local Size = require("mods.facets.gen3_size")
+    eq(Size.scaleOf("fit"), nil, "size: FIT leaves pictures be")
+    eq(Size.scaleOf("0.5"), 0.5, "size: TINY is half")
+    eq(Size.scaleOf("1"), nil, "size: ...and nothing grows")
+    -- an 8x8 dark-outlined block standing on row 63, middle of the slot -Elvie
+    local d = love.image.newImageData(64, 64)
+    for y = 56, 63 do
+      for x = 28, 35 do
+        local edge = y == 56 or y == 63 or x == 28 or x == 35
+        if edge then d:setPixel(x, y, 0, 0, 0, 1) else d:setPixel(x, y, 1, 0.5, 0, 1) end
+      end
+    end
+    eq(Size.standsAt(d), 64, "size: stands on its lowest drawn row")
+    local small = Size.shrink(d, 0.5, 32, 64)
+    local drawn, x0, x1, y0, y1 = 0
+    for y = 0, 63 do
+      for x = 0, 63 do
+        local _, _, _, a = small:getPixel(x, y)
+        if a > 0 then
+          drawn = drawn + 1
+          x0, x1 = math.min(x0 or x, x), math.max(x1 or x, x)
+          y0, y1 = math.min(y0 or y, y), math.max(y1 or y, y)
+        end
+      end
+    end
+    eq(drawn .. ":" .. x0 .. "," .. y0 .. "-" .. x1 .. "," .. y1, "16:30,60-33,63",
+      "size: TINY halves it about its feet and the middle")
+    local r, g = small:getPixel(30, 60)
+    eq(r .. "," .. g, "0,0", "size: the outline stays dark")
+    local r2, g2 = small:getPixel(31, 61)
+    eq(r2 .. "," .. g2, "1,0.5", "size: the inside keeps its colour")
+    local sized = Size.sizer()
+    local e = { image = {}, imageData = d, w = 64, h = 64 }
+    local got = sized(e, 0.5)
+    check(got ~= e and got.facetsSized and got.w == 64, "size: a sized copy of the entry")
+    eq(sized(e, 0.5), got, "size: made once")
+    eq(sized(got, 0.5), got, "size: never shrunk twice")
+    eq(sized(e, nil), e, "size: FIT hands it back")
+  end
   do
     local cv = {}
     local r = Sc.screenRect({ canvas = cv, screen = { 10.4, 3.6, 777.6, 699.8 } }, cv)

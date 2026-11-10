@@ -546,6 +546,9 @@ function mons.init(mod, rows, menu)
   rows[#rows + 1] = { key = "sectionMons", type = "choice", label = "POKEMON",
     choices = { { "", "_" } }, default = "_" }
   rows[#rows + 1] = { key = "setMons", type = "choice", label = "  SET", choices = choices, default = OFF }
+  -- SIZE: FIT, or the set's pictures shrunk in battle (gen3_size) -Elvie
+  rows[#rows + 1] = { key = "sizeMons", type = "choice", label = "  SIZE",
+    choices = require("mods.facets.gen3_size").SIZES, default = "fit" }
   -- FireRed and LeafGreen have no front animations of their own; this
   -- plays Emerald's, read from the player's imported Emerald. -Elvie
   rows[#rows + 1] = { key = "animMons", type = "choice", label = "  FR/LG ANIMS",
@@ -1461,7 +1464,10 @@ function mons.init(mod, rows, menu)
       if frame ~= 0 then
         local MonAnim = package.loaded["src.core.game3.mon_anim"]
         if type(MonAnim) == "table" and type(MonAnim.framePic) == "function" then
-          ok, front = pcall(MonAnim.framePic, sp, frame, shiny)
+          -- the full-size frame: SIZE shrinks your side once it's turned -Elvie
+          local framePic = MonAnim.framePic
+          if framePic == mons.sizedFramePic then framePic = mons.rawFramePic end
+          ok, front = pcall(framePic, sp, frame, shiny)
         end
         -- a frame the set doesn't have: the still picture -Elvie
         if not (ok and type(front) == "table" and front.image) then return frontAsBack(sp, form, shiny, 0) end
@@ -1642,6 +1648,44 @@ function mons.init(mod, rows, menu)
       end
     end
 
+    -- SIZE: SMALL and TINY shrink the set's Pokémon in battle, at the two
+    -- places the battle gets them (Ui.sidePic for the still pictures and
+    -- your side, MonAnim.framePic for the front's frames), wrapped last so
+    -- they see what everything else hands back. Fronts stand on their
+    -- feet, your side on the text box's top, where the game's own
+    -- picture is cut off. YOUR SIDE: FRONT turns round the full-size
+    -- frames (rawFramePic) and is shrunk once, here -Elvie
+    local Size = require("mods.facets.gen3_size")
+    local sized, forgetSized = Size.sizer()
+    local function sizeNow()
+      local B = package.loaded["src.core.game3.battle"]
+      if not (current and type(B) == "table" and B._st ~= nil) then return nil end
+      return Size.scaleOf(mod.options:get("sizeMons"))
+    end
+    if okA and type(MonAnim) == "table" and type(MonAnim.framePic) == "function" then
+      local fullFrame = MonAnim.framePic
+      mons.rawFramePic = fullFrame
+      MonAnim.framePic = function(species, frame, shiny, ...)
+        local e = fullFrame(species, frame, shiny, ...)
+        local s = sizeNow()
+        if not s then return e end
+        return sized(e, s, bottomFor("front", tonumber(species)))
+      end
+      mons.sizedFramePic = MonAnim.framePic
+    end
+    local okU, Ui = pcall(require, "src.core.game3.battle.ui")
+    if okU and type(Ui) == "table" and type(Ui.sidePic) == "function" then
+      local fullSide = Ui.sidePic
+      Ui.sidePic = function(back, ignoreDeoxys, picSp, ...)
+        local e = fullSide(back, ignoreDeoxys, picSp, ...)
+        local s = sizeNow()
+        if not s then return e end
+        return sized(e, s, bottomFor(back and "back" or "front", tonumber(picSp)))
+      end
+    else
+      mod.log:warn("Ui.sidePic not found; SIZE only fits")
+    end
+
     local function configure()
       local selected = mod.options:get("setMons")
       current = nil
@@ -1649,6 +1693,7 @@ function mons.init(mod, rows, menu)
         if set.key == selected then current = set end
       end
       cache, placements, commands, dsFrames = {}, {}, {}, {}
+      forgetSized()
       bwSrc, bwSheets, bwPics = nil, {}, {}
       -- a game imported since the last look: read it again -Elvie
       if palettes == false then palettes = nil end
