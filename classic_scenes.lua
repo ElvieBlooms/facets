@@ -806,7 +806,13 @@ function scenes.init(mod, rows)
       WideBattle.draw = function(battle, winW, winH, ...)
         local s = sceneFor(battle)
         local okD, docked = pcall(WideBattle.docked, battle)
-        if not (s and okD and docked) then return ownDraw(battle, winW, winH, ...) end
+        -- BORDERS says how: FILL one zoomed picture for the whole column,
+        -- BLUR the field as it is with the scene blurred round it (as the
+        -- window's borders), OFF the game's own white -Elvie
+        local mode = scenes.borders()
+        if not (s and okD and docked) or mode == "off" then return ownDraw(battle, winW, winH, ...) end
+        local blur = mode ~= "fill" and blurOf(s.image)
+        if mode ~= "fill" and not blur then return ownDraw(battle, winW, winH, ...) end
         local okP, place = pcall(function()
           local scale = battle:battlePanelScale(winW, winH)
           local ox, oy = Chrome.fitOriginFor(winW, winH, scale, WideBattle.TILES_W, WideBattle.TILES_H)
@@ -824,15 +830,24 @@ function scenes.init(mod, rows)
             local G = love.graphics
             G.push("all")
             G.setScissor(place.x, place.y, place.w, place.h)
-            dock = place
-            local q, x0, y0, k = dockQuad(s)
-            scenes.setLight(lit)
-            G.draw(s.image, q, x0, y0, 0, k, k)
+            if blur then
+              local iw, ih = s.image:getDimensions()
+              local k = scenes.coverScale(iw, ih, place.w, place.h, scenes.ZOOM)
+              local bw, bh = blur:getDimensions()
+              scenes.setLight(lit, scenes.DIM)
+              G.draw(blur, place.x + (place.w - iw * k) / 2, place.y + (place.h - ih * k) / 2, 0,
+                iw * k / bw, ih * k / bh)
+            else
+              dock = place
+              local q, x0, y0, k = dockQuad(s)
+              scenes.setLight(lit)
+              G.draw(s.image, q, x0, y0, 0, k, k)
+            end
             G.pop()
           end
           return unpack(r)
         end
-        dock = place
+        dock = not blur and place or nil
         local ok, err = pcall(ownDraw, battle, winW, winH, ...)
         Chrome.paletteFill, dock = fill, nil
         if not ok then error(err, 0) end
