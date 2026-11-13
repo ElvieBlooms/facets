@@ -1,8 +1,7 @@
-# Builds assets/clefairy/rahtak.png and badassbill.png: Clefairy walking
-# sheets in the 9-frame column Facets' partner looks use (32x32 frames:
+# Builds assets/clefairy/badassbill.png: a Clefairy walking sheet in the 9-frame column Facets' partner looks use (32x32 frames:
 # down, up and left standing, then each one's two steps), with the
 # sprite's feet on row 29 like HeartGold's.
-# python3 tools/make_clefairy_looks.py <rahtak sheet> <badassbill sheet> assets/clefairy -Elvie
+# python3 tools/make_clefairy_looks.py <badassbill sheet> assets/clefairy -Elvie
 import sys
 from PIL import Image, ImageOps
 
@@ -39,18 +38,7 @@ def column(frames):
         out.alpha_composite(f, (0, 32 * i))
     return out
 
-rahtak_src, bill_src, dest = sys.argv[1], sys.argv[2], sys.argv[3]
-
-# Rahtak: six 32x32 frames on a flat green: down, down step, up, up step,
-# left, left step. The second step is the first mirrored (down and up), or
-# the standing frame lifted a pixel (left) -Elvie
-r = Image.open(rahtak_src).convert("RGBA")
-bg = r.getpixel((0, 0))[:3]
-r = clear_bg(r, bg)
-f = [placed(r.crop((32 * i, 0, 32 * i + 32, 32))) for i in range(6)]
-ds, us, ls = f[1], f[3], f[5]
-column([f[0], f[2], f[4], ds, ImageOps.mirror(ds), us, ImageOps.mirror(us), ls,
-        placed(r.crop((128, 0, 160, 32)), lift=1)]).save(dest + "/rahtak.png")
+bill_src, dest = sys.argv[1], sys.argv[2]
 
 # Badassbill: a 4x4 grid of 17x17 cells on white (side, side again, down,
 # up), each row stand, step, stand, step. Its side rows face right, so
