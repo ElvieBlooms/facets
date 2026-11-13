@@ -2752,22 +2752,12 @@ do
 end
 
 -- Pokémon Pink's Clefairy (classic_npcs.lua): Pink found by its partner
--- mod, and Yellow's grey Clefairy in Clefairy's pinks -Elvie
+-- mod -Elvie
 do
   local C = require("mods.facets.classic_npcs")
   eq(C.pink({ find = function(id) return id == "pink_partner" and {} or nil end }), true, "pink: found by its partner mod")
   eq(C.pink({ find = function() return nil end }), false, "pink: ...not without it")
   eq(C.pink({}), false, "pink: ...nor without a way to look")
-  local g = love.image.newImageData(4, 1)
-  g:setPixel(0, 0, 1, 1, 1, 1); g:setPixel(1, 0, 2 / 3, 2 / 3, 2 / 3, 1)
-  g:setPixel(2, 0, 1 / 3, 1 / 3, 1 / 3, 1); g:setPixel(3, 0, 0, 0, 0, 1)
-  local p = C.pinks(g)
-  local _, _, _, a0 = p:getPixel(0, 0)
-  eq(a0, 0, "pink: white is see-through")
-  local r1, g1v = p:getPixel(1, 0)
-  check(r1 > g1v, "pink: the light grey is pink")
-  local r3 = p:getPixel(3, 0)
-  check(r3 < 0.2, "pink: black stays dark")
 end
 
 -- Gen 3's woods take the forest scene (gbui.lua) -Elvie
@@ -2878,8 +2868,8 @@ do
   eq(a, 1, "hgss pikachu: down stands on its first frame, where it was")
   local r, g, b = col:getPixel(5, 3 * 32 + 19)
   eq(("%d,%d,%d"):format(r, g, b), "0,1,1", "hgss pikachu: its first step is the second frame, a pixel up")
-  local r2 = col:getPixel(5, 4 * 32 + 19)
-  eq(r2, 1, "hgss pikachu: its second step the first frame, a pixel up")
+  local r2, g2, b2 = col:getPixel(5, 4 * 32 + 19)
+  eq(("%d,%d,%d"):format(r2, g2, b2), "0,1,1", "hgss pikachu: its second step the second frame too, so it changes feet every step")
 end
 
 -- The start menu help box: letters in a line of game text -Elvie

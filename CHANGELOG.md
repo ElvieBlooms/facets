@@ -2,8 +2,9 @@
 
 ## 1.2.4
 
-- **Pokémon Pink's Clefairy**, in Yellow: with Pink's partner mod on, the PIKACHU row on the map becomes **CLEFAIRY**: **PINK** (Pink's own walking Clefairy, the default), **GAME** (Yellow's own Clefairy, the one Pink swaps out, given walking steps), **HGSS** and **B2W2** (their walking Clefairy, from your own dumps through Prism Importer), and **BADASSBILL** (GBA-style, by Badassbill). Its battle row under POKEMON is **CLEFAIRY** too: MATCH, GAME or any POKEMON set. Facets now loads after Pink's partner mod so it can tell it's there.
+- **Pokémon Pink's Clefairy**, in Yellow: with Pink's partner mod on, the PIKACHU row on the map becomes **CLEFAIRY**: **GAME** (Pink's own walking Clefairy, the default), **HGSS** and **B2W2** (their walking Clefairy, from your own dumps through Prism Importer), and **BADASSBILL** (GBA-style, by Badassbill). Its battle row under POKEMON is **CLEFAIRY** too: MATCH, GAME or any POKEMON set. Facets now loads after Pink's partner mod so it can tell it's there.
 - Red, Blue and Yellow with **POKEMON: CRYSTAL** (and the EMERALD looks): **ANIMATION: LOOP** now loops Crystal's animations, with a short rest on the still between plays; before, they played once as the foe came out whatever ANIMATION said. **INTRO** keeps the single play. With **YOUR SIDE** on FRONT or MIRRORED, your Pokémon now plays its animation too, as with the DS choices.
+- Yellow's **HGSS** partner (Pikachu, and Pink's Clefairy, with B2W2 too) now steps with both feet, swapping frames every step as HeartGold does. Before, it showed its stepping frame on every other step only, so it seemed to favour one foot.
 - The still between plays is drawn from Crystal's own frames, so it no longer changes colour against them under a palette mod such as Pink's.
 
 ## 1.2.3
