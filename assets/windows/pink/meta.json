@@ -1,0 +1,88 @@
+{
+  "label": "PINK",
+  "credit": [
+    "Window frames and text boxes by ElvieBlooms, drawn to match Pokémon Pink's border"
+  ],
+  "styles": [
+    {
+      "name": "BORDER",
+      "frame": "frame_border.png",
+      "dialogue": "dialogue_border.png",
+      "fill": [
+        255,
+        255,
+        255
+      ],
+      "sign": "sign_border.png",
+      "signFill": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "PASTEL",
+      "frame": "frame_pastel.png",
+      "dialogue": "dialogue_pastel.png",
+      "fill": [
+        255,
+        255,
+        255
+      ],
+      "sign": "sign_pastel.png",
+      "signFill": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "BLUSH",
+      "frame": "frame_blush.png",
+      "dialogue": "dialogue_blush.png",
+      "fill": [
+        255,
+        255,
+        255
+      ],
+      "sign": "sign_blush.png",
+      "signFill": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "SKY",
+      "frame": "frame_sky.png",
+      "dialogue": "dialogue_sky.png",
+      "fill": [
+        255,
+        255,
+        255
+      ],
+      "sign": "sign_sky.png",
+      "signFill": [
+        255,
+        255,
+        255
+      ]
+    },
+    {
+      "name": "BERRY",
+      "frame": "frame_berry.png",
+      "dialogue": "dialogue_berry.png",
+      "fill": [
+        255,
+        255,
+        255
+      ],
+      "sign": "sign_berry.png",
+      "signFill": [
+        255,
+        255,
+        255
+      ]
+    }
+  ]
+}

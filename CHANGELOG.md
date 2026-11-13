@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.3
+
+- **WINDOWS: PINK**, in all eleven games: five window frames, each with its own text and sign box, drawn to match Pokémon Pink's border: **BORDER**, **PASTEL**, **BLUSH**, **SKY** and **BERRY**. Pick them under WINDOWS and TEXT BOX (MATCH pairs each frame with its own box).
+
 ## 1.2.2
 
 - **BORDERS**, under BATTLE BG in all eleven games: **BLUR** (the default) keeps the soft, blurred backdrop round the game screen; **FILL** makes the battle one big picture: the scene, sharp, zoomed in until it fills the whole window, with the battle on top (the game screen shows the middle of it rather than a scene of its own); **OFF** leaves the engine's own surround. With a GBA background, Gold, Silver and Crystal's wide battle carries the background on at its sides, with no second platform.

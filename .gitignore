@@ -50,6 +50,8 @@ assets/trainers/*
 assets/windows/*
 !assets/windows/tito/
 !assets/windows/libertytwins/
+# PINK: Elvie's own frames, drawn to match Pokémon Pink's border. -Elvie
+!assets/windows/pink/
 # tools/ips_extract.py's output, and pret's symbol file it fetches -Elvie
 extracted/
 tools/pokefirered.sym

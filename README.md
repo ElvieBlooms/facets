@@ -16,7 +16,7 @@ Facets leaves the player and the rival alone: [Emerald Lens](https://github.com/
 | Your side | YOUR SIDE: your Pokémon by their front | The same |
 | Party icons | GBC-ISH's Game Boy icons | MINIDEX; CRYSTAL on Red, Blue and Yellow |
 | Battle | SCENERY and WHITE scenes, lit by the time of day, battle box sets, GBC boxes | SCENERY, lit by the time of day in Gold, Silver and Crystal, and battle box sets (box sets in wide battles) |
-| Windows | GBC frames, TITO, LIBERTY and other window sets | FireRed's frames, TITO, LIBERTY |
+| Windows | GBC frames, TITO, LIBERTY, PINK and other window sets | FireRed's frames, TITO, LIBERTY, PINK |
 | Screen | The GB filter | The GB filter; COLORS keeps the game in full colour |
 | Yellow's Pikachu | | Seven looks, in battle too |
 
@@ -132,6 +132,7 @@ A window set is a folder in `assets/windows/` with Gen 3-format window art: menu
 
 * **TITO** (included): ten dialogue boxes by **Tito Seich / Sage** (Checkered, Cool Red, Emerald, Hoenn, Orange, Red, Silver, Sky Blue, Square Red and Woody), used with credit. Menus keep the game's own frames.
 * **LIBERTY** (included): ten DS-inspired window frames by **LibertyTwins** (Custom Text Boxes FR), with their dialogue and sign boxes, used with credit. Their [thread](https://www.pokecommunity.com/threads/custom-text-boxes-patch-for-fire-red.528772/) calls them "our own custom frames, inspired by the DS games".
+* **PINK** (included): five window frames by **ElvieBlooms**, each with its own text and sign box, drawn to match Pokémon Pink's border: **BORDER**, **PASTEL**, **BLUSH**, **SKY** and **BERRY**.
 
 Sets are built from a pack's own images with:
 
@@ -451,7 +452,7 @@ Red, Blue and Yellow show pictures on some screens (summary, Hall of Fame, Poké
 
 ### Windows
 
-**WINDOWS** puts every menu and box in a Gen 3 frame: **FIRERED 1-10** (FireRed's OPTION frames, read from your imported FireRed, LeafGreen or Emerald) or **LIBERTY 1-10** (LibertyTwins' frames, nothing needed). **TEXT BOX** does the same for the text box at the bottom: **FIRERED** (FireRed's own), a **TITO** style, or **LIBERTY**. **MATCH** (the default) follows WINDOWS: FireRed's text box with a FIRERED frame, LIBERTY's with LIBERTY's. Boxes keep the game's sizes and the Game Boy's font, and ones under three tiles stay the game's. On the FACETS page, WINDOWS shows on the page's own frame and the TEXT BOX row is drawn in the text box it gives, so you can see both while you pick.
+**WINDOWS** puts every menu and box in a Gen 3 frame: **FIRERED 1-10** (FireRed's OPTION frames, read from your imported FireRed, LeafGreen or Emerald) **LIBERTY 1-10** (LibertyTwins' frames, nothing needed) or **PINK BORDER, PASTEL, BLUSH, SKY and BERRY** (nothing needed). **TEXT BOX** does the same for the text box at the bottom: **FIRERED** (FireRed's own), a **TITO** style, **LIBERTY**, or a **PINK** style. **MATCH** (the default) follows WINDOWS: FireRed's text box with a FIRERED frame, LIBERTY's with LIBERTY's. Boxes keep the game's sizes and the Game Boy's font, and ones under three tiles stay the game's. On the FACETS page, WINDOWS shows on the page's own frame and the TEXT BOX row is drawn in the text box it gives, so you can see both while you pick.
 
 ### Colours and the screen
 
@@ -576,6 +577,7 @@ Battle and windows:
 - **BATTLE UI:** XY and B2W2 by Verloren 5; DP by Dinisk, Prof. Leon Dias, Neon Skylar and Verloren 5; PLATINUM by Omega Zero and Verloren 5; HGSS by YoY-X, Neon Skylar, Jaizu and Verloren 5; BW by Vytron and Verloren 5; B2W2 BLACK and WHITE by Verloren 5; GAIA by YoY-X and Spherical Ice; TEX BOX by Cesar Alarcon; PLAIN by Neon Skylar; the ZEKE recolours by Zeke.
 - **WINDOWS: TITO:** text boxes by Tito Seich / Sage, on the Game Boy games too.
 - **WINDOWS: LIBERTY:** window frames, text boxes and sign boxes by LibertyTwins (Custom Text Boxes FR).
+- **WINDOWS: PINK:** window frames, text boxes and sign boxes by ElvieBlooms.
 
 ### Read from your own games
 
