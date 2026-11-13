@@ -69,7 +69,9 @@ end
 
 -- source(battle, battler) gives what's playing on that side, or nil:
 --   { key, frameAt(now) -> n, framePath(n) -> path, trueColor, once }
--- framePath(0) is never asked for; n = 0 is the still picture. once means
+-- n = 0 is the still picture: the game's own, or framePath(0) when
+-- ownStill says the source draws its still too (so it never changes
+-- colour between its frames and its rest). once means
 -- it plays a single time from when the Pokémon is fully out (Crystal's);
 -- otherwise it loops by the clock. Returns whether it went in -Elvie
 function g1.install(BattleState, source, log)
@@ -106,7 +108,7 @@ function g1.install(BattleState, source, log)
       if not src then return nil end
       local now = love.timer and love.timer.getTime() or st.at
       local n = src.frameAt(now - st.at)
-      if not n or n <= 0 then
+      if not n or n < 0 or (n == 0 and not src.ownStill) then
         if src.once and n == nil then st.src = false end
         return nil
       end
@@ -142,6 +144,35 @@ function g1.once(MonAnim, script)
       ticks = ticks + 1
       if runner:finished() then return nil end
     end
+    return runner:currentFrame() or 0
+  end
+end
+
+-- The same, over and over: once through, then the still picture for
+-- `rest` seconds, then again from the top (ANIMATION: LOOP). Never ends,
+-- so it's never nil -Elvie
+g1.REST = 2
+function g1.loop(MonAnim, script, rest)
+  rest = rest or g1.REST
+  local runner = MonAnim.new(script, "battle")
+  if not runner then return nil end
+  local ticks, resting = 0, nil
+  return function(elapsed)
+    local due = math.floor(elapsed * 60)
+    while ticks < due do
+      ticks = ticks + 1
+      if resting then
+        if ticks - resting >= rest * 60 then
+          runner = MonAnim.new(script, "battle") or runner
+          resting = nil
+          runner:update()
+        end
+      else
+        runner:update()
+        if runner:finished() then resting = ticks end
+      end
+    end
+    if resting then return 0 end
     return runner:currentFrame() or 0
   end
 end

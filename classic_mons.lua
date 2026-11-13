@@ -198,8 +198,19 @@ function classic.init(mod, rows)
   -- before, else the SET), GAME (Yellow's own whatever the SET), any SET,
   -- or one of its looks -Elvie
   local npcs = require("mods.facets.classic_npcs")
-  local looks = npcs.yellow() and npcs.pikachuLooks(mod) or {}
-  if #looks > 0 then
+  local pink = npcs.yellow() and npcs.pink(mod)
+  local looks = npcs.yellow() and not pink and npcs.pikachuLooks(mod) or {}
+  if pink then
+    -- Pokémon Pink's partner Clefairy: MATCH (the SET, like any Pokémon),
+    -- GAME (Yellow's own Clefairy) or any SET; its overworld looks have
+    -- no battle pictures -Elvie
+    local clef = { { "MATCH", "match" }, { "GAME", "game" } }
+    for _, c in ipairs(choices) do
+      if c[2] ~= OFF then clef[#clef + 1] = c end
+    end
+    rows[#rows + 1] = { key = "classicClefairyBattle", type = "choice", label = "  CLEFAIRY", choices = clef,
+      default = "match" }
+  elseif #looks > 0 then
     local pika = { { "MATCH", "match" }, { "GAME", "game" } }
     for _, c in ipairs(choices) do
       if c[2] ~= OFF then pika[#pika + 1] = c end
@@ -422,8 +433,8 @@ function classic.init(mod, rows)
       local okG, g1 = pcall(require, "mods.facets.classic_gen1_anim")
       -- grey: the sheet in four greys, worked out over all its frames -Elvie
       local greySheets = {}
-      local function sheetFrame(sheetPath, size, n, scale, grey)
-        local path = sheetPath:gsub("%.png$", "") .. "@f" .. n .. (grey and "@g" or "") .. ".png"
+      local function sheetFrame(sheetPath, size, n, scale, grey, mirror)
+        local path = sheetPath:gsub("%.png$", "") .. "@f" .. n .. (grey and "@g" or "") .. (mirror and "@m" or "") .. ".png"
         return pics.frame(path, scale, function()
           local okS, sheet = pcall(Assets.imageData, sheetPath)
           if okS and sheet and grey then
@@ -431,6 +442,7 @@ function classic.init(mod, rows)
             sheet = greySheets[sheetPath]
           end
           local data = okS and sheet and g1.slot(sheet, size, n)
+          if data and mirror then data = require("mods.facets.classic").flip(data) end
           return data or love.image.newImageData(1, 1)
         end)
       end
@@ -500,9 +512,20 @@ function classic.init(mod, rows)
             frameAt = frameAt,
             framePath = function(n) return sheetFrame(rec.path, rec.side, n, scale, grey) end }
         end
-        -- Crystal's, on the foe's side only, where its still picture is
-        -- laid out like its animation -Elvie
-        if isPlayer then return nil end
+        -- Crystal's, where the still picture is laid out like its
+        -- animation: the foe's, and yours when YOUR SIDE shows its front.
+        -- ANIMATION: LOOP plays it again after a rest, INTRO once -Elvie
+        local mirror = false
+        if isPlayer then
+          local side = mod.options:get("classicSide")
+          if side ~= "front" and side ~= "mirrored" then return nil end
+          mirror = side == "mirrored"
+        end
+        -- Crystal's frames go by the set in POKEMON; a partner shown in
+        -- another set keeps its still -Elvie
+        if set ~= mod.options:get("classicMons") then return nil end
+        local mode = animMode()
+        if mode == "off" then return nil end
         local script = borrow(pokemon, b.mon.species)
         if not script then return nil end
         local got = animSheet(pokemon, b.mon.species, false, script.sheet)
@@ -510,11 +533,19 @@ function classic.init(mod, rows)
         local copy = {}
         for k, v in pairs(script) do copy[k] = v end
         copy.tiles = got.side / 8
-        local frameAt = g1.once(MonAnim, copy)
+        local frameAt
+        if mode == "intro" then
+          -- once through, then its own still: the game's own can be
+          -- tinted differently from Crystal's frames -Elvie
+          local once = g1.once(MonAnim, copy)
+          frameAt = once and function(elapsed) return once(elapsed) or 0 end
+        else
+          frameAt = g1.loop(MonAnim, copy)
+        end
         if not frameAt then return nil end
         local grey = got.trueColor and not coloured()
-        return { trueColor = got.trueColor and not grey, once = true, frameAt = frameAt,
-          framePath = function(n) return sheetFrame(got.path, got.side, n, scale, grey) end }
+        return { trueColor = got.trueColor and not grey, ownStill = true, frameAt = frameAt,
+          framePath = function(n) return sheetFrame(got.path, got.side, n, scale, grey, mirror) end }
       end
       if okB and okM and okG then
         local done = g1.install(BattleState, source, function(...) mod.log:warn(...) end)
@@ -591,8 +622,15 @@ function classic.init(mod, rows)
     -- What the partner shows in battle: { look = key } for one of its
     -- looks, { set = value } for a SET (OFF for Yellow's own), or nil to
     -- follow the SET like any Pokémon -Elvie
+    local pinkPartner = require("mods.facets.classic_npcs").yellow() and require("mods.facets.classic_npcs").pink(mod)
     partnerChoice = function(mon)
       if not partnerOf or not partnerOf(mon) then return nil end
+      if pinkPartner then
+        local pick = mod.options:get("classicClefairyBattle") or "match"
+        if pick == "match" then return nil end
+        if pick == "game" then return { set = OFF } end
+        return { set = pick }
+      end
       local pick = mod.options:get("classicPikachuBattle") or "match"
       if pick == "match" then
         local look = mod.options:get("classicPikachu")

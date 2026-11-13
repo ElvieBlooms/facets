@@ -124,6 +124,15 @@ function credits.entries(rows, read, fills)
         for _, line in ipairs(list(meta.battleCredit)) do out[#out + 1] = { text = line } end
       end
     end
+    if key == "classicNpcs" and byKey.classicClefairy then
+      local meta = read("assets/clefairy/meta.json")
+      if type(meta) == "table" then
+        out[#out + 1] = { text = "CLEFAIRY", heading = true }
+        for _, look in ipairs(type(meta.looks) == "table" and meta.looks or {}) do
+          for _, line in ipairs(list(look.credit)) do out[#out + 1] = { text = line } end
+        end
+      end
+    end
     if key == "classicMons" and byKey.classicIcons then
       out[#out + 1] = { text = "ICONS: MINIDEX", heading = true }
       out[#out + 1] = { text = credits.MINIDEX }

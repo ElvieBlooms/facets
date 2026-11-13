@@ -199,36 +199,50 @@ local function findSets(mod)
 end
 
 -- Yellow's Pikachu looks: assets/pikachu/<key>.png, labels and credits
--- in its meta.json -Elvie
+-- in its meta.json. With Pokémon Pink's mods the partner is Clefairy, and
+-- its looks are assets/clefairy's -Elvie
 classic.PIKACHU_DIR = "assets/pikachu"
+classic.CLEFAIRY_DIR = "assets/clefairy"
 classic.PIKA_GAME = "game"
-local function pikachuLooks(mod)
+local function looksIn(mod, dir)
   local looks = {}
   local okD, decode = pcall(function() return require("mods.facets.npcs").decodeJson end)
-  local rel = classic.PIKACHU_DIR .. "/meta.json"
+  local rel = dir .. "/meta.json"
   if not (okD and mod.assets:info(rel)) then return looks end
   local ok, meta = pcall(decode, mod:read(rel))
   for _, look in ipairs(ok and type(meta) == "table" and type(meta.looks) == "table" and meta.looks or {}) do
     if type(look) == "table" and type(look.key) == "string" and look.key:match("^[%w_]+$")
-        and mod.assets:info(classic.PIKACHU_DIR .. "/" .. look.key .. ".png") then
+        and mod.assets:info(dir .. "/" .. look.key .. ".png") then
       looks[#looks + 1] = { key = look.key, label = type(look.label) == "string" and look.label or look.key:upper() }
     end
   end
   return looks
 end
+local function pikachuLooks(mod) return looksIn(mod, classic.PIKACHU_DIR) end
+
+-- Whether Pokémon Pink's partner mod is on: Yellow's partner is Clefairy
+-- (it keeps the PIKACHU slot and sprite, with Clefairy's everything) -Elvie
+function classic.pink(mod)
+  if not (type(mod) == "table" and type(mod.find) == "function") then return false end
+  local ok, other = pcall(mod.find, "pink_partner")
+  return ok and other and true or false
+end
 
 classic.PIKA_HGSS = "hgss"
+classic.PIKA_BW2 = "bw2"
+classic.PINK = "pink"
 
 -- HeartGold/SoulSilver's walking Pikachu (Prism Importer's
 -- walking_pokemon, eight 32x32 frames: up, down, left, right, two each) in
 -- the 9-frame column the looks use: down, up and left standing, then each
 -- one's two steps. Its two frames only move its feet; HeartGold lifts a
 -- follower a pixel as it steps, so the steps here are drawn a pixel higher
--- and it bobs as it walks. Each entry is { frame, lift } -Elvie
+-- and it bobs as it walks. Each entry is { frame, lift }. Black 2 and
+-- White 2's walking Pokémon are laid out the same way -Elvie
 classic.HGSS_ORDER = { { 2, 0 }, { 0, 0 }, { 4, 0 }, { 3, 1 }, { 2, 1 }, { 1, 1 }, { 0, 1 }, { 5, 1 }, { 4, 1 } }
-function classic.hgssPikachu(api)
+function classic.hgssPikachu(api, game, id)
   if not (api and type(api.imageData) == "function") then return nil end
-  local ok, sheet = pcall(api.imageData, "hgss", "walking_pokemon", "normal/025")
+  local ok, sheet = pcall(api.imageData, game or "hgss", "walking_pokemon", "normal/" .. (id or "025"))
   if not (ok and sheet) then return nil end
   local w, h = sheet:getDimensions()
   if w < 256 or h < 32 then return nil end
@@ -240,12 +254,64 @@ function classic.hgssPikachu(api)
   return out
 end
 
--- Whether HeartGold/SoulSilver is imported through Prism Importer -Elvie
-local function hgssApi(mod)
+-- Whether HeartGold/SoulSilver (or another game with walking Pokémon) is
+-- imported through Prism Importer -Elvie
+local function hgssApi(mod, game)
   local ds = require("mods.facets.ds")
   local api = ds.api(mod)
-  if api and ds.state(api, "hgss") ~= "absent" then return api end
+  if api and ds.state(api, game or "hgss") ~= "absent" then return api end
   return nil
+end
+
+-- Yellow's own Clefairy (SPRITE_CLEFAIRY: down, up and left standing,
+-- 16x16, in the game's greys) as a walker in the 9-frame column: its
+-- steps are the standing frames a pixel higher, the down and up ones
+-- mirrored for the second, so it bobs as it walks. Read from the game's
+-- own file, which Pink points SPRITE_CLEFAIRY away from -Elvie
+function classic.gameClefairy()
+  local okA, Assets = pcall(require, "src.render.Assets")
+  if not (okA and type(Assets) == "table" and type(Assets.imageData) == "function") then return nil end
+  local ok, src = pcall(Assets.imageData, "assets/generated/sprites/clefairy.png")
+  if not (ok and src) then return nil end
+  local w, h = src:getDimensions()
+  if w < 16 or h < 48 then return nil end
+  local out = love.image.newImageData(16, 16 * 9)
+  local function put(slot, from, lift, mirror)
+    for y = 0, 15 - lift do
+      for x = 0, 15 do
+        local r, g, b, a = src:getPixel(mirror and 15 - x or x, from * 16 + y + lift)
+        out:setPixel(x, slot * 16 + y, r, g, b, a)
+      end
+    end
+  end
+  put(0, 0, 0); put(1, 1, 0); put(2, 2, 0)
+  put(3, 0, 1); put(4, 0, 1, true); put(5, 1, 1); put(6, 1, 1, true); put(7, 2, 1); put(8, 2, 1)
+  return out
+end
+
+-- The game's greys in Clefairy's pinks, for the full-colour games: white
+-- is see-through, as the engine treats it -Elvie
+classic.PINKS = {
+  { 1, 1, 1, 0 },
+  { 248 / 255, 176 / 255, 192 / 255, 1 },
+  { 208 / 255, 96 / 255, 128 / 255, 1 },
+  { 40 / 255, 24 / 255, 32 / 255, 1 },
+}
+function classic.pinks(src)
+  local w, h = src:getDimensions()
+  local out = love.image.newImageData(w, h)
+  for y = 0, h - 1 do
+    for x = 0, w - 1 do
+      local r, _, _, a = src:getPixel(x, y)
+      local c
+      if a == 0 or r > 0.9 then c = classic.PINKS[1]
+      elseif r > 0.5 then c = classic.PINKS[2]
+      elseif r > 0.2 then c = classic.PINKS[3]
+      else c = classic.PINKS[4] end
+      out:setPixel(x, y, c[1], c[2], c[3], c[4])
+    end
+  end
+  return out
 end
 
 -- Whether the running game is Yellow -Elvie
@@ -262,7 +328,11 @@ classic.yellow = yellow
 function classic.init(mod, rows)
   local sets = findSets(mod)
   if #sets == 0 then return nil end
-  local looks = yellow() and pikachuLooks(mod) or {}
+  -- with Pokémon Pink the partner is Clefairy, with a row of its own -Elvie
+  local pink = yellow() and classic.pink(mod)
+  local looks = yellow() and (pink and looksIn(mod, classic.CLEFAIRY_DIR) or pikachuLooks(mod)) or {}
+  local partnerKey = pink and "classicClefairy" or "classicPikachu"
+  local looksDir = pink and classic.CLEFAIRY_DIR or classic.PIKACHU_DIR
   local choices = {}
   for _, set in ipairs(sets) do
     if not set.fill then choices[#choices + 1] = { set.label, set.key } end
@@ -272,7 +342,17 @@ function classic.init(mod, rows)
   rows[#rows + 1] = { key = "sectionClassicNpcs", type = "choice", label = "NPCS",
     choices = { { "", "_" } }, default = "_" }
   rows[#rows + 1] = { key = "classicNpcs", type = "choice", label = "  SET", choices = choices, default = OFF }
-  if #looks > 0 then
+  if pink then
+    -- PINK: Pink's own Clefairy, as its mod draws it. GAME: Yellow's own
+    -- Clefairy (the one Pink swaps out). HGSS and B2W2: their walking
+    -- Clefairy, from the player's own games. Then the looks -Elvie
+    local clef = { { "PINK", classic.PINK }, { "GAME", classic.PIKA_GAME } }
+    if hgssApi(mod) then clef[#clef + 1] = { "HGSS", classic.PIKA_HGSS } end
+    if hgssApi(mod, "bw2") then clef[#clef + 1] = { "B2W2", classic.PIKA_BW2 } end
+    for _, look in ipairs(looks) do clef[#clef + 1] = { look.label, look.key } end
+    rows[#rows + 1] = { key = "classicClefairy", type = "choice", label = "  CLEFAIRY", choices = clef,
+      default = classic.PINK }
+  elseif #looks > 0 then
     -- GAME: Yellow's own, whatever the NPC set -Elvie
     local pika = { { "GAME", classic.PIKA_GAME } }
     -- HGSS: its walking Pikachu, from the player's own HeartGold or
@@ -282,6 +362,7 @@ function classic.init(mod, rows)
     rows[#rows + 1] = { key = "classicPikachu", type = "choice", label = "  PIKACHU", choices = pika,
       default = classic.PIKA_GAME }
   end
+  local partnerRow = pink or #looks > 0
 
   return function()
     local okS, SpriteRenderer = pcall(require, "src.render.SpriteRenderer")
@@ -332,7 +413,7 @@ function classic.init(mod, rows)
 
     local defs = {} -- [set .. id] = our record, or false -Elvie
     local function ours(def)
-      local pikaLook = #looks > 0 and def.id == "SPRITE_PIKACHU" and mod.options:get("classicPikachu") or nil
+      local pikaLook = partnerRow and def.id == "SPRITE_PIKACHU" and mod.options:get(partnerKey) or nil
       local key = chosen .. ":" .. def.id .. (fullColour() and "" or ":grey") .. ":" .. tostring(pikaLook)
       local hit = defs[key]
       if hit ~= nil then return hit or nil end
@@ -341,30 +422,48 @@ function classic.init(mod, rows)
       if not want then return nil end
       local path, fw, fh, read, rel
       local grey = false
-      if pikaLook == classic.PIKA_GAME then
+      local partnerName = pink and "clefairy" or "pikachu"
+      if pikaLook == classic.PINK or (pikaLook == classic.PIKA_GAME and not pink) then
         return nil
-      elseif pikaLook == classic.PIKA_HGSS then
-        local api = hgssApi(mod)
+      elseif pikaLook == classic.PIKA_GAME then
+        -- Yellow's own Clefairy: in the game's greys for it to tint, or
+        -- in Clefairy's pinks when the game shows full colour -Elvie
+        fw, fh = 16, 16
+        if fullColour() then
+          path = PREFIX .. "clefairy/game@pink.png"
+          read = function()
+            local data = classic.gameClefairy()
+            return data and classic.pinks(data) or nil
+          end
+        else
+          grey = true
+          path = PREFIX .. "clefairy/game.png"
+          read = classic.gameClefairy
+        end
+      elseif pikaLook == classic.PIKA_HGSS or pikaLook == classic.PIKA_BW2 then
+        local game = pikaLook
+        local api = hgssApi(mod, game)
         local ds = require("mods.facets.ds")
-        -- not imported yet: Yellow's own for now, and asked again later -Elvie
-        if not (api and ds.state(api, "hgss") == "ready") then defs[key] = nil return nil end
+        -- not imported yet: the game's own for now, and asked again later -Elvie
+        if not (api and ds.state(api, game) == "ready") then defs[key] = nil return nil end
+        local id = pink and "035" or "025"
         fw, fh = 32, 32
-        path = PREFIX .. "pikachu/hgss.png"
-        read = function() return classic.hgssPikachu(api) end
+        path = PREFIX .. partnerName .. "/" .. game .. ".png"
+        read = function() return classic.hgssPikachu(api, game, id) end
         if not fullColour() then
           grey = true
           path = path:gsub("%.png$", "@grey.png")
           read = function()
-            local data = classic.hgssPikachu(api)
+            local data = classic.hgssPikachu(api, game, id)
             return data and classic.greys(data) or nil
           end
         end
       elseif pikaLook then
-        -- one of Yellow's Pikachu looks -Elvie
-        local rel = classic.PIKACHU_DIR .. "/" .. pikaLook .. ".png"
+        -- one of the partner's looks -Elvie
+        local rel = looksDir .. "/" .. pikaLook .. ".png"
         if not pics.has(rel) then return nil end
         fw, fh = 32, 32
-        path = PREFIX .. "pikachu/" .. pikaLook .. ".png"
+        path = PREFIX .. partnerName .. "/" .. pikaLook .. ".png"
         read = function()
           local ok, data = pcall(love.image.newImageData, mod.assets:path(rel))
           return ok and data or nil
@@ -430,6 +529,9 @@ function classic.init(mod, rows)
       record.frameColumns, record.frameOffset, record.cells = nil, nil, nil
       record.anchorX, record.anchorY = nil, nil
       record.gbaArt = not grey
+      -- Pink's own follower is full colour; a grey one is the game's to
+      -- tint -Elvie
+      if grey then record.trueColor = nil end
       defs[key] = record
       return record
     end
@@ -452,7 +554,7 @@ function classic.init(mod, rows)
     local own = SpriteRenderer.new
     SpriteRenderer.new = function(def, seed, ...)
       if seed ~= "player" and type(def) == "table" and type(def.id) == "string"
-          and (chosen ~= OFF or (#looks > 0 and def.id == "SPRITE_PIKACHU")) then
+          and (chosen ~= OFF or (partnerRow and def.id == "SPRITE_PIKACHU")) then
         local record = ours(def)
         if record then return bothSteps(own(record, seed, ...)) end
       end
@@ -496,7 +598,7 @@ function classic.init(mod, rows)
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
         if type(change) == "table" and change.mod == mod.id
-            and (change.key == "classicNpcs" or change.key == "classicPikachu") then
+            and (change.key == "classicNpcs" or change.key == "classicPikachu" or change.key == "classicClefairy") then
           configure()
           pcall(redraw)
         end

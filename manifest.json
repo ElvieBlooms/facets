@@ -1,7 +1,7 @@
 {
   "id": "facets",
   "name": "Facets",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "api": 2,
   "entry": "main.lua",
   "profile": "content",
@@ -9,7 +9,7 @@
   "category": "GRAPHICS",
   "priority": 100,
   "dependencies": [],
-  "optional_dependencies": ["recomp_achievements@>=0.1.0#ElvieBlooms/recomp_achievements", "prism_importer@>=0.3.0#ElvieBlooms/prism_importer"],
+  "optional_dependencies": ["recomp_achievements@>=0.1.0#ElvieBlooms/recomp_achievements", "prism_importer@>=0.3.0#ElvieBlooms/prism_importer", "pink_partner"],
   "conflicts": [],
   "incompatible": [],
   "experimental": false,

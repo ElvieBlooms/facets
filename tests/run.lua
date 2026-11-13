@@ -2734,6 +2734,40 @@ do
   G1.tint(f, { { 255, 255, 255 }, { 255, 0, 0 }, { 0, 0, 255 }, { 0, 0, 0 } })
   local tr, tg, tb = f:getPixel(1, 2)
   eq(("%d,%d,%d"):format(tr, tg, tb), "1,0,0", "gen1 anim: a light grey takes the palette's second colour")
+  -- ANIMATION: LOOP plays Crystal's script, rests on the still, and
+  -- starts again -Elvie
+  local Fake = {}
+  Fake.__index = Fake
+  function Fake.new() return setmetatable({ t = 0 }, Fake) end
+  function Fake:update() self.t = self.t + 1 end
+  function Fake:finished() return self.t >= 3 end
+  function Fake:currentFrame() return self.t end
+  local at = G1.loop(Fake, {}, 1 / 60 * 2)
+  local seen = {}
+  for tick = 1, 9 do seen[#seen + 1] = at(tick / 60) end
+  eq(table.concat(seen, ","), "1,2,0,0,1,2,0,0,1", "gen1 anim: a loop rests on the still, then plays again")
+  local once = G1.once(Fake, {})
+  eq(once(2 / 60), 2, "gen1 anim: once plays...")
+  eq(once(5 / 60), nil, "gen1 anim: ...and ends")
+end
+
+-- Pokémon Pink's Clefairy (classic_npcs.lua): Pink found by its partner
+-- mod, and Yellow's grey Clefairy in Clefairy's pinks -Elvie
+do
+  local C = require("mods.facets.classic_npcs")
+  eq(C.pink({ find = function(id) return id == "pink_partner" and {} or nil end }), true, "pink: found by its partner mod")
+  eq(C.pink({ find = function() return nil end }), false, "pink: ...not without it")
+  eq(C.pink({}), false, "pink: ...nor without a way to look")
+  local g = love.image.newImageData(4, 1)
+  g:setPixel(0, 0, 1, 1, 1, 1); g:setPixel(1, 0, 2 / 3, 2 / 3, 2 / 3, 1)
+  g:setPixel(2, 0, 1 / 3, 1 / 3, 1 / 3, 1); g:setPixel(3, 0, 0, 0, 0, 1)
+  local p = C.pinks(g)
+  local _, _, _, a0 = p:getPixel(0, 0)
+  eq(a0, 0, "pink: white is see-through")
+  local r1, g1v = p:getPixel(1, 0)
+  check(r1 > g1v, "pink: the light grey is pink")
+  local r3 = p:getPixel(3, 0)
+  check(r3 < 0.2, "pink: black stays dark")
 end
 
 -- Gen 3's woods take the forest scene (gbui.lua) -Elvie

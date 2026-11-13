@@ -425,6 +425,8 @@ A person's own name is looked for in every set before any stand-in, so a fill-in
 
 **PIKACHU** (Yellow only), for your partner on the map: **GAME** (Yellow's own, the default), **HGSS** (HeartGold and SoulSilver's walking Pikachu, from your own dump through Prism Importer, when you've picked one) or one of seven looks, which work whatever the NPC set: **HAT** (Ash's cap), **BELLE**, **ROCK STAR**, **PHD**, **POP STAR**, **LIBRE** and **COSPLAY**.
 
+**CLEFAIRY** (Yellow with Pokémon Pink's mods): with Pink's partner mod on, your partner is Clefairy, so the PIKACHU row becomes a CLEFAIRY row: **PINK** (Pink's own walking Clefairy, the default), **GAME** (Yellow's own Clefairy, the one Pink swaps out, walking with a little bob, in Clefairy's pinks or the game's greys), **HGSS** and **B2W2** (their walking Clefairy, from your own dumps through Prism Importer, when you've picked them), and two looks: **RAHTAK** and **BADASSBILL** (GBA-style). Under POKEMON its battle row is **CLEFAIRY** too: **MATCH** (the POKEMON set, like any Pokémon), **GAME** (Yellow's own) or any POKEMON set.
+
 Your partner (the Pikachu with your trainer ID and name) has its own **PIKACHU** row under POKEMON too, for battle, its summary and the Hall of Fame: **MATCH** (the default: the map look's battle sprites, and otherwise the POKEMON set, as before), **GAME** (Yellow's own whatever the set), any POKEMON set (CRYSTAL, FIRERED, EMERALD, DPPT, HGSS, B2W2 and the rest, animated as they are for every Pokémon) or one of the seven looks.
 
 ### Trainers
@@ -556,6 +558,7 @@ People on the map:
 - **DIONYUS1 (Yellow):** DS-style Jessie, James and Officer Jenny on the map by **Dionyus1** (DeviantArt).
 - **KALARIE (Yellow):** Gen 3-style Jessie, James and Officer Jenny on the map by **kalarie**, for FIRERED and EMERALD.
 - **HEART & SOUL (Gold, Silver and Crystal):** GBA-style Johto people for FIRERED and EMERALD (and for the sets, after JOHTO DS): Johto's gym leaders, Elite Four, Elm, Kurt, the Kimono Girls, the Elder, Sages and Officers on the map, and Johto trainer pictures (the leaders, Will, Karen, Janine, Red, Blue, Eusine, the Rocket executives, Kimono Girls, Sages, Officers, Skiers, Boarders and Firebreathers, in the DS set's gb_hns/ folder), from **Pokémon Heart & Soul** (pokemonHnS-expansion 2.0, by Lil Dill and team, built on RHH's pokeemerald-expansion, Resetes12's Modern Emerald and pret's pokeemerald). Sprites by AveonTrainer, PurpleZaffre, Cesare CBass, BatimaTheBat, ShinyDragonHunter, Tamamushi Erika, Beliot419, shiningstar5022 and Nettorizo.
+- **CLEFAIRY (Yellow with Pokémon Pink):** RAHTAK by **Rahtak**, used with credit; BADASSBILL (GBA-style) by **Badassbill**, free to use with credit.
 - **PIKACHU (Yellow):** HAT by vitorluiscolnago; BELLE, ROCK STAR, PHD, POP STAR, LIBRE and COSPLAY by piphybuilder88; all from DeviantArt, free to use with credit. The matching battle front and back sprites are by leParagon (Smogon).
 - **GBC strips:** the Gen 2-style sprites for everyone the Game Boy games never had, by Catwithnojob (Gen 2 Additional NPCs Pack), free to use with credit; the Frontier Brains by sirwhibbles.
 
