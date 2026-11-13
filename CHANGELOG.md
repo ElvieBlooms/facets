@@ -3,6 +3,7 @@
 ## 1.2.3
 
 - **WINDOWS: PINK**, in all eleven games: five window frames, each with its own text and sign box, drawn to match Pokémon Pink's border: **BORDER**, **PASTEL**, **BLUSH**, **SKY** and **BERRY**. Pick them under WINDOWS and TEXT BOX (MATCH pairs each frame with its own box).
+- **TEXT BOX: PINK WOOD**: TITO's Woody text box recoloured in PINK's colours: **ROSE**, **MAGENTA**, **SKY**, **BERRY** and **PEACH**. They go with any WINDOWS, made for PINK's frames.
 
 ## 1.2.2
 

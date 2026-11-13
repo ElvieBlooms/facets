@@ -52,6 +52,8 @@ assets/windows/*
 !assets/windows/libertytwins/
 # PINK: Elvie's own frames, drawn to match Pokémon Pink's border. -Elvie
 !assets/windows/pink/
+# PINK WOOD: Tito's WOODY recoloured to match PINK, with credit. -Elvie
+!assets/windows/pinkwood/
 # tools/ips_extract.py's output, and pret's symbol file it fetches -Elvie
 extracted/
 tools/pokefirered.sym

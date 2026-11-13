@@ -1,0 +1,53 @@
+{
+  "label": "PINK WOOD",
+  "credit": [
+    "Text boxes recoloured by ElvieBlooms to match PINK, after Tito Seich / Sage's Woody, used with credit"
+  ],
+  "styles": [
+    {
+      "name": "ROSE",
+      "dialogue": "dialogue_rose.png",
+      "fill": [
+        255,
+        236,
+        246
+      ]
+    },
+    {
+      "name": "MAGENTA",
+      "dialogue": "dialogue_magenta.png",
+      "fill": [
+        252,
+        228,
+        244
+      ]
+    },
+    {
+      "name": "SKY",
+      "dialogue": "dialogue_sky.png",
+      "fill": [
+        236,
+        247,
+        255
+      ]
+    },
+    {
+      "name": "BERRY",
+      "dialogue": "dialogue_berry.png",
+      "fill": [
+        255,
+        236,
+        232
+      ]
+    },
+    {
+      "name": "PEACH",
+      "dialogue": "dialogue_peach.png",
+      "fill": [
+        255,
+        246,
+        238
+      ]
+    }
+  ]
+}

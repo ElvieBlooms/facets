@@ -133,6 +133,7 @@ A window set is a folder in `assets/windows/` with Gen 3-format window art: menu
 * **TITO** (included): ten dialogue boxes by **Tito Seich / Sage** (Checkered, Cool Red, Emerald, Hoenn, Orange, Red, Silver, Sky Blue, Square Red and Woody), used with credit. Menus keep the game's own frames.
 * **LIBERTY** (included): ten DS-inspired window frames by **LibertyTwins** (Custom Text Boxes FR), with their dialogue and sign boxes, used with credit. Their [thread](https://www.pokecommunity.com/threads/custom-text-boxes-patch-for-fire-red.528772/) calls them "our own custom frames, inspired by the DS games".
 * **PINK** (included): five window frames by **ElvieBlooms**, each with its own text and sign box, drawn to match Pokémon Pink's border: **BORDER**, **PASTEL**, **BLUSH**, **SKY** and **BERRY**.
+* **PINK WOOD** (included): TITO's **Woody** text box by **Tito Seich / Sage**, recoloured in PINK's colours (used with credit): **ROSE**, **MAGENTA**, **SKY**, **BERRY** and **PEACH**. Text boxes only, so they go with any WINDOWS; PINK's frames are the ones they're made for. Built with `python3 tools/make_pink_wood.py assets/windows/tito/dialogue_woody.png assets/windows/pinkwood`.
 
 Sets are built from a pack's own images with:
 
@@ -452,7 +453,7 @@ Red, Blue and Yellow show pictures on some screens (summary, Hall of Fame, Poké
 
 ### Windows
 
-**WINDOWS** puts every menu and box in a Gen 3 frame: **FIRERED 1-10** (FireRed's OPTION frames, read from your imported FireRed, LeafGreen or Emerald) **LIBERTY 1-10** (LibertyTwins' frames, nothing needed) or **PINK BORDER, PASTEL, BLUSH, SKY and BERRY** (nothing needed). **TEXT BOX** does the same for the text box at the bottom: **FIRERED** (FireRed's own), a **TITO** style, **LIBERTY**, or a **PINK** style. **MATCH** (the default) follows WINDOWS: FireRed's text box with a FIRERED frame, LIBERTY's with LIBERTY's. Boxes keep the game's sizes and the Game Boy's font, and ones under three tiles stay the game's. On the FACETS page, WINDOWS shows on the page's own frame and the TEXT BOX row is drawn in the text box it gives, so you can see both while you pick.
+**WINDOWS** puts every menu and box in a Gen 3 frame: **FIRERED 1-10** (FireRed's OPTION frames, read from your imported FireRed, LeafGreen or Emerald) **LIBERTY 1-10** (LibertyTwins' frames, nothing needed) or **PINK BORDER, PASTEL, BLUSH, SKY and BERRY** (nothing needed). **TEXT BOX** does the same for the text box at the bottom: **FIRERED** (FireRed's own), a **TITO** style, **LIBERTY**, a **PINK** style, or a **PINK WOOD** one. **MATCH** (the default) follows WINDOWS: FireRed's text box with a FIRERED frame, LIBERTY's with LIBERTY's. Boxes keep the game's sizes and the Game Boy's font, and ones under three tiles stay the game's. On the FACETS page, WINDOWS shows on the page's own frame and the TEXT BOX row is drawn in the text box it gives, so you can see both while you pick.
 
 ### Colours and the screen
 
@@ -578,6 +579,7 @@ Battle and windows:
 - **WINDOWS: TITO:** text boxes by Tito Seich / Sage, on the Game Boy games too.
 - **WINDOWS: LIBERTY:** window frames, text boxes and sign boxes by LibertyTwins (Custom Text Boxes FR).
 - **WINDOWS: PINK:** window frames, text boxes and sign boxes by ElvieBlooms.
+- **TEXT BOX: PINK WOOD:** Tito Seich / Sage's Woody text box, recoloured by ElvieBlooms.
 
 ### Read from your own games
 
