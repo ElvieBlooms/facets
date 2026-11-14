@@ -1519,6 +1519,18 @@ do
   Pipelines.applyOptions({})
   mod.fire("game.ready")
   eq(Pipelines.level(filter.ID), 1, "filter: game.ready sets the level again")
+  -- the game's own GB FILTER row moves FILTER and DOTS with it, so OFF
+  -- there lasts past the next load -Elvie
+  mod.options:set("filterOn", "screen")
+  Pipelines.cycle(filter.ID, 1)
+  eq(Pipelines.level(filter.ID), 0, "filter: the game's GB FILTER row turns the pass off")
+  eq(mod.options:get("filter") .. "," .. mod.options:get("dots"), "off,off", "filter: ...and FILTER and DOTS with it")
+  Pipelines.applyOptions({ pipelines = { [filter.ID] = 0 } })
+  mod.fire("save.loaded")
+  eq(Pipelines.level(filter.ID), 0, "filter: ...so the next load leaves it off")
+  Pipelines.cycle(filter.ID, 1)
+  eq(mod.options:get("filter"), "green", "filter: ON there brings back the last look")
+  eq(Pipelines.level(filter.ID), 1, "filter: ...and the pass")
   -- no shader support (headless): the frame goes through untouched -Elvie
   local frame = { getDimensions = function() return 240, 160 end }
   eq(def.present(frame, {}), frame, "filter: no shader, the frame itself")

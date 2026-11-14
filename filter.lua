@@ -349,10 +349,49 @@ function filter.init(mod, rows, menu)
       end
     end
     apply()
+
+    -- The game's own GB FILTER row (its OPTION screen) and the filter's
+    -- hotkey switch the pass with Pipelines.cycle, behind FILTER's back.
+    -- Without this FILTER stayed on, so the next load switched the pass
+    -- back on, and turning it off there never lasted. Now that row moves
+    -- FILTER and DOTS with it: OFF turns off what was on, ON brings back
+    -- the last look (GRAY at first) -Elvie
+    local lastLook = "gray"
+    local function remember()
+      local look = filter.settings(get)
+      if look ~= "off" then lastLook = look end
+    end
+    remember()
+    -- the newest start's: a game loaded later brings its own options -Elvie
+    filter.follow = function(level)
+      local look, where, dots = filter.settings(get)
+      if level <= 0 then
+        if look ~= "off" and where == "screen" then mod.options:set("filter", "off") end
+        if dots == "on" then mod.options:set("dots", "off") end
+      elseif not filter.screenOn(look, where, dots) then
+        if look == "off" then mod.options:set("filter", lastLook) end
+        if where ~= "screen" then mod.options:set("filterOn", "screen") end
+      end
+    end
+    -- wrapped once; the wrap asks filter.follow -Elvie
+    if Pipelines and type(Pipelines.cycle) == "function" and not Pipelines.facetsFilterCycle then
+      local cycle = Pipelines.cycle
+      Pipelines.facetsFilterCycle = cycle
+      Pipelines.cycle = function(id, ...)
+        local level = cycle(id, ...)
+        if id == filter.ID and filter.follow then
+          local ok, err = pcall(filter.follow, level)
+          if not ok then mod.log:warn("FILTER couldn't follow the game's GB FILTER row: %s", tostring(err)) end
+        end
+        return level
+      end
+    end
+
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
         if type(change) == "table" and change.mod == mod.id
             and (change.key == "filter" or change.key == "filterOn" or change.key == "dots" or change.key == "shades") then
+          remember()
           apply()
         end
       end)

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.5
+
+- **The game's own GB FILTER row** (on Red to Crystal's OPTION screen) and Facets' **FILTER** now move together. Turning GB FILTER off there turns off Facets' FILTER and DOTS too, so it stays off. Before, FILTER stayed on, so the filter came back on every time the game started. Turning GB FILTER on there brings back the last FILTER look (GRAY at first).
+
 ## 1.2.4
 
 - **Pokémon Pink's Clefairy**, in Yellow: with Pink's partner mod on, the PIKACHU row on the map becomes **CLEFAIRY**: **GAME** (Pink's own walking Clefairy, the default), **HGSS** and **B2W2** (their walking Clefairy, from your own dumps through Prism Importer), and **BADASSBILL** (GBA-style, by Badassbill). Its battle row under POKEMON is **CLEFAIRY** too: MATCH, GAME or any POKEMON set. Facets now loads after Pink's partner mod so it can tell it's there.
