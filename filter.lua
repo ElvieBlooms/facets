@@ -113,11 +113,51 @@ extern float paperDark;
 extern vec3 ink;
 extern float bandTop;
 extern vec2 texStep;
+extern float midGreys;
+// the eight pixels round one, as steps
+vec2 around(int i) {
+  if (i == 0) return vec2(1.0, 0.0);
+  if (i == 1) return vec2(-1.0, 0.0);
+  if (i == 2) return vec2(0.0, 1.0);
+  if (i == 3) return vec2(0.0, -1.0);
+  if (i == 4) return vec2(1.0, 1.0);
+  if (i == 5) return vec2(-1.0, -1.0);
+  if (i == 6) return vec2(1.0, -1.0);
+  return vec2(-1.0, 1.0);
+}
 // whether a pixel is the white or near-white of a menu's paper
 float paperish(vec3 c) {
   float hi = max(c.r, max(c.g, c.b));
   float lo = min(c.r, min(c.g, c.b));
   return smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.08, 0.14, hi - lo));
+}
+// a colour, not paper
+float colourful(vec3 c) {
+  float hi = max(c.r, max(c.g, c.b));
+  float lo = min(c.r, min(c.g, c.b));
+  return smoothstep(0.10, 0.16, hi - lo) * (1.0 - paperish(c));
+}
+// a middle grey (only counted with midGreys)
+float midGrey(vec3 c) {
+  float hi = max(c.r, max(c.g, c.b));
+  float lo = min(c.r, min(c.g, c.b));
+  float l = dot(c, vec3(0.299, 0.587, 0.114));
+  return midGreys * step(0.22, l) * step(l, 0.82) * (1.0 - smoothstep(0.08, 0.14, hi - lo));
+}
+// whether the pixel at t belongs to a picture: a colour, or (Red to
+// Crystal) a middle grey with another a game pixel away. Letters drawn
+// smooth have greys only along their edges, one screen pixel thin, so
+// theirs don't count
+float picture(Image tex, vec2 t, vec2 step1) {
+  vec3 c = Texel(tex, t).rgb;
+  float pic = colourful(c);
+  float m = midGrey(c);
+  if (m > 0.5) {
+    float other = 0.0;
+    for (int i = 0; i < 4; i++) other = max(other, midGrey(Texel(tex, t + step1 * around(i)).rgb) + colourful(Texel(tex, t + step1 * around(i)).rgb));
+    pic = max(pic, min(1.0, other));
+  }
+  return pic;
 }
 vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
   vec4 c = Texel(tex, tc);
@@ -132,25 +172,25 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       float grey = 1.0 - smoothstep(0.08, 0.14, hi - lo);
       if (paperDark > 0.5) {
         // the greys turned round: white to the dark paper, black to the
-        // letters' white. A darker grey only turns where it's on white
-        // paper (some within two game pixels), so letters in a coloured
-        // box, Pokémon's outlines and black screens stay as they are
+        // letters' white. Pictures stay as they are: a picture's pixels are
+        // its colours (and on Red to Crystal its middle greys, where
+        // letters are only ever black). White touching a picture stays
+        // white, and so does black (its outline); a dark grey only turns
+        // where it's on white paper, within two game pixels, so letters in
+        // a coloured box and black screens stay too
         float l = dot(o, vec3(0.299, 0.587, 0.114));
+        float here = picture(tex, tc, texStep);
+        float near = 0.0;
+        for (int i = 0; i < 8; i++) near = max(near, picture(tex, tc + texStep * around(i), texStep));
         float onPaper = paperish(o);
         if (onPaper < 0.5) {
-          for (int i = 1; i <= 2; i++) {
-            vec2 d = texStep * float(i);
-            onPaper = max(onPaper, paperish(Texel(tex, tc + vec2(d.x, 0.0)).rgb));
-            onPaper = max(onPaper, paperish(Texel(tex, tc - vec2(d.x, 0.0)).rgb));
-            onPaper = max(onPaper, paperish(Texel(tex, tc + vec2(0.0, d.y)).rgb));
-            onPaper = max(onPaper, paperish(Texel(tex, tc - vec2(0.0, d.y)).rgb));
-            onPaper = max(onPaper, paperish(Texel(tex, tc + d).rgb));
-            onPaper = max(onPaper, paperish(Texel(tex, tc - d).rgb));
-            onPaper = max(onPaper, paperish(Texel(tex, tc + vec2(d.x, -d.y)).rgb));
-            onPaper = max(onPaper, paperish(Texel(tex, tc + vec2(-d.x, d.y)).rgb));
+          for (int i = 0; i < 8; i++) {
+            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * around(i)).rgb));
+            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * 2.0 * around(i)).rgb));
           }
         }
-        o = mix(o, mix(ink, paper, l), Texel(ui, p).a * grey * onPaper);
+        float turn = (1.0 - here) * (1.0 - near) * onPaper;
+        o = mix(o, mix(ink, paper, l), Texel(ui, p).a * grey * turn);
       } else {
         float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * grey;
         o = mix(o, paper * hi, w);
@@ -390,8 +430,12 @@ function filter.init(mod, rows, menu)
       sh:send("paperDark", paper == "dark" and 1 or 0)
       sh:send("ink", { filter.DARK.ink[1] / 255, filter.DARK.ink[2] / 255, filter.DARK.ink[3] / 255 })
       sh:send("bandTop", paper == "dark" and layer.band or 0)
+      sh:send("midGreys", layer.gen == 3 and 0 or 1)
       local pw, ph = src:getPixelDimensions()
-      local cell = math.max(1, tonumber(layer.cell) or 1)
+      -- whole screen pixels, so the look round lands on pixels and not
+      -- between them, where the frame's smoothing would blend black and
+      -- white into a grey that reads as a picture -Elvie
+      local cell = math.max(1, math.floor((tonumber(layer.cell) or 1) + 0.5))
       sh:send("texStep", { cell / math.max(1, pw), cell / math.max(1, ph) })
     else
       sh:send("paperOn", 0)
@@ -450,6 +494,7 @@ function filter.init(mod, rows, menu)
         layer.canvas = canvas
         if canvas then layer.origin, layer.size = origin, size end
         layer.band = 0
+        layer.gen = ctx.generation
         -- screen pixels to a game pixel, for DARK's look round -Elvie
         if ctx.generation == 2 then
           local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
