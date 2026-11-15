@@ -71,13 +71,21 @@ filter.GBC_SATURATION = 1.15
 -- eyes the bright white tires. Only the white changes, and only where the
 -- menus are drawn: the map, the letters and the pictures' other colours
 -- stay as they are. With a FILTER on the whole screen it's shaded with the
--- rest -Elvie
+-- rest. DARK turns menus round: dark paper with white letters, the greys
+-- between swapped too. In a battle only its text box goes dark, since the
+-- Pokémon's outlines are the same black as the letters -Elvie
 filter.PAPERS = { { "WHITE", "off" }, { "CREAM", "cream" }, { "LEMON", "lemon" }, { "PEACH", "peach" },
-  { "ROSE", "rose" }, { "LILAC", "lilac" }, { "SKY", "sky" }, { "MINT", "mint" }, { "GREY", "grey" } }
+  { "ROSE", "rose" }, { "LILAC", "lilac" }, { "SKY", "sky" }, { "MINT", "mint" }, { "GREY", "grey" },
+  { "DARK", "dark" } }
+-- DARK's paper and letters -Elvie
+filter.DARK = { paper = { 34, 36, 46 }, ink = { 236, 236, 240 } }
+-- where a battle's text box starts, as a share of the screen's height:
+-- Red to Crystal's six tile rows of eighteen, the GBA's 48 pixels of 160 -Elvie
+filter.BATTLE_BOX = { [1] = 12 / 18, [2] = 12 / 18, [3] = 112 / 160 }
 filter.PAPER = {
   cream = { 248, 240, 216 }, lemon = { 248, 244, 204 }, peach = { 250, 228, 210 },
   rose = { 248, 224, 230 }, lilac = { 234, 226, 248 }, sky = { 218, 234, 250 },
-  mint = { 222, 246, 228 }, grey = { 214, 214, 214 },
+  mint = { 222, 246, 228 }, grey = { 214, 214, 214 }, dark = filter.DARK.paper,
 }
 
 -- How much the dot grid darkens the line between two pixels. -Elvie
@@ -101,6 +109,16 @@ extern vec3 paper;
 extern Image ui;
 extern vec2 uiOrigin;
 extern vec2 uiSize;
+extern float paperDark;
+extern vec3 ink;
+extern float bandTop;
+extern vec2 texStep;
+// whether a pixel is the white or near-white of a menu's paper
+float paperish(vec3 c) {
+  float hi = max(c.r, max(c.g, c.b));
+  float lo = min(c.r, min(c.g, c.b));
+  return smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.08, 0.14, hi - lo));
+}
 vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
   vec4 c = Texel(tex, tc);
   vec3 o = c.rgb;
@@ -108,11 +126,35 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
     // the menus' own pixels: where the UI layer is drawn, white or nearly
     // (a palette's paper can be a touch off-white), and not a colour
     vec2 p = (sc - uiOrigin) / uiSize;
-    if (p.x >= 0.0 && p.y >= 0.0 && p.x < 1.0 && p.y < 1.0) {
+    if (p.x >= 0.0 && p.y >= bandTop && p.x < 1.0 && p.y < 1.0) {
       float hi = max(o.r, max(o.g, o.b));
       float lo = min(o.r, min(o.g, o.b));
-      float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.08, 0.14, hi - lo));
-      o = mix(o, paper * hi, w);
+      float grey = 1.0 - smoothstep(0.08, 0.14, hi - lo);
+      if (paperDark > 0.5) {
+        // the greys turned round: white to the dark paper, black to the
+        // letters' white. A darker grey only turns where it's on white
+        // paper (some within two game pixels), so letters in a coloured
+        // box, Pokémon's outlines and black screens stay as they are
+        float l = dot(o, vec3(0.299, 0.587, 0.114));
+        float onPaper = paperish(o);
+        if (onPaper < 0.5) {
+          for (int i = 1; i <= 2; i++) {
+            vec2 d = texStep * float(i);
+            onPaper = max(onPaper, paperish(Texel(tex, tc + vec2(d.x, 0.0)).rgb));
+            onPaper = max(onPaper, paperish(Texel(tex, tc - vec2(d.x, 0.0)).rgb));
+            onPaper = max(onPaper, paperish(Texel(tex, tc + vec2(0.0, d.y)).rgb));
+            onPaper = max(onPaper, paperish(Texel(tex, tc - vec2(0.0, d.y)).rgb));
+            onPaper = max(onPaper, paperish(Texel(tex, tc + d).rgb));
+            onPaper = max(onPaper, paperish(Texel(tex, tc - d).rgb));
+            onPaper = max(onPaper, paperish(Texel(tex, tc + vec2(d.x, -d.y)).rgb));
+            onPaper = max(onPaper, paperish(Texel(tex, tc + vec2(-d.x, d.y)).rgb));
+          }
+        }
+        o = mix(o, mix(ink, paper, l), Texel(ui, p).a * grey * onPaper);
+      } else {
+        float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * grey;
+        o = mix(o, paper * hi, w);
+      }
     }
   }
   if (mode > 0.5 && mode < 1.5) {
@@ -241,11 +283,32 @@ function filter.init(mod, rows, menu)
   -- the game's pixel grid on screen, and the UI layer and where it sits,
   -- from the last render.compose -Elvie
   local grid = { origin = { 0, 0 }, cell = 0 }
-  local layer = { canvas = nil, origin = { 0, 0 }, size = { 1, 1 } }
+  local layer = { canvas = nil, origin = { 0, 0 }, size = { 1, 1 }, band = 0, cell = 1 }
   -- Gold, Silver and Crystal draw the map and the menus into one picture,
   -- so PAPER keeps its own copy of the menus drawn over the map (gen2Mask,
   -- from start below); with no map, the whole picture is menus -Elvie
   local gen2Mask, gen2Drawn, gen2Game, whole = nil, false, nil, nil
+  -- Whether the battle itself is what's showing (not a menu over it):
+  -- game is the one with the state stack on Red to Crystal -Elvie
+  local battleKinds
+  local function battleShowing(gen, game)
+    if gen == 3 then
+      local ok, active = pcall(function() return require("src.core.game3.battle").isActive() end)
+      if not (ok and active) then return false end
+      local okS, over = pcall(function() return require("src.ui.game3.stack").fullscreen() end)
+      return not (okS and over)
+    end
+    if not battleKinds then
+      battleKinds = {}
+      for _, name in ipairs({ "src.battle.BattleState", "src.ui.gen2.BattleState" }) do
+        local ok, m = pcall(require, name)
+        if ok and type(m) == "table" then battleKinds[m] = true end
+      end
+    end
+    local stack = type(game) == "table" and rawget(game, "stack")
+    local okT, top = pcall(function() return stack:top() end)
+    return okT and type(top) == "table" and battleKinds[getmetatable(top)] == true or false
+  end
   local function wholeImage()
     if whole == nil then
       local ok, img = pcall(function()
@@ -267,8 +330,7 @@ function filter.init(mod, rows, menu)
     end
     -- a battle with BATTLE BG: WORLD has the map round it, not under it:
     -- the game screen is all battle -Elvie
-    local okS, surround = pcall(require, "mods.facets.classic_surround")
-    if okS and type(surround.inBattle) == "function" and surround.inBattle() then
+    if battleShowing(2, gen2Game) then
       local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
       if okC and type(Chrome.fitScale) == "function" then
         local sc = Chrome.fitScale(ww, wh)
@@ -325,6 +387,12 @@ function filter.init(mod, rows, menu)
       sh:send("ui", layer.canvas)
       sh:send("uiOrigin", layer.origin)
       sh:send("uiSize", layer.size)
+      sh:send("paperDark", paper == "dark" and 1 or 0)
+      sh:send("ink", { filter.DARK.ink[1] / 255, filter.DARK.ink[2] / 255, filter.DARK.ink[3] / 255 })
+      sh:send("bandTop", paper == "dark" and layer.band or 0)
+      local pw, ph = src:getPixelDimensions()
+      local cell = math.max(1, tonumber(layer.cell) or 1)
+      sh:send("texStep", { cell / math.max(1, pw), cell / math.max(1, ph) })
     else
       sh:send("paperOn", 0)
     end
@@ -381,6 +449,34 @@ function filter.init(mod, rows, menu)
         end
         layer.canvas = canvas
         if canvas then layer.origin, layer.size = origin, size end
+        layer.band = 0
+        -- screen pixels to a game pixel, for DARK's look round -Elvie
+        if ctx.generation == 2 then
+          local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
+          if okC and type(Chrome.fitScale) == "function" then
+            layer.cell = Chrome.fitScale(tonumber(ctx.ww) or 0, tonumber(ctx.wh) or 0) * (tonumber(ctx.dpiX) or 1)
+          end
+        elseif canvas and tonumber(ctx.uiw) and ctx.uiw > 0 then
+          layer.cell = size[1] / ctx.uiw
+        end
+        local gen = ctx.generation
+        if canvas and select(5, filter.settings(get)) == "dark" and filter.BATTLE_BOX[gen] then
+          local game = gen == 1 and package.loaded["src.core.Game"] or renderer
+          if battleShowing(gen, game) then
+            layer.band = filter.BATTLE_BOX[gen]
+            -- Gold to Crystal's whole picture: the band is of the game screen -Elvie
+            if gen == 2 then
+              local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
+              local ww, wh = tonumber(ctx.ww) or 0, tonumber(ctx.wh) or 0
+              if okC and type(Chrome.fitScale) == "function" and wh > 0 then
+                local sc = Chrome.fitScale(ww, wh)
+                local _, oy = Chrome.fitOrigin(ww, wh, sc)
+                local top = (oy + 144 * sc * layer.band) * (tonumber(ctx.dpiX) or 1)
+                layer.band = top / size[2] - origin[2] / size[2]
+              end
+            end
+          end
+        end
         local look, where, _, steps = filter.settings(get)
         local world = ctx.worldOverride or ctx.worldCanvas
         if look ~= "off" and where == "map" and ctx.worldActive and world and world.getDimensions then
@@ -438,6 +534,7 @@ function filter.init(mod, rows, menu)
           return { lines = { { text = "No grid." } } }
         elseif who == "paper" then
           if select(5, filter.settings(get)) == "off" then return { lines = { { text = "Menus on white." } } } end
+          if select(5, filter.settings(get)) == "dark" then return { lines = { { text = "Dark menus, white letters." } } } end
           return { lines = { { text = "Menus on softer paper." } } }
         end
         return nil
