@@ -668,20 +668,18 @@ function filter.init(mod, rows, menu)
     end
     -- PAPER on Gold, Silver and Crystal: the menus over the map are drawn
     -- into a picture of their own first, then onto the map as before, so
-    -- PAPER knows which pixels are menus -Elvie
-    local okSS, StateStack = pcall(require, "src.core.StateStack")
-    if require("mods.facets.classic").generation() == 2 and okSS and type(StateStack) == "table"
-        and type(StateStack.draw) == "function" and not StateStack.facetsPaper then
-      StateStack.facetsPaper = true
-      local ownDraw = StateStack.draw
-      StateStack.draw = function(self, ...)
+    -- PAPER knows which pixels are menus. The game draws them through its
+    -- stack, or (UI LAYOUT: DYNAMIC, from 0.4.6) through drawDockedStack
+    -- -Elvie
+    local function captured(ownDraw)
+      return function(self, ...)
         local G = love.graphics
         local target = G.getCanvas()
-        -- only the game's own stack, over the map (the game, from the last
+        -- only the game's own menus, over the map (the game, from the last
         -- render.compose) -Elvie
         local game = gen2Game
         if not (target and select(5, filter.settings(get)) ~= "off" and type(game) == "table"
-            and rawget(game, "stack") == self and rawget(game, "frameWorldActive")) then
+            and (self == game or rawget(game, "stack") == self) and rawget(game, "frameWorldActive")) then
           return ownDraw(self, ...)
         end
         local w, h = target:getDimensions()
@@ -709,6 +707,18 @@ function filter.init(mod, rows, menu)
         gen2Drawn = true
         if not results[1] then error(results[2], 0) end
         return unpack(results, 2)
+      end
+    end
+    if require("mods.facets.classic").generation() == 2 then
+      local okSS, StateStack = pcall(require, "src.core.StateStack")
+      if okSS and type(StateStack) == "table" and type(StateStack.draw) == "function" and not StateStack.facetsPaper then
+        StateStack.facetsPaper = true
+        StateStack.draw = captured(StateStack.draw)
+      end
+      local okG2, Game2 = pcall(require, "src.core.Game2")
+      if okG2 and type(Game2) == "table" and type(Game2.drawDockedStack) == "function" and not Game2.facetsPaper then
+        Game2.facetsPaper = true
+        Game2.drawDockedStack = captured(Game2.drawDockedStack)
       end
     end
 

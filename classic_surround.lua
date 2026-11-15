@@ -62,7 +62,9 @@ function surround.init(m, rows, gen)
     -- Red, Blue and Yellow: the game itself keeps drawing the map under a
     -- menu, as it does under a BATTLE BG: WORLD battle, and dims it the
     -- same way -Elvie
-    pcall(function()
+    -- (only there: the other games' engines have no such Game, and asking
+    -- for it only fills their logs) -Elvie
+    if surround.gen == 1 and require("mods.facets.classic").generation() == 1 then pcall(function()
       local Game = require("src.core.Game")
       if type(Game.drawBaseInStack) == "function" and not Game.facetsSurround then
         Game.facetsSurround = true
@@ -83,7 +85,7 @@ function surround.init(m, rows, gen)
           end
         end
       end
-    end)
+    end) end
     -- Gold, Silver and Crystal draw the map and the menus into one picture,
     -- and FireRed to Emerald leave the map out under their full-screen
     -- menus: so the last frame of just the map is kept (every few frames)
