@@ -54,7 +54,7 @@ cmenu.TOPICS = {
     keys = { "classicWindows", "classicTextBox" } },
   { id = "screen", label = "SCREEN", lead = "filter",
     about = "Colours, what fills the space round the game, and old-handheld looks.",
-    keys = { "classicColors", "surround", "filter", "filterOn", "dots", "shades" } },
+    keys = { "classicColors", "surround", "filter", "filterOn", "dots", "shades", "paper" } },
 }
 
 -- The topics with the settings this game has, each with its entries in

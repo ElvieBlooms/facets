@@ -294,6 +294,14 @@ help.TEXT = {
     about = "How many shades FILTER uses.",
     choices = { ["4"] = "Four, like a Game Boy.", ["8"] = "Eight, a little smoother.", ["16"] = "Sixteen, smoothest." },
   },
+  paper = {
+    about = "The white of menus, text boxes and battles, in a softer colour. Only the white changes: the map, the letters and the pictures stay as they are.",
+    choices = {
+      off = "Plain white, as the game draws it.",
+      cream = "Warm cream.", lemon = "Pale lemon.", peach = "Soft peach.", rose = "Pale rose.",
+      lilac = "Pale lilac.", sky = "Pale sky blue.", mint = "Pale mint.", grey = "Light grey, the dimmest.",
+    },
+  },
   -- the GBA games' own -Elvie
   setTrainers = {
     about = "The trainers you battle, in their battle pictures. Also the Hall of Fame, PokéNav and Battle Dome.",

@@ -67,6 +67,19 @@ filter.CUTS = { 0.85, 0.64, 0.37 }
 filter.GBC_LEVELS = 4
 filter.GBC_SATURATION = 1.15
 
+-- PAPER: the white of menus, text boxes and battles in a soft colour, for
+-- eyes the bright white tires. Only the white changes, and only where the
+-- menus are drawn: the map, the letters and the pictures' other colours
+-- stay as they are. With a FILTER on the whole screen it's shaded with the
+-- rest -Elvie
+filter.PAPERS = { { "WHITE", "off" }, { "CREAM", "cream" }, { "LEMON", "lemon" }, { "PEACH", "peach" },
+  { "ROSE", "rose" }, { "LILAC", "lilac" }, { "SKY", "sky" }, { "MINT", "mint" }, { "GREY", "grey" } }
+filter.PAPER = {
+  cream = { 248, 240, 216 }, lemon = { 248, 244, 204 }, peach = { 250, 228, 210 },
+  rose = { 248, 224, 230 }, lilac = { 234, 226, 248 }, sky = { 218, 234, 250 },
+  mint = { 222, 246, 228 }, grey = { 214, 214, 214 },
+}
+
 -- How much the dot grid darkens the line between two pixels. -Elvie
 filter.DOT_SHADE = 0.82
 
@@ -83,9 +96,25 @@ extern float dots;
 extern float dotShade;
 extern float cell;
 extern vec2 origin;
+extern float paperOn;
+extern vec3 paper;
+extern Image ui;
+extern vec2 uiOrigin;
+extern vec2 uiSize;
 vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
   vec4 c = Texel(tex, tc);
   vec3 o = c.rgb;
+  if (paperOn > 0.5) {
+    // the menus' own pixels: where the UI layer is drawn, white or nearly
+    // (a palette's paper can be a touch off-white), and not a colour
+    vec2 p = (sc - uiOrigin) / uiSize;
+    if (p.x >= 0.0 && p.y >= 0.0 && p.x < 1.0 && p.y < 1.0) {
+      float hi = max(o.r, max(o.g, o.b));
+      float lo = min(o.r, min(o.g, o.b));
+      float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.08, 0.14, hi - lo));
+      o = mix(o, paper * hi, w);
+    }
+  }
   if (mode > 0.5 && mode < 1.5) {
     float l = dot(o, vec3(0.299, 0.587, 0.114));
     // brightness to a 0..1 ramp, a quarter per band between the cuts
@@ -171,15 +200,27 @@ function filter.drawSwatch(area, get)
   love.graphics.setColor(1, 1, 1, 1)
 end
 
--- What the options ask for: look, where, dots, shades. -Elvie
+-- What the options ask for: look, where, dots, shades, paper. -Elvie
 function filter.settings(get)
   return valueOf(filter.LOOKS, get("filter"), "off"), valueOf(filter.WHERE, get("filterOn"), "screen"),
-    valueOf(filter.DOTS, get("dots"), "off"), valueOf(filter.STEPS, get("shades"), "4")
+    valueOf(filter.DOTS, get("dots"), "off"), valueOf(filter.STEPS, get("shades"), "4"),
+    valueOf(filter.PAPERS, get("paper"), "off")
 end
 
 -- Whether the whole-screen pass has anything to do. -Elvie
-function filter.screenOn(look, where, dots)
-  return (look ~= "off" and where == "screen") or dots == "on"
+function filter.screenOn(look, where, dots, _, paper)
+  return (look ~= "off" and where == "screen") or dots == "on" or (paper ~= nil and paper ~= "off")
+end
+
+-- Where the UI layer sits on screen, in screen pixels, from the engine's
+-- frame numbers: origin and size, or nil -Elvie
+function filter.uiRectFor(ctx)
+  if type(ctx) ~= "table" or type(ctx.renderer) ~= "table" or type(ctx.renderer.frameRects) ~= "function" then return nil end
+  local ok, r = pcall(ctx.renderer.frameRects, ctx.renderer)
+  if not (ok and type(r) == "table" and tonumber(r.Up) and tonumber(r.uiw) and tonumber(r.uih)) then return nil end
+  local dpiX = tonumber(ctx.dpiX) or 1
+  local dpiY = tonumber(ctx.dpiY) or dpiX
+  return { (tonumber(r.uox) or 0) * dpiX, (tonumber(r.uoy) or 0) * dpiY }, { r.uiw * r.Up, r.uih * r.Up }
 end
 
 -- Adds the SCREEN rows, registers the pipeline and the map hook. menu
@@ -197,8 +238,50 @@ function filter.init(mod, rows, menu)
 
   local shader -- compiled when first used; false if it couldn't be
   local canvases = {}
-  -- the game's pixel grid on screen, from the last render.compose -Elvie
+  -- the game's pixel grid on screen, and the UI layer and where it sits,
+  -- from the last render.compose -Elvie
   local grid = { origin = { 0, 0 }, cell = 0 }
+  local layer = { canvas = nil, origin = { 0, 0 }, size = { 1, 1 } }
+  -- Gold, Silver and Crystal draw the map and the menus into one picture,
+  -- so PAPER keeps its own copy of the menus drawn over the map (gen2Mask,
+  -- from start below); with no map, the whole picture is menus -Elvie
+  local gen2Mask, gen2Drawn, gen2Game, whole = nil, false, nil, nil
+  local function wholeImage()
+    if whole == nil then
+      local ok, img = pcall(function()
+        local data = love.image.newImageData(1, 1)
+        data:setPixel(0, 0, 1, 1, 1, 1)
+        return love.graphics.newImage(data)
+      end)
+      whole = ok and img or false
+    end
+    return whole or nil
+  end
+  local function gen2Layer(ctx)
+    local drawn = gen2Drawn
+    gen2Drawn = false
+    local ww, wh = tonumber(ctx.ww) or 0, tonumber(ctx.wh) or 0
+    local dpi = tonumber(ctx.dpiX) or 1
+    if not ctx.worldActive then
+      return wholeImage(), { 0, 0 }, { ww * dpi, wh * dpi }
+    end
+    -- a battle with BATTLE BG: WORLD has the map round it, not under it:
+    -- the game screen is all battle -Elvie
+    local okS, surround = pcall(require, "mods.facets.classic_surround")
+    if okS and type(surround.inBattle) == "function" and surround.inBattle() then
+      local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
+      if okC and type(Chrome.fitScale) == "function" then
+        local sc = Chrome.fitScale(ww, wh)
+        local ox, oy = Chrome.fitOrigin(ww, wh, sc)
+        return wholeImage(), { ox * dpi, oy * dpi }, { 160 * sc * dpi, 144 * sc * dpi }
+      end
+    end
+    if drawn and gen2Mask then
+      local pw, ph = gen2Mask:getPixelDimensions()
+      return gen2Mask, { 0, 0 }, { pw, ph }
+    end
+    return nil
+  end
 
   local function getShader()
     if shader ~= nil then return shader or nil end
@@ -210,7 +293,7 @@ function filter.init(mod, rows, menu)
   end
 
   -- Draws src through the shader into a canvas the same size. -Elvie
-  local function run(src, slot, look, dots, steps)
+  local function run(src, slot, look, dots, steps, paper)
     local sh = getShader()
     if not sh then return nil end
     local w, h = src:getDimensions()
@@ -235,6 +318,16 @@ function filter.init(mod, rows, menu)
     sh:send("dotShade", filter.DOT_SHADE)
     sh:send("cell", grid.cell)
     sh:send("origin", grid.origin)
+    local tint = paper and filter.PAPER[paper]
+    if tint and layer.canvas then
+      sh:send("paperOn", 1)
+      sh:send("paper", { tint[1] / 255, tint[2] / 255, tint[3] / 255 })
+      sh:send("ui", layer.canvas)
+      sh:send("uiOrigin", layer.origin)
+      sh:send("uiSize", layer.size)
+    else
+      sh:send("paperOn", 0)
+    end
     love.graphics.push("all")
     love.graphics.setCanvas(cv)
     love.graphics.clear(0, 0, 0, 0)
@@ -255,12 +348,12 @@ function filter.init(mod, rows, menu)
     -- (canvas, ctx) -> canvas: the finished frame in, the filtered copy
     -- out; the frame itself when there's nothing to do -Elvie
     present = function(input, ctx)
-      local look, where, dots, steps = filter.settings(get)
-      if not filter.screenOn(look, where, dots) then return input end
+      local look, where, dots, steps, paper = filter.settings(get)
+      if not filter.screenOn(look, where, dots, steps, paper) then return input end
       if grid.cell <= 0 and type(ctx) == "table" then
         grid.cell = tonumber(ctx.scale) or 0
       end
-      return run(input, "screen", where == "screen" and look or "off", dots == "on", steps) or input
+      return run(input, "screen", where == "screen" and look or "off", dots == "on", steps, paper) or input
     end,
     invalidate = function() canvases = {} end,
   }
@@ -278,6 +371,16 @@ function filter.init(mod, rows, menu)
     mod.hooks:wrap("render.compose", function(nextFn, renderer, ctx)
       if type(ctx) == "table" then
         grid.cell, grid.origin = filter.gridFor(ctx)
+        local canvas, origin, size
+        if ctx.generation == 2 then
+          gen2Game = renderer
+          canvas, origin, size = gen2Layer(ctx)
+        else
+          origin, size = filter.uiRectFor(ctx)
+          canvas = origin and ctx.uiCanvas or nil
+        end
+        layer.canvas = canvas
+        if canvas then layer.origin, layer.size = origin, size end
         local look, where, _, steps = filter.settings(get)
         local world = ctx.worldOverride or ctx.worldCanvas
         if look ~= "off" and where == "map" and ctx.worldActive and world and world.getDimensions then
@@ -302,6 +405,7 @@ function filter.init(mod, rows, menu)
   rows[#rows + 1] = { key = "filterOn", type = "choice", label = "  FILTER ON", choices = filter.WHERE, default = "screen" }
   rows[#rows + 1] = { key = "dots", type = "choice", label = "  DOTS", choices = filter.DOTS, default = "off" }
   rows[#rows + 1] = { key = "shades", type = "choice", label = "  SHADES", choices = filter.STEPS, default = "4" }
+  rows[#rows + 1] = { key = "paper", type = "choice", label = "  PAPER", choices = filter.PAPERS, default = "off" }
 
   if menu then
     menu.register({
@@ -316,6 +420,8 @@ function filter.init(mod, rows, menu)
         end
         out[#out + 1] = { key = "filterOn", label = "WHERE", who = "where", choices = filter.WHERE, value = where }
         out[#out + 1] = { key = "dots", label = "DOTS", who = "dots", choices = filter.DOTS, value = dots }
+        out[#out + 1] = { key = "paper", label = "PAPER", who = "paper", choices = filter.PAPERS,
+          value = select(5, filter.settings(get)) }
         return out
       end,
       preview = function(who)
@@ -330,6 +436,9 @@ function filter.init(mod, rows, menu)
         elseif who == "dots" then
           if dots == "on" then return { lines = { { text = "A dot-matrix screen." } } } end
           return { lines = { { text = "No grid." } } }
+        elseif who == "paper" then
+          if select(5, filter.settings(get)) == "off" then return { lines = { { text = "Menus on white." } } } end
+          return { lines = { { text = "Menus on softer paper." } } }
         end
         return nil
       end,
@@ -364,15 +473,62 @@ function filter.init(mod, rows, menu)
     remember()
     -- the newest start's: a game loaded later brings its own options -Elvie
     filter.follow = function(level)
-      local look, where, dots = filter.settings(get)
+      local look, where, dots, _, paper = filter.settings(get)
       if level <= 0 then
         if look ~= "off" and where == "screen" then mod.options:set("filter", "off") end
         if dots == "on" then mod.options:set("dots", "off") end
+        if paper ~= "off" then mod.options:set("paper", "off") end
       elseif not filter.screenOn(look, where, dots) then
         if look == "off" then mod.options:set("filter", lastLook) end
         if where ~= "screen" then mod.options:set("filterOn", "screen") end
       end
     end
+    -- PAPER on Gold, Silver and Crystal: the menus over the map are drawn
+    -- into a picture of their own first, then onto the map as before, so
+    -- PAPER knows which pixels are menus -Elvie
+    local okSS, StateStack = pcall(require, "src.core.StateStack")
+    if require("mods.facets.classic").generation() == 2 and okSS and type(StateStack) == "table"
+        and type(StateStack.draw) == "function" and not StateStack.facetsPaper then
+      StateStack.facetsPaper = true
+      local ownDraw = StateStack.draw
+      StateStack.draw = function(self, ...)
+        local G = love.graphics
+        local target = G.getCanvas()
+        -- only the game's own stack, over the map (the game, from the last
+        -- render.compose) -Elvie
+        local game = gen2Game
+        if not (target and select(5, filter.settings(get)) ~= "off" and type(game) == "table"
+            and rawget(game, "stack") == self and rawget(game, "frameWorldActive")) then
+          return ownDraw(self, ...)
+        end
+        local w, h = target:getDimensions()
+        local dpi = target.getDPIScale and target:getDPIScale() or 1
+        if not gen2Mask or gen2Mask:getWidth() ~= w or gen2Mask:getHeight() ~= h or gen2Mask:getDPIScale() ~= dpi then
+          local ok, made = pcall(G.newCanvas, w, h, { dpiscale = dpi })
+          gen2Mask = ok and made or nil
+          if not gen2Mask then return ownDraw(self, ...) end
+        end
+        G.setCanvas({ gen2Mask, stencil = true })
+        G.push()
+        G.origin()
+        G.clear(0, 0, 0, 0)
+        G.pop()
+        local results = { pcall(ownDraw, self, ...) }
+        G.setCanvas(target)
+        G.push("all")
+        G.origin()
+        G.setScissor()
+        G.setShader()
+        G.setColor(1, 1, 1, 1)
+        G.setBlendMode("alpha", "premultiplied")
+        G.draw(gen2Mask, 0, 0)
+        G.pop()
+        gen2Drawn = true
+        if not results[1] then error(results[2], 0) end
+        return unpack(results, 2)
+      end
+    end
+
     -- wrapped once; the wrap asks filter.follow -Elvie
     if Pipelines and type(Pipelines.cycle) == "function" and not Pipelines.facetsFilterCycle then
       local cycle = Pipelines.cycle
@@ -390,7 +546,8 @@ function filter.init(mod, rows, menu)
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
         if type(change) == "table" and change.mod == mod.id
-            and (change.key == "filter" or change.key == "filterOn" or change.key == "dots" or change.key == "shades") then
+            and (change.key == "filter" or change.key == "filterOn" or change.key == "dots" or change.key == "shades"
+              or change.key == "paper") then
           remember()
           apply()
         end

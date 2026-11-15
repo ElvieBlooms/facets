@@ -1502,7 +1502,7 @@ do
   check(type(wraps["render.compose"]) == "function", "filter: wraps render.compose for MAP")
   local keys = {}
   for _, r in ipairs(rows) do keys[#keys + 1] = r.key .. "=" .. tostring(r.default) end
-  eq(table.concat(keys, ","), "sectionScreen=_,filter=off,filterOn=screen,dots=off,shades=4", "filter: SCREEN rows and defaults")
+  eq(table.concat(keys, ","), "sectionScreen=_,filter=off,filterOn=screen,dots=off,shades=4,paper=off", "filter: SCREEN rows and defaults")
   local looks = {}
   for _, c in ipairs(rows[2].choices) do looks[#looks + 1] = c[1] end
   eq(table.concat(looks, ","), "OFF,GRAY,GREEN,YELLOW,GOLD,CRYSTAL,RUBY,SAPPHIRE,EMERALD,GBC", "filter: the looks")
@@ -1556,6 +1556,13 @@ do
   eq(carried, "next", "filter: render.compose hands on to the composite")
   check(filter.screenOn("off", "screen", "off") == false and filter.screenOn("gbc", "screen", "off") == true
     and filter.screenOn("gbc", "map", "off") == false, "filter: whole-screen pass only when it has work")
+  check(filter.screenOn("off", "screen", "off", "4", "mint") == true and filter.screenOn("off", "screen", "off", "4", "off") == false,
+    "filter: PAPER runs the whole-screen pass on its own")
+  for _, c in ipairs(filter.PAPERS) do
+    check(c[2] == "off" or filter.PAPER[c[2]] ~= nil, "filter: PAPER " .. c[1] .. " has a colour")
+  end
+  eq(select(5, filter.settings(function(k) return k == "paper" and "lilac" or nil end)), "lilac", "filter: PAPER setting read")
+  eq(select(5, filter.settings(function(k) return k == "paper" and "plaid" or nil end)), "off", "filter: unknown PAPER is white")
   local look, where, dots = filter.settings(function(k) return ({ filter = "bogus", filterOn = "map", dots = "on" })[k] end)
   eq(look .. where .. dots, "offmapon", "filter: an unknown value is OFF")
   local _, _, _, steps = filter.settings(function(k) return ({ shades = "16" })[k] end)
