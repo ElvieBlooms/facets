@@ -119,6 +119,8 @@ extern float paperDark;
 extern vec2 texStep;
 extern float cellPx;
 extern float bandTop;
+extern float boxesOn;
+extern Image boxes;
 // the eight pixels round one, as steps
 vec2 around(int i) {
   if (i == 0) return vec2(1.0, 0.0);
@@ -150,10 +152,19 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       // (white or a touch off it: the Super Game Boy's paper is 255, 239,
       // 255; a pale coloured box, PINK's 255, 236, 246, isn't paper)
       float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.066, 0.072, hi - lo));
-      // in a battle, DARK covers only its text box (bandTop)
-      w *= step(bandTop, p.y);
-      // a picture drawn this frame keeps its white, as drawn
-      w *= 1.0 - keptAt(sc);
+      // in a battle, DARK covers only its text box (bandTop) and, on Red,
+      // Blue and Yellow, the game's own HP boxes (boxes, where the battle
+      // drew them, mapped as the pictures' copy is)
+      float inBox = 0.0;
+      if (boxesOn > 0.5) {
+        vec2 b = (sc - keepOrigin) / keepSize;
+        if (b.x >= 0.0 && b.y >= 0.0 && b.x < 1.0 && b.y < 1.0) inBox = Texel(boxes, b).a;
+      }
+      // (where the boxes are known, they alone: the text box is one)
+      w *= boxesOn > 0.5 ? inBox : step(bandTop, p.y);
+      // a picture drawn this frame keeps its white, as drawn, unless a box
+      // covers it (the move box over your Pokémon)
+      w *= 1.0 - keptAt(sc) * (1.0 - inBox);
       // DARK: paper beside a black letter (or a frame's black line) is its
       // outline, a game pixel wide, in white, so the letters needn't be
       // recoloured. A picture's own black (kept) gets none
@@ -164,7 +175,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
           float chi = max(c.r, max(c.g, c.b));
           float clo = min(c.r, min(c.g, c.b));
           float black = step(dot(c, vec3(0.299, 0.587, 0.114)), 0.2) * (1.0 - smoothstep(0.08, 0.14, chi - clo));
-          edge = max(edge, black * (1.0 - keptAt(sc + around(i) * cellPx)));
+          edge = max(edge, black * (1.0 - keptAt(sc + around(i) * cellPx) * (1.0 - inBox)));
         }
       }
       o = edge > 0.5 ? vec3(1.0) : mix(o, paper * hi, w);
@@ -320,7 +331,8 @@ function filter.init(mod, rows, menu)
   end
   -- DARK's pictures this frame: a copy the size of what they were drawn
   -- on (keep), and where that sits on screen -Elvie
-  local pics = { keep = nil, drawn = false, fresh = false, origin = nil, size = nil }
+  local pics = { keep = nil, drawn = false, fresh = false, origin = nil, size = nil,
+    boxes = nil, boxesDrawn = false, boxesFresh = false }
   -- Gold, Silver and Crystal draw the map and the menus into one picture,
   -- so PAPER keeps its own copy of the menus drawn over the map (gen2Mask,
   -- from start below); with no map, the whole picture is menus -Elvie
@@ -417,6 +429,17 @@ function filter.init(mod, rows, menu)
     local sw, shh = src:getPixelDimensions()
     sh:send("cellPx", cellPx)
     sh:send("texStep", { cellPx / math.max(1, sw), cellPx / math.max(1, shh) })
+    if tint and paper == "dark" and layer.band > 0 and pics.boxes and pics.boxesDrawn and pics.origin then
+      sh:send("boxesOn", 1)
+      sh:send("boxes", pics.boxes)
+    else
+      sh:send("boxesOn", 0)
+    end
+    if pics.origin then
+      sh:send("keepOrigin", pics.origin)
+      sh:send("keepSize", pics.size)
+    end
+    pics.boxesDrawn, pics.boxesFresh = false, false
     if tint and layer.canvas and pics.keep and pics.drawn and pics.origin then
       sh:send("keepOn", 1)
       sh:send("keep", pics.keep)
@@ -514,8 +537,10 @@ function filter.init(mod, rows, menu)
         -- where the pictures' copy sits: the UI layer's place on Red to
         -- Emerald, the whole picture on Gold to Crystal -Elvie
         pics.origin, pics.size = nil, nil
-        if pics.keep then
-          local kw, kh = pics.keep:getPixelDimensions()
+        local copy = pics.keep or pics.boxes
+        if pics.keep and pics.boxes and pics.keep:getPixelWidth() ~= pics.boxes:getPixelWidth() then copy = pics.keep end
+        if copy then
+          local kw, kh = copy:getPixelDimensions()
           local scene = ctx.sceneCanvas
           if ctx.generation == 2 then
             -- only a copy of the whole picture (a battle draws its
@@ -855,6 +880,51 @@ function filter.init(mod, rows, menu)
           G.pop()
           pics.drawn = true
         end
+      end
+    end
+
+    -- DARK in Red, Blue and Yellow's battles: the game's own boxes (the HP
+    -- boxes, the text box) go dark with the text box, so where each box is
+    -- drawn is kept on a copy the size of what it's drawn on -Elvie
+    local okF, Font = pcall(require, "src.render.Font")
+    if gen == 1 and okF and type(Font) == "table" and type(Font.drawBox) == "function" and not Font.facetsPaperBoxes then
+      Font.facetsPaperBoxes = true
+      local ownBox = Font.drawBox
+      Font.drawBox = function(tx, ty, tw, th, ...)
+        local results = { ownBox(tx, ty, tw, th, ...) }
+        local G = love.graphics
+        local target = G.getCanvas()
+        if target and type(tx) == "number" and type(tw) == "number" and select(5, filter.settings(get)) == "dark" then
+          pcall(function()
+            local w, h = target:getDimensions()
+            local dpi = target:getDPIScale()
+            if not pics.boxes or pics.boxes:getWidth() ~= w or pics.boxes:getHeight() ~= h or pics.boxes:getDPIScale() ~= dpi then
+              pics.boxes = G.newCanvas(w, h, { dpiscale = dpi })
+              pics.boxesFresh = false
+            end
+            G.push("all")
+            G.setCanvas(pics.boxes)
+            if not pics.boxesFresh then
+              G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
+              pics.boxesFresh = true
+            end
+            G.setShader()
+            G.setBlendMode("alpha")
+            G.setColor(1, 1, 1, 1)
+            G.rectangle("fill", tx * 8, ty * 8, tw * 8, th * 8)
+            -- a box drawn over a picture covers it: that part of the
+            -- picture's copy goes (the move box over your Pokémon) -Elvie
+            if pics.keep and pics.fresh and pics.keep:getWidth() == w and pics.keep:getHeight() == h then
+              G.setCanvas(pics.keep)
+              G.setBlendMode("replace", "premultiplied")
+              G.setColor(0, 0, 0, 0)
+              G.rectangle("fill", tx * 8, ty * 8, tw * 8, th * 8)
+            end
+            G.pop()
+            pics.boxesDrawn = true
+          end)
+        end
+        return unpack(results)
       end
     end
 
