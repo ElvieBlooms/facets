@@ -2,7 +2,8 @@
 -- outside battle (battles have BORDERS). The
 -- engine's own UI LETTERBOX (OPTION) gives flat colours; these are Facets'
 -- own:
---   GLOW     the screen itself, blurred and dimmed behind it, as it moves
+--   WORLD    the map you were on, dimmed round the menu, as BATTLE BG:
+--            WORLD shows it round a battle
 --   SCENE    the blurred battle scene for where you are
 --   WINDOWS  your WINDOWS frame's colour
 --   DOTS, CHECKS, STRIPES  a soft pattern in your colours
@@ -15,22 +16,93 @@ local surround = {}
 
 local GAME = "game"
 surround.CHOICES = {
-  { "GAME", GAME }, { "GLOW", "glow" }, { "SCENE", "scene" }, { "WINDOWS", "windows" },
+  { "GAME", GAME }, { "WORLD", "world" }, { "SCENE", "scene" }, { "WINDOWS", "windows" },
   { "DOTS", "dots" }, { "CHECKS", "checks" }, { "STRIPES", "stripes" },
 }
 surround.DIM = 0.7
+-- the battles' own WORLD dim (BattleState.BG_WORLD_DIM) -Elvie
+surround.WORLD_DIM = 0.55
 
 local mod = nil
-local uiCanvas = nil
+local snapshot, snapAt = nil, 0
+
+-- Whether WORLD should show the map round the screen now: it's chosen, no
+-- battle is up (battles have BORDERS and their own BATTLE BG), and the map
+-- is under something that covers it -Elvie
+local function worldUnder(stack)
+  if surround.mode() ~= "world" then return nil end
+  local game = mod and mod.game
+  local ow = game and game.overworld
+  local states = stack and stack.states
+  if not (ow and type(states) == "table") then return nil end
+  for _, st in ipairs(states) do
+    if type(st) == "table" and st.bgMode then return nil end
+  end
+  for i, st in ipairs(states) do
+    if st == ow then return i end
+  end
+  return nil
+end
+surround.worldUnder = worldUnder
 
 function surround.init(m, rows)
   mod = m
   rows[#rows + 1] = { key = "surround", type = "choice", label = "SURROUND", choices = surround.CHOICES, default = GAME }
   return function()
-    -- the finished game screen each frame, for GLOW -Elvie
+    -- Red, Blue and Yellow: the game itself keeps drawing the map under a
+    -- menu, as it does under a BATTLE BG: WORLD battle, and dims it the
+    -- same way -Elvie
+    pcall(function()
+      local Game = require("src.core.Game")
+      if type(Game.drawBaseInStack) == "function" and not Game.facetsSurround then
+        Game.facetsSurround = true
+        local ownBase, ownDim = Game.drawBaseInStack, Game.worldBgBattleDim
+        Game.drawBaseInStack = function(stack, visibleBase, ...)
+          local at = ownBase(stack, visibleBase, ...)
+          local ok, ow = pcall(worldUnder, stack)
+          if ok and ow and ow < at then return ow end
+          return at
+        end
+        if type(ownDim) == "function" then
+          Game.worldBgBattleDim = function(stack, ...)
+            local dim = ownDim(stack, ...)
+            if dim ~= nil then return dim end
+            local ok, ow = pcall(worldUnder, stack)
+            if ok and ow and stack.visibleBase and ow < stack:visibleBase() then return surround.WORLD_DIM end
+            return nil
+          end
+        end
+      end
+    end)
+    -- Gold, Silver and Crystal draw the map and the menus into one picture:
+    -- the last frame of just the map is kept (every few frames), to show
+    -- round the menus -Elvie
     pcall(function()
       mod.hooks:wrap("render.compose", function(nextFn, renderer, ctx, ...)
-        if type(ctx) == "table" and ctx.uiCanvas then uiCanvas = ctx.uiCanvas end
+        if type(ctx) == "table" and ctx.generation == 2 and ctx.worldActive and ctx.sceneCanvas
+            and surround.mode() == "world" then
+          snapAt = snapAt + 1
+          local okT, top = pcall(function() return renderer.stack:top() end)
+          if okT and top == nil and snapAt % 6 == 1 then
+            pcall(function()
+              local G = love.graphics
+              local src = ctx.sceneCanvas
+              local w, h = src:getDimensions()
+              if not snapshot or snapshot:getWidth() ~= w or snapshot:getHeight() ~= h then
+                snapshot = G.newCanvas(w, h)
+              end
+              G.push("all")
+              G.setCanvas(snapshot)
+              G.origin()
+              G.setShader()
+              G.setScissor()
+              G.setBlendMode("replace", "premultiplied")
+              G.setColor(1, 1, 1, 1)
+              G.draw(src, 0, 0)
+              G.pop()
+            end)
+          end
+        end
         return nextFn(renderer, ctx, ...)
       end)
     end)
@@ -103,41 +175,6 @@ local function tileImage(kind, paper, ink)
   return img
 end
 
--- GLOW's blur of the live screen: halved down to about 12 across each
--- frame, into canvases kept between frames -Elvie
-local steps = {}
-local function glowOf(canvas)
-  local G = love.graphics
-  local w, h = canvas:getDimensions()
-  local src = canvas
-  local filter = { canvas:getFilter() }
-  canvas:setFilter("linear", "linear")
-  G.push("all")
-  local i = 0
-  while w > 12 do
-    i = i + 1
-    w, h = math.max(1, math.floor(w / 2)), math.max(1, math.floor(h / 2))
-    local c = steps[i]
-    if not c or c:getWidth() ~= w or c:getHeight() ~= h then
-      c = G.newCanvas(w, h)
-      c:setFilter("linear", "linear")
-      steps[i] = c
-    end
-    G.setCanvas(c)
-    G.origin()
-    G.setShader()
-    G.setScissor()
-    G.setBlendMode("replace", "premultiplied")
-    G.setColor(1, 1, 1, 1)
-    local sw, sh = src:getDimensions()
-    G.draw(src, 0, 0, 0, w / sw, h / sh)
-    src = c
-  end
-  G.pop()
-  canvas:setFilter(filter[1], filter[2])
-  return src ~= canvas and src or nil
-end
-
 -- Whether a battle is up: battles size their screen their own way
 -- (BATTLE SIZE), so SURROUND leaves them to BORDERS and the game -Elvie
 local battleKinds = nil
@@ -182,20 +219,17 @@ function surround.draw(info)
       G.pop()
     end
   end
-  if mode == "glow" then
-    local canvas = uiCanvas
-    if not canvas then return false end
-    local blur = glowOf(canvas)
-    if not blur then return false end
-    local bw2, bh2 = blur:getDimensions()
-    local cw, ch = canvas:getDimensions()
-    -- the blur stands for the whole screen, so it's drawn at the screen's
-    -- shape -Elvie
-    local k = scenes.coverScale(cw, ch, ww, wh, scenes.ZOOM)
-    local dw, dh = cw * k, ch * k
+  if mode == "world" then
+    -- Red to Yellow draw the map themselves (above); Gold to Crystal get
+    -- the kept picture of it, dimmed as the battles dim theirs -Elvie
+    if not snapshot then return false end
+    local sw, sh = snapshot:getDimensions()
+    local pw = tonumber(info.pw) or ww * dx
     each(function(r)
-      G.setColor(surround.DIM, surround.DIM, surround.DIM, 1)
-      scenes.drawPart(blur, bw2, bh2, 0, 0, (ww - dw) / 2, (wh - dh) / 2, dw / bw2, dh / bh2, r)
+      local k = 1 - surround.WORLD_DIM
+      G.setColor(k, k, k, 1)
+      -- the picture is the window in pixels: one unit is pw / ww of them -Elvie
+      scenes.drawPart(snapshot, sw, sh, 0, 0, 0, 0, ww / pw, wh / (tonumber(info.ph) or wh * dy), r)
     end)
     return true
   end
@@ -227,8 +261,8 @@ function surround.draw(info)
 
   -- a pattern, in Game Boy pixels, lined up with the screen -Elvie
   local img = tileImage(mode, paper, ink)
-  local px = (tonumber(info.scale) or 1) / dx
-  local py = (tonumber(info.scale) or 1) / dy
+  -- one Game Boy pixel, in units: the screen is 160 by 144 of them -Elvie
+  local px, py = vpw / 160, vph / 144
   each(function(r)
     G.setColor(1, 1, 1, 1)
     scenes.drawPart(img, 8, 8, 0, 0, ox, oy, px, py, r)
