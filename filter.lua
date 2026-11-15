@@ -84,6 +84,12 @@ filter.PAPER = {
   dark = { 34, 36, 46 },
 }
 
+-- DARK in a battle: only its text box goes dark, so the scene behind, the
+-- Pokémon and their animations stay as they are. Where it starts, as a
+-- share of the screen's height: Red to Crystal's six tile rows of
+-- eighteen, the GBA's 48 pixels of 160 -Elvie
+filter.BATTLE_BOX = { [1] = 12 / 18, [2] = 12 / 18, [3] = 112 / 160 }
+
 -- How much the dot grid darkens the line between two pixels. -Elvie
 filter.DOT_SHADE = 0.82
 
@@ -112,6 +118,7 @@ extern vec2 keepSize;
 extern float paperDark;
 extern vec2 texStep;
 extern float cellPx;
+extern float bandTop;
 // the eight pixels round one, as steps
 vec2 around(int i) {
   if (i == 0) return vec2(1.0, 0.0);
@@ -140,7 +147,11 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
     if (p.x >= 0.0 && p.y >= 0.0 && p.x < 1.0 && p.y < 1.0) {
       float hi = max(o.r, max(o.g, o.b));
       float lo = min(o.r, min(o.g, o.b));
-      float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.08, 0.14, hi - lo));
+      // (white or a touch off it: the Super Game Boy's paper is 255, 239,
+      // 255; a pale coloured box, PINK's 255, 236, 246, isn't paper)
+      float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.066, 0.072, hi - lo));
+      // in a battle, DARK covers only its text box (bandTop)
+      w *= step(bandTop, p.y);
       // a picture drawn this frame keeps its white, as drawn
       w *= 1.0 - keptAt(sc);
       // DARK: paper beside a black letter (or a frame's black line) is its
@@ -152,7 +163,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
           vec3 c = Texel(tex, tc + texStep * around(i)).rgb;
           float chi = max(c.r, max(c.g, c.b));
           float clo = min(c.r, min(c.g, c.b));
-          float black = step(dot(c, vec3(0.299, 0.587, 0.114)), 0.3) * (1.0 - smoothstep(0.08, 0.14, chi - clo));
+          float black = step(dot(c, vec3(0.299, 0.587, 0.114)), 0.2) * (1.0 - smoothstep(0.08, 0.14, chi - clo));
           edge = max(edge, black * (1.0 - keptAt(sc + around(i) * cellPx)));
         }
       }
@@ -285,7 +296,28 @@ function filter.init(mod, rows, menu)
   -- the game's pixel grid on screen, and the UI layer and where it sits,
   -- from the last render.compose -Elvie
   local grid = { origin = { 0, 0 }, cell = 0 }
-  local layer = { canvas = nil, origin = { 0, 0 }, size = { 1, 1 }, cell = 1 }
+  local layer = { canvas = nil, origin = { 0, 0 }, size = { 1, 1 }, cell = 1, band = 0 }
+  -- Whether the battle itself is what's showing (not a menu over it):
+  -- game is the one with the state stack on Red to Crystal -Elvie
+  local battleKinds
+  local function battleShowing(gen, game)
+    if gen == 3 then
+      local ok, active = pcall(function() return require("src.core.game3.battle").isActive() end)
+      if not (ok and active) then return false end
+      local okS, over = pcall(function() return require("src.ui.game3.stack").fullscreen() end)
+      return not (okS and over)
+    end
+    if not battleKinds then
+      battleKinds = {}
+      for _, name in ipairs({ "src.battle.BattleState", "src.ui.gen2.BattleState" }) do
+        local ok, m = pcall(require, name)
+        if ok and type(m) == "table" then battleKinds[m] = true end
+      end
+    end
+    local stack = type(game) == "table" and rawget(game, "stack")
+    local okT, top = pcall(function() return stack:top() end)
+    return okT and type(top) == "table" and battleKinds[getmetatable(top)] == true or false
+  end
   -- DARK's pictures this frame: a copy the size of what they were drawn
   -- on (keep), and where that sits on screen -Elvie
   local pics = { keep = nil, drawn = false, fresh = false, origin = nil, size = nil }
@@ -314,13 +346,14 @@ function filter.init(mod, rows, menu)
     end
     -- a battle with BATTLE BG: WORLD has the map round it, not under it:
     -- the game screen is all battle -Elvie
-    local okS, surround = pcall(require, "mods.facets.classic_surround")
-    if okS and type(surround.inBattle) == "function" and surround.inBattle() then
+    if battleShowing(2, gen2Game) then
       local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
       if okC and type(Chrome.fitScale) == "function" then
         local sc = Chrome.fitScale(ww, wh)
-        local ox, oy = Chrome.fitOrigin(ww, wh, sc)
-        return wholeImage(), { ox * dpi, oy * dpi }, { 160 * sc * dpi, 144 * sc * dpi }
+        local _, oy = Chrome.fitOrigin(ww, wh, sc)
+        -- the screen's height, and the window's width: the battle's boxes
+        -- run past the Game Boy screen's sides -Elvie
+        return wholeImage(), { 0, oy * dpi }, { ww * dpi, 144 * sc * dpi }
       end
     end
     if drawn and gen2Mask then
@@ -376,6 +409,7 @@ function filter.init(mod, rows, menu)
       sh:send("paperOn", 0)
     end
     sh:send("paperDark", paper == "dark" and 1 or 0)
+    sh:send("bandTop", paper == "dark" and layer.band or 0)
     -- a game pixel, in whole screen pixels, so the look round lands on
     -- pixels and not between them, where black and white would blend
     -- -Elvie
@@ -456,13 +490,39 @@ function filter.init(mod, rows, menu)
         elseif canvas and tonumber(ctx.uiw) and ctx.uiw > 0 then
           layer.cell = size[1] / ctx.uiw
         end
+        -- DARK in a battle: only from its text box down -Elvie
+        layer.band = 0
+        local gen = ctx.generation
+        if canvas and select(5, filter.settings(get)) == "dark" and filter.BATTLE_BOX[gen] then
+          local game = gen == 1 and package.loaded["src.core.Game"] or renderer
+          if battleShowing(gen, game) then
+            layer.band = filter.BATTLE_BOX[gen]
+            -- Gold to Crystal's whole picture: the band is of the game
+            -- screen -Elvie
+            if gen == 2 then
+              local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
+              local ww, wh = tonumber(ctx.ww) or 0, tonumber(ctx.wh) or 0
+              if okC and type(Chrome.fitScale) == "function" and wh > 0 then
+                local sc = Chrome.fitScale(ww, wh)
+                local _, oy = Chrome.fitOrigin(ww, wh, sc)
+                local top = (oy + 144 * sc * layer.band) * (tonumber(ctx.dpiX) or 1)
+                layer.band = (top - origin[2]) / size[2]
+              end
+            end
+          end
+        end
         -- where the pictures' copy sits: the UI layer's place on Red to
         -- Emerald, the whole picture on Gold to Crystal -Elvie
         pics.origin, pics.size = nil, nil
         if pics.keep then
           local kw, kh = pics.keep:getPixelDimensions()
+          local scene = ctx.sceneCanvas
           if ctx.generation == 2 then
-            pics.origin, pics.size = { 0, 0 }, { kw, kh }
+            -- only a copy of the whole picture (a battle draws its
+            -- Pokémon on a canvas of its own first) -Elvie
+            if scene and kw == scene:getPixelWidth() and kh == scene:getPixelHeight() then
+              pics.origin, pics.size = { 0, 0 }, { kw, kh }
+            end
           elseif canvas == ctx.uiCanvas and canvas and kw == canvas:getPixelWidth() and kh == canvas:getPixelHeight() then
             pics.origin, pics.size = origin, size
           end
@@ -683,6 +743,24 @@ function filter.init(mod, rows, menu)
       G.newImage = function(src, ...)
         return tag(ownNew(src, ...), src)
       end
+      -- a battle makes its pictures from their pixels (Assets.imageData,
+      -- recoloured), so those are followed too, and filled from them -Elvie
+      local datas = setmetatable({}, { __mode = "k" })
+      if okA and type(Assets.imageData) == "function" then
+        local ownData = Assets.imageData
+        Assets.imageData = function(path, ...)
+          local d = ownData(path, ...)
+          if d and type(path) == "string" and paths[path] then datas[d] = { path = path, back = paths[path].back } end
+          return d
+        end
+      end
+      local ownNewImage = G.newImage
+      G.newImage = function(src, ...)
+        local img = ownNewImage(src, ...)
+        local info = type(src) == "userdata" and datas[src]
+        if img and info then images[img] = { path = info.path, back = info.back, data = src } end
+        return img
+      end
       if okA and type(Assets.image) == "function" then
         local ownImage = Assets.image
         Assets.image = function(path, ...)
@@ -725,7 +803,8 @@ function filter.init(mod, rows, menu)
         if got == false then return nil end
         local ok, out = pcall(function()
           if not got then
-            got = { data = love.image.newImageData(images[img].path), parts = {} }
+            local info = images[img]
+            got = { data = info.data and info.data:clone() or love.image.newImageData(info.path), parts = {} }
             filled[img] = got
           end
           local w, h = got.data:getDimensions()
