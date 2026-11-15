@@ -300,6 +300,7 @@ help.TEXT = {
       off = "Plain white, as the game draws it.",
       cream = "Warm cream.", lemon = "Pale lemon.", peach = "Soft peach.", rose = "Pale rose.",
       lilac = "Pale lilac.", sky = "Pale sky blue.", mint = "Pale mint.", grey = "Light grey, the dimmest.",
+      dark = "Dark paper. Still being built: letters stay black for now.",
     },
   },
   -- the GBA games' own -Elvie

@@ -73,11 +73,15 @@ filter.GBC_SATURATION = 1.15
 -- stay as they are. With a FILTER on the whole screen it's shaded with the
 -- rest -Elvie
 filter.PAPERS = { { "WHITE", "off" }, { "CREAM", "cream" }, { "LEMON", "lemon" }, { "PEACH", "peach" },
-  { "ROSE", "rose" }, { "LILAC", "lilac" }, { "SKY", "sky" }, { "MINT", "mint" }, { "GREY", "grey" } }
+  { "ROSE", "rose" }, { "LILAC", "lilac" }, { "SKY", "sky" }, { "MINT", "mint" }, { "GREY", "grey" },
+  { "DARK", "dark" } }
 filter.PAPER = {
   cream = { 248, 240, 216 }, lemon = { 248, 244, 204 }, peach = { 250, 228, 210 },
   rose = { 248, 224, 230 }, lilac = { 234, 226, 248 }, sky = { 218, 234, 250 },
   mint = { 222, 246, 228 }, grey = { 214, 214, 214 },
+  -- DARK: dark paper. Pictures on it keep their white (see pics below)
+  -- -Elvie
+  dark = { 34, 36, 46 },
 }
 
 -- How much the dot grid darkens the line between two pixels. -Elvie
@@ -101,6 +105,10 @@ extern vec3 paper;
 extern Image ui;
 extern vec2 uiOrigin;
 extern vec2 uiSize;
+extern float keepOn;
+extern Image keep;
+extern vec2 keepOrigin;
+extern vec2 keepSize;
 vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
   vec4 c = Texel(tex, tc);
   vec3 o = c.rgb;
@@ -112,6 +120,11 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       float hi = max(o.r, max(o.g, o.b));
       float lo = min(o.r, min(o.g, o.b));
       float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.08, 0.14, hi - lo));
+      // a picture drawn this frame keeps its white, as drawn
+      if (keepOn > 0.5) {
+        vec2 k = (sc - keepOrigin) / keepSize;
+        if (k.x >= 0.0 && k.y >= 0.0 && k.x < 1.0 && k.y < 1.0) w *= 1.0 - Texel(keep, k).a;
+      }
       o = mix(o, paper * hi, w);
     }
   }
@@ -242,6 +255,9 @@ function filter.init(mod, rows, menu)
   -- from the last render.compose -Elvie
   local grid = { origin = { 0, 0 }, cell = 0 }
   local layer = { canvas = nil, origin = { 0, 0 }, size = { 1, 1 } }
+  -- DARK's pictures this frame: a copy the size of what they were drawn
+  -- on (keep), and where that sits on screen -Elvie
+  local pics = { keep = nil, drawn = false, fresh = false, origin = nil, size = nil }
   -- Gold, Silver and Crystal draw the map and the menus into one picture,
   -- so PAPER keeps its own copy of the menus drawn over the map (gen2Mask,
   -- from start below); with no map, the whole picture is menus -Elvie
@@ -328,6 +344,17 @@ function filter.init(mod, rows, menu)
     else
       sh:send("paperOn", 0)
     end
+    if tint and layer.canvas and pics.keep and pics.drawn and pics.origin then
+      sh:send("keepOn", 1)
+      sh:send("keep", pics.keep)
+      sh:send("keepOrigin", pics.origin)
+      sh:send("keepSize", pics.size)
+    else
+      sh:send("keepOn", 0)
+    end
+    -- the next frame's pictures start afresh (the game can draw one after
+    -- render.compose, so this waits till the pass has used them) -Elvie
+    pics.drawn, pics.fresh = false, false
     love.graphics.push("all")
     love.graphics.setCanvas(cv)
     love.graphics.clear(0, 0, 0, 0)
@@ -381,6 +408,17 @@ function filter.init(mod, rows, menu)
         end
         layer.canvas = canvas
         if canvas then layer.origin, layer.size = origin, size end
+        -- where the pictures' copy sits: the UI layer's place on Red to
+        -- Emerald, the whole picture on Gold to Crystal -Elvie
+        pics.origin, pics.size = nil, nil
+        if pics.keep then
+          local kw, kh = pics.keep:getPixelDimensions()
+          if ctx.generation == 2 then
+            pics.origin, pics.size = { 0, 0 }, { kw, kh }
+          elseif canvas == ctx.uiCanvas and canvas and kw == canvas:getPixelWidth() and kh == canvas:getPixelHeight() then
+            pics.origin, pics.size = origin, size
+          end
+        end
         local look, where, _, steps = filter.settings(get)
         local world = ctx.worldOverride or ctx.worldCanvas
         if look ~= "off" and where == "map" and ctx.worldActive and world and world.getDimensions then
@@ -536,6 +574,142 @@ function filter.init(mod, rows, menu)
       if okG2 and type(Game2) == "table" and type(Game2.drawDockedStack) == "function" and not Game2.facetsPaper then
         Game2.facetsPaper = true
         Game2.drawDockedStack = captured(Game2.drawDockedStack)
+      end
+    end
+
+    -- DARK and pictures. A Pokémon's or trainer's picture is see-through
+    -- round it, and on Red to Crystal often inside too, where it's white:
+    -- on dark paper that inside would go dark. So, as Emerald Lens fills
+    -- its trainers: the see-through the background can't reach, flooding
+    -- in from the edges up, down, left and right (never diagonally, which
+    -- leaks through an outline's corners), is filled white. A back picture
+    -- is cut off at the bottom, so that edge isn't flooded from. The
+    -- picture is drawn filled, and where it went is kept, so the pass
+    -- leaves its white as it is. The pictures are the ones the game asks
+    -- the sprite module for (src.pokemon.Sprites), on Red to Crystal; the
+    -- GBA games' full-colour pictures have nothing see-through inside
+    -- -Elvie
+    local gen = require("mods.facets.classic").generation()
+    local okSp, Sprites = pcall(require, "src.pokemon.Sprites")
+    if gen <= 2 and okSp and type(Sprites) == "table" and not Sprites.facetsPaper then
+      Sprites.facetsPaper = true
+      local G = love.graphics
+      local okA, Assets = pcall(require, "src.render.Assets")
+      local resolve = okA and type(Assets) == "table" and type(Assets.resolve) == "function" and Assets.resolve or nil
+      -- the picture files the game has asked for: path -> { back } -Elvie
+      local paths = {}
+      local function note(path, back)
+        if type(path) ~= "string" or path == "" then return end
+        paths[path] = { back = back }
+        if resolve then
+          local ok, r = pcall(resolve, path)
+          if ok and type(r) == "string" then paths[r] = paths[path] end
+        end
+      end
+      for name, fn in pairs(Sprites) do
+        if type(fn) == "function" and name ~= "facetsPaper" then
+          Sprites[name] = function(...)
+            local results = { fn(...) }
+            if type(results[1]) == "string" then
+              local back = false
+              for i = 1, select("#", ...) do
+                local a = select(i, ...)
+                if a == "back" or (type(a) == "table" and a.side == "back") then back = true end
+              end
+              note(results[1], back)
+            end
+            return unpack(results)
+          end
+        end
+      end
+      -- each picture image, as it's made from one of those files -Elvie
+      local images = setmetatable({}, { __mode = "k" })
+      local function tag(img, path)
+        if img and type(path) == "string" and paths[path] then images[img] = { path = path, back = paths[path].back } end
+        return img
+      end
+      local ownNew = G.newImage
+      G.newImage = function(src, ...)
+        return tag(ownNew(src, ...), src)
+      end
+      if okA and type(Assets.image) == "function" then
+        local ownImage = Assets.image
+        Assets.image = function(path, ...)
+          return tag(ownImage(path, ...), path)
+        end
+      end
+      -- the filled copy, made once per picture -Elvie
+      local filled = setmetatable({}, { __mode = "k" })
+      local function fill(img)
+        local got = filled[img]
+        if got ~= nil then return got or nil end
+        filled[img] = false
+        local info = images[img]
+        local ok, out = pcall(function()
+          local data = love.image.newImageData(info.path)
+          local w, h = data:getDimensions()
+          local seen, queue = {}, {}
+          local function push(x, y)
+            if x < 0 or y < 0 or x >= w or y >= h or seen[y * w + x] then return end
+            local _, _, _, a = data:getPixel(x, y)
+            if a >= 0.5 then return end
+            seen[y * w + x] = true
+            queue[#queue + 1] = y * w + x
+          end
+          for x = 0, w - 1 do
+            push(x, 0)
+            if not info.back then push(x, h - 1) end
+          end
+          for y = 0, h - 1 do push(0, y); push(w - 1, y) end
+          local i = 1
+          while queue[i] do
+            local x, y = queue[i] % w, math.floor(queue[i] / w)
+            push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1)
+            i = i + 1
+          end
+          data:mapPixel(function(x, y, r, g, b, a)
+            if a < 0.5 and not seen[y * w + x] then return 1, 1, 1, 1 end
+            return r, g, b, a
+          end)
+          local image = ownNew(data)
+          image:setFilter(img:getFilter())
+          return image
+        end)
+        if ok and out then filled[img] = out end
+        return filled[img] or nil
+      end
+      local ownDraw = G.draw
+      G.draw = function(drawable, x, ...)
+        local target = G.getCanvas()
+        if not (images[drawable] and type(x) == "number" and target
+            and select(5, filter.settings(get)) == "dark") then
+          return ownDraw(drawable, x, ...)
+        end
+        local img = fill(drawable) or drawable
+        ownDraw(img, x, ...)
+        -- and where it went, on a copy the size of what it was drawn on
+        -- -Elvie
+        local w, h = target:getDimensions()
+        local dpi = target:getDPIScale()
+        if not pics.keep or pics.keep:getWidth() ~= w or pics.keep:getHeight() ~= h or pics.keep:getDPIScale() ~= dpi then
+          local okK, k = pcall(G.newCanvas, w, h, { dpiscale = dpi })
+          pics.keep = okK and k or nil
+          pics.fresh = false
+        end
+        if pics.keep then
+          G.push("all")
+          G.setCanvas(pics.keep)
+          if not pics.fresh then
+            G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
+            pics.fresh = true
+          end
+          G.setShader()
+          G.setBlendMode("alpha")
+          G.setColor(1, 1, 1, 1)
+          ownDraw(img, x, ...)
+          G.pop()
+          pics.drawn = true
+        end
       end
     end
 
