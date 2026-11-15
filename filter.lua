@@ -114,6 +114,8 @@ extern vec3 ink;
 extern float bandTop;
 extern vec2 texStep;
 extern float midGreys;
+extern Image keep;
+extern float keepOn;
 // the eight pixels round one, as steps
 vec2 around(int i) {
   if (i == 0) return vec2(1.0, 0.0);
@@ -170,7 +172,10 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       float hi = max(o.r, max(o.g, o.b));
       float lo = min(o.r, min(o.g, o.b));
       float grey = 1.0 - smoothstep(0.08, 0.14, hi - lo);
-      if (paperDark > 0.5) {
+      // a Pokémon picture DARK has outlined and filled itself (Red, Blue
+      // and Yellow): left just as it's drawn
+      float kept = keepOn > 0.5 ? Texel(keep, p).a : 0.0;
+      if (paperDark > 0.5 && kept < 0.5) {
         // the greys turned round: white to the dark paper, black to the
         // letters' white. Pictures stay as they are: a picture's pixels are
         // its colours (and on Red to Crystal its middle greys, where
@@ -224,7 +229,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
         float keep = paperish(o) > 0.5 ? inside : max(near, inside);
         float turn = (1.0 - here) * (1.0 - keep) * (1.0 - lettered) * onPaper;
         o = mix(o, mix(ink, paper, l), Texel(ui, p).a * grey * turn);
-      } else {
+      } else if (paperDark < 0.5) {
         float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * grey;
         o = mix(o, paper * hi, w);
       }
@@ -364,6 +369,9 @@ function filter.init(mod, rows, menu)
   -- Whether the battle itself is what's showing (not a menu over it):
   -- game is the one with the state stack on Red to Crystal -Elvie
   local battleKinds
+  -- DARK's Pokémon pictures on Red, Blue and Yellow (start, below): the
+  -- frame's copy of where they were drawn -Elvie
+  local picKeep, picsDrawn, picKeepFresh = nil, false, false
   local function battleShowing(gen, game)
     if gen == 3 then
       local ok, active = pcall(function() return require("src.core.game3.battle").isActive() end)
@@ -464,6 +472,15 @@ function filter.init(mod, rows, menu)
       sh:send("ink", { filter.DARK.ink[1] / 255, filter.DARK.ink[2] / 255, filter.DARK.ink[3] / 255 })
       sh:send("bandTop", paper == "dark" and layer.band or 0)
       sh:send("midGreys", layer.gen == 3 and 0 or 1)
+      if paper == "dark" and layer.keep and picsDrawn then
+        sh:send("keepOn", 1)
+        sh:send("keep", layer.keep)
+      else
+        sh:send("keepOn", 0)
+      end
+      -- the next frame draws its pictures afresh (the game can draw one
+      -- again after render.compose, so this waits till now) -Elvie
+      picsDrawn, picKeepFresh = false, false
       local pw, ph = src:getPixelDimensions()
       -- whole screen pixels, so the look round lands on pixels and not
       -- between them, where the frame's smoothing would blend black and
@@ -528,6 +545,13 @@ function filter.init(mod, rows, menu)
         if canvas then layer.origin, layer.size = origin, size end
         layer.band = 0
         layer.gen = ctx.generation
+        -- the pictures DARK outlined this frame, if they were drawn on
+        -- this UI layer -Elvie
+        layer.keep = nil
+        if picKeep and canvas == ctx.uiCanvas and canvas
+            and picKeep:getWidth() == canvas:getWidth() and picKeep:getHeight() == canvas:getHeight() then
+          layer.keep = picKeep
+        end
         -- screen pixels to a game pixel, for DARK's look round -Elvie
         if ctx.generation == 2 then
           local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
@@ -701,6 +725,133 @@ function filter.init(mod, rows, menu)
         gen2Drawn = true
         if not results[1] then error(results[2], 0) end
         return unpack(results, 2)
+      end
+    end
+
+    -- DARK on Red, Blue and Yellow: a Pokémon picture is see-through where
+    -- it's white, so the dark paper would show through it. Drawn on a menu
+    -- (not in battle), each picture is drawn instead with its inside
+    -- filled white and a one-pixel black outline round it, and where it
+    -- went is kept for the pass, which leaves it as it is -Elvie
+    if require("mods.facets.classic").generation() == 1 and not love.graphics.facetsPaperPics then
+      local G = love.graphics
+      G.facetsPaperPics = true
+      local okSp, Sprites = pcall(require, "src.pokemon.Sprites")
+      local picPaths = {}
+      if okSp and type(Sprites) == "table" and type(Sprites.pic) == "function" then
+        local ownPic = Sprites.pic
+        Sprites.pic = function(...)
+          local path, tc = ownPic(...)
+          local ctx = select(2, ...)
+          if type(path) == "string" then
+            picPaths[path] = type(ctx) == "table" and ctx.side == "back" and "back" or "front"
+          end
+          return path, tc
+        end
+      end
+      local pics = setmetatable({}, { __mode = "k" })
+      local made = setmetatable({}, { __mode = "k" })
+      local ownNew = G.newImage
+      G.newImage = function(src, ...)
+        local img = ownNew(src, ...)
+        if type(src) == "string" and picPaths[src] then pics[img] = src end
+        return img
+      end
+      -- the picture filled and outlined, a pixel bigger each way -Elvie
+      local function outlined(img)
+        local got = made[img]
+        if got ~= nil then return got or nil end
+        made[img] = false
+        local ok, out = pcall(function()
+          local data = love.image.newImageData(pics[img])
+          local w, h = data:getDimensions()
+          local function clear(x, y)
+            if x < 0 or y < 0 or x >= w or y >= h then return true end
+            local _, _, _, a = data:getPixel(x, y)
+            return a < 0.5
+          end
+          -- inside: a see-through pixel the background can't reach,
+          -- flooding in from the edges up, down, left and right (not
+          -- diagonally, which leaks through an outline's corners). A back
+          -- picture is cut off at the bottom, so that edge is the body,
+          -- not background, and isn't flooded from. As Emerald Lens fills
+          -- its trainers -Elvie
+          local outside, queue = {}, {}
+          local function push(x, y)
+            if x < 0 or y < 0 or x >= w or y >= h or outside[y * w + x] or not clear(x, y) then return end
+            outside[y * w + x] = true
+            queue[#queue + 1] = y * w + x
+          end
+          local back = picPaths[pics[img]] == "back"
+          for x = 0, w - 1 do
+            push(x, 0)
+            if not back then push(x, h - 1) end
+          end
+          for y = 0, h - 1 do push(0, y); push(w - 1, y) end
+          local n = 1
+          while queue[n] do
+            local k = queue[n]
+            local x, y = k % w, math.floor(k / w)
+            push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1)
+            n = n + 1
+          end
+          local inside = {}
+          for k = 0, w * h - 1 do
+            if not outside[k] and clear(k % w, math.floor(k / w)) then inside[k] = true end
+          end
+          local o = love.image.newImageData(w + 2, h + 2)
+          o:mapPixel(function(x, y)
+            local sx, sy = x - 1, y - 1
+            if not clear(sx, sy) then return data:getPixel(sx, sy) end
+            if sx >= 0 and sy >= 0 and sx < w and sy < h and inside[sy * w + sx] then return 1, 1, 1, 1 end
+            for dy = -1, 1 do
+              for dx = -1, 1 do
+                if not clear(sx + dx, sy + dy) then return 0, 0, 0, 1 end
+              end
+            end
+            return 0, 0, 0, 0
+          end)
+          local image = ownNew(o)
+          image:setFilter(img:getFilter())
+          return image
+        end)
+        if ok and out then made[img] = out end
+        return made[img] or nil
+      end
+      local ownDraw = G.draw
+      G.draw = function(drawable, x, ...)
+        if pics[drawable] and type(x) == "number" and select(5, filter.settings(get)) == "dark" then
+          local target = G.getCanvas()
+          local game = package.loaded["src.core.Game"]
+          local big = target and not battleShowing(1, game) and outlined(drawable)
+          if big then
+            local y, r, sx, sy, ox, oy, kx, ky = ...
+            local args = { x, y or 0, r or 0, sx or 1, sy or sx or 1, (ox or 0) + 1, (oy or 0) + 1, kx or 0, ky or 0 }
+            ownDraw(big, unpack(args))
+            -- and where it went, on a copy the size of the layer -Elvie
+            local w, h = target:getDimensions()
+            if not picKeep or picKeep:getWidth() ~= w or picKeep:getHeight() ~= h then
+              local okK, k = pcall(G.newCanvas, w, h, { dpiscale = target:getDPIScale() })
+              picKeep = okK and k or nil
+              picKeepFresh = false
+            end
+            if picKeep then
+              G.push("all")
+              G.setCanvas(picKeep)
+              if not picKeepFresh then
+                G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
+                picKeepFresh = true
+              end
+              G.setShader()
+              G.setColor(1, 1, 1, 1)
+              ownDraw(big, unpack(args))
+              G.pop()
+              picsDrawn = true
+            end
+            return
+          end
+        end
+        return ownDraw(drawable, x, ...)
       end
     end
 
