@@ -71,21 +71,13 @@ filter.GBC_SATURATION = 1.15
 -- eyes the bright white tires. Only the white changes, and only where the
 -- menus are drawn: the map, the letters and the pictures' other colours
 -- stay as they are. With a FILTER on the whole screen it's shaded with the
--- rest. DARK turns menus round: dark paper with white letters, the greys
--- between swapped too. In a battle only its text box goes dark, since the
--- Pokémon's outlines are the same black as the letters -Elvie
+-- rest -Elvie
 filter.PAPERS = { { "WHITE", "off" }, { "CREAM", "cream" }, { "LEMON", "lemon" }, { "PEACH", "peach" },
-  { "ROSE", "rose" }, { "LILAC", "lilac" }, { "SKY", "sky" }, { "MINT", "mint" }, { "GREY", "grey" },
-  { "DARK", "dark" } }
--- DARK's paper and letters -Elvie
-filter.DARK = { paper = { 34, 36, 46 }, ink = { 236, 236, 240 } }
--- where a battle's text box starts, as a share of the screen's height:
--- Red to Crystal's six tile rows of eighteen, the GBA's 48 pixels of 160 -Elvie
-filter.BATTLE_BOX = { [1] = 12 / 18, [2] = 12 / 18, [3] = 112 / 160 }
+  { "ROSE", "rose" }, { "LILAC", "lilac" }, { "SKY", "sky" }, { "MINT", "mint" }, { "GREY", "grey" } }
 filter.PAPER = {
   cream = { 248, 240, 216 }, lemon = { 248, 244, 204 }, peach = { 250, 228, 210 },
   rose = { 248, 224, 230 }, lilac = { 234, 226, 248 }, sky = { 218, 234, 250 },
-  mint = { 222, 246, 228 }, grey = { 214, 214, 214 }, dark = filter.DARK.paper,
+  mint = { 222, 246, 228 }, grey = { 214, 214, 214 },
 }
 
 -- How much the dot grid darkens the line between two pixels. -Elvie
@@ -109,58 +101,6 @@ extern vec3 paper;
 extern Image ui;
 extern vec2 uiOrigin;
 extern vec2 uiSize;
-extern float paperDark;
-extern vec3 ink;
-extern float bandTop;
-extern vec2 texStep;
-extern float midGreys;
-extern Image keep;
-extern float keepOn;
-// the eight pixels round one, as steps
-vec2 around(int i) {
-  if (i == 0) return vec2(1.0, 0.0);
-  if (i == 1) return vec2(-1.0, 0.0);
-  if (i == 2) return vec2(0.0, 1.0);
-  if (i == 3) return vec2(0.0, -1.0);
-  if (i == 4) return vec2(1.0, 1.0);
-  if (i == 5) return vec2(-1.0, -1.0);
-  if (i == 6) return vec2(1.0, -1.0);
-  return vec2(-1.0, 1.0);
-}
-// whether a pixel is the white or near-white of a menu's paper
-float paperish(vec3 c) {
-  float hi = max(c.r, max(c.g, c.b));
-  float lo = min(c.r, min(c.g, c.b));
-  return smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.08, 0.14, hi - lo));
-}
-// a colour, not paper
-float colourful(vec3 c) {
-  float hi = max(c.r, max(c.g, c.b));
-  float lo = min(c.r, min(c.g, c.b));
-  return smoothstep(0.10, 0.16, hi - lo) * (1.0 - paperish(c));
-}
-// a middle grey (only counted with midGreys)
-float midGrey(vec3 c) {
-  float hi = max(c.r, max(c.g, c.b));
-  float lo = min(c.r, min(c.g, c.b));
-  float l = dot(c, vec3(0.299, 0.587, 0.114));
-  return midGreys * step(0.22, l) * step(l, 0.82) * (1.0 - smoothstep(0.08, 0.14, hi - lo));
-}
-// whether the pixel at t belongs to a picture: a colour, or (Red to
-// Crystal) a middle grey with another a game pixel away. Letters drawn
-// smooth have greys only along their edges, one screen pixel thin, so
-// theirs don't count
-float picture(Image tex, vec2 t, vec2 step1) {
-  vec3 c = Texel(tex, t).rgb;
-  float pic = colourful(c);
-  float m = midGrey(c);
-  if (m > 0.5) {
-    float other = 0.0;
-    for (int i = 0; i < 4; i++) other = max(other, midGrey(Texel(tex, t + step1 * around(i)).rgb) + colourful(Texel(tex, t + step1 * around(i)).rgb));
-    pic = max(pic, min(1.0, other));
-  }
-  return pic;
-}
 vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
   vec4 c = Texel(tex, tc);
   vec3 o = c.rgb;
@@ -168,55 +108,11 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
     // the menus' own pixels: where the UI layer is drawn, white or nearly
     // (a palette's paper can be a touch off-white), and not a colour
     vec2 p = (sc - uiOrigin) / uiSize;
-    if (p.x >= 0.0 && p.y >= bandTop && p.x < 1.0 && p.y < 1.0) {
+    if (p.x >= 0.0 && p.y >= 0.0 && p.x < 1.0 && p.y < 1.0) {
       float hi = max(o.r, max(o.g, o.b));
       float lo = min(o.r, min(o.g, o.b));
-      float grey = 1.0 - smoothstep(0.08, 0.14, hi - lo);
-      // a Pokémon picture DARK has filled itself (Red, Blue
-      // and Yellow): left just as it's drawn
-      float kept = keepOn > 0.5 ? Texel(keep, p).a : 0.0;
-      if (paperDark > 0.5 && kept < 0.5) {
-        // the greys turned round: white to the dark paper, black to the
-        // letters' white. Pictures stay as they are: a picture's pixels are
-        // its colours (and on Red to Crystal its middle greys, where
-        // letters are only ever black). Black touching a picture stays
-        // black (its outline); a dark grey only turns
-        // where it's on white paper, within two game pixels, so letters in
-        // a coloured box and black screens stay too
-        float l = dot(o, vec3(0.299, 0.587, 0.114));
-        float here = picture(tex, tc, texStep);
-        float near = 0.0;
-        // (one game pixel only: further, the letters by a coloured frame
-        // would stay black)
-        for (int i = 0; i < 8; i++) near = max(near, picture(tex, tc + texStep * around(i), texStep));
-        float onPaper = paperish(o);
-        if (onPaper < 0.5) {
-          for (int i = 0; i < 8; i++) {
-            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * around(i)).rgb));
-            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * 2.0 * around(i)).rgb));
-          }
-        }
-        // the GBA games also print white letters on their own dark boxes
-        // (the battle's, 49 grey), and their own letters on white are a
-        // lighter grey (74): white beside anything darker than those is a
-        // letter on a dark box there, and stays, with its shadow -Elvie
-        float lettered = 0.0;
-        if (midGreys < 0.5) {
-          for (int i = 0; i < 8; i++) {
-            vec3 c = Texel(tex, tc + texStep * around(i)).rgb;
-            lettered = max(lettered, step(dot(c, vec3(0.299, 0.587, 0.114)), 0.24));
-          }
-        }
-        // white doesn't stay for touching a picture, or the paper round a
-        // picture's edge would ring it in white (Red, Blue and Yellow's
-        // see-through pictures are filled where they're drawn, above)
-        float keep = paperish(o) > 0.5 ? 0.0 : near;
-        float turn = (1.0 - here) * (1.0 - keep) * (1.0 - lettered) * onPaper;
-        o = mix(o, mix(ink, paper, l), Texel(ui, p).a * grey * turn);
-      } else if (paperDark < 0.5) {
-        float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * grey;
-        o = mix(o, paper * hi, w);
-      }
+      float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.08, 0.14, hi - lo));
+      o = mix(o, paper * hi, w);
     }
   }
   if (mode > 0.5 && mode < 1.5) {
@@ -345,35 +241,11 @@ function filter.init(mod, rows, menu)
   -- the game's pixel grid on screen, and the UI layer and where it sits,
   -- from the last render.compose -Elvie
   local grid = { origin = { 0, 0 }, cell = 0 }
-  local layer = { canvas = nil, origin = { 0, 0 }, size = { 1, 1 }, band = 0, cell = 1 }
+  local layer = { canvas = nil, origin = { 0, 0 }, size = { 1, 1 } }
   -- Gold, Silver and Crystal draw the map and the menus into one picture,
   -- so PAPER keeps its own copy of the menus drawn over the map (gen2Mask,
   -- from start below); with no map, the whole picture is menus -Elvie
   local gen2Mask, gen2Drawn, gen2Game, whole = nil, false, nil, nil
-  -- Whether the battle itself is what's showing (not a menu over it):
-  -- game is the one with the state stack on Red to Crystal -Elvie
-  local battleKinds
-  -- DARK's Pokémon pictures on Red, Blue and Yellow (start, below): the
-  -- frame's copy of where they were drawn -Elvie
-  local picKeep, picsDrawn, picKeepFresh = nil, false, false
-  local function battleShowing(gen, game)
-    if gen == 3 then
-      local ok, active = pcall(function() return require("src.core.game3.battle").isActive() end)
-      if not (ok and active) then return false end
-      local okS, over = pcall(function() return require("src.ui.game3.stack").fullscreen() end)
-      return not (okS and over)
-    end
-    if not battleKinds then
-      battleKinds = {}
-      for _, name in ipairs({ "src.battle.BattleState", "src.ui.gen2.BattleState" }) do
-        local ok, m = pcall(require, name)
-        if ok and type(m) == "table" then battleKinds[m] = true end
-      end
-    end
-    local stack = type(game) == "table" and rawget(game, "stack")
-    local okT, top = pcall(function() return stack:top() end)
-    return okT and type(top) == "table" and battleKinds[getmetatable(top)] == true or false
-  end
   local function wholeImage()
     if whole == nil then
       local ok, img = pcall(function()
@@ -395,7 +267,8 @@ function filter.init(mod, rows, menu)
     end
     -- a battle with BATTLE BG: WORLD has the map round it, not under it:
     -- the game screen is all battle -Elvie
-    if battleShowing(2, gen2Game) then
+    local okS, surround = pcall(require, "mods.facets.classic_surround")
+    if okS and type(surround.inBattle) == "function" and surround.inBattle() then
       local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
       if okC and type(Chrome.fitScale) == "function" then
         local sc = Chrome.fitScale(ww, wh)
@@ -452,25 +325,6 @@ function filter.init(mod, rows, menu)
       sh:send("ui", layer.canvas)
       sh:send("uiOrigin", layer.origin)
       sh:send("uiSize", layer.size)
-      sh:send("paperDark", paper == "dark" and 1 or 0)
-      sh:send("ink", { filter.DARK.ink[1] / 255, filter.DARK.ink[2] / 255, filter.DARK.ink[3] / 255 })
-      sh:send("bandTop", paper == "dark" and layer.band or 0)
-      sh:send("midGreys", layer.gen == 3 and 0 or 1)
-      if paper == "dark" and layer.keep and picsDrawn then
-        sh:send("keepOn", 1)
-        sh:send("keep", layer.keep)
-      else
-        sh:send("keepOn", 0)
-      end
-      -- the next frame draws its pictures afresh (the game can draw one
-      -- again after render.compose, so this waits till now) -Elvie
-      picsDrawn, picKeepFresh = false, false
-      local pw, ph = src:getPixelDimensions()
-      -- whole screen pixels, so the look round lands on pixels and not
-      -- between them, where the frame's smoothing would blend black and
-      -- white into a grey that reads as a picture -Elvie
-      local cell = math.max(1, math.floor((tonumber(layer.cell) or 1) + 0.5))
-      sh:send("texStep", { cell / math.max(1, pw), cell / math.max(1, ph) })
     else
       sh:send("paperOn", 0)
     end
@@ -527,42 +381,6 @@ function filter.init(mod, rows, menu)
         end
         layer.canvas = canvas
         if canvas then layer.origin, layer.size = origin, size end
-        layer.band = 0
-        layer.gen = ctx.generation
-        -- the pictures DARK filled this frame, if they were drawn on
-        -- this UI layer -Elvie
-        layer.keep = nil
-        if picKeep and canvas == ctx.uiCanvas and canvas
-            and picKeep:getWidth() == canvas:getWidth() and picKeep:getHeight() == canvas:getHeight() then
-          layer.keep = picKeep
-        end
-        -- screen pixels to a game pixel, for DARK's look round -Elvie
-        if ctx.generation == 2 then
-          local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
-          if okC and type(Chrome.fitScale) == "function" then
-            layer.cell = Chrome.fitScale(tonumber(ctx.ww) or 0, tonumber(ctx.wh) or 0) * (tonumber(ctx.dpiX) or 1)
-          end
-        elseif canvas and tonumber(ctx.uiw) and ctx.uiw > 0 then
-          layer.cell = size[1] / ctx.uiw
-        end
-        local gen = ctx.generation
-        if canvas and select(5, filter.settings(get)) == "dark" and filter.BATTLE_BOX[gen] then
-          local game = gen == 1 and package.loaded["src.core.Game"] or renderer
-          if battleShowing(gen, game) then
-            layer.band = filter.BATTLE_BOX[gen]
-            -- Gold to Crystal's whole picture: the band is of the game screen -Elvie
-            if gen == 2 then
-              local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
-              local ww, wh = tonumber(ctx.ww) or 0, tonumber(ctx.wh) or 0
-              if okC and type(Chrome.fitScale) == "function" and wh > 0 then
-                local sc = Chrome.fitScale(ww, wh)
-                local _, oy = Chrome.fitOrigin(ww, wh, sc)
-                local top = (oy + 144 * sc * layer.band) * (tonumber(ctx.dpiX) or 1)
-                layer.band = top / size[2] - origin[2] / size[2]
-              end
-            end
-          end
-        end
         local look, where, _, steps = filter.settings(get)
         local world = ctx.worldOverride or ctx.worldCanvas
         if look ~= "off" and where == "map" and ctx.worldActive and world and world.getDimensions then
@@ -620,7 +438,6 @@ function filter.init(mod, rows, menu)
           return { lines = { { text = "No grid." } } }
         elseif who == "paper" then
           if select(5, filter.settings(get)) == "off" then return { lines = { { text = "Menus on white." } } } end
-          if select(5, filter.settings(get)) == "dark" then return { lines = { { text = "Dark menus, white letters." } } } end
           return { lines = { { text = "Menus on softer paper." } } }
         end
         return nil
@@ -719,127 +536,6 @@ function filter.init(mod, rows, menu)
       if okG2 and type(Game2) == "table" and type(Game2.drawDockedStack) == "function" and not Game2.facetsPaper then
         Game2.facetsPaper = true
         Game2.drawDockedStack = captured(Game2.drawDockedStack)
-      end
-    end
-
-    -- DARK on Red, Blue and Yellow: a Pokémon picture on a menu (not in
-    -- battle) is kept from the pass, which leaves it just as it's drawn: a
-    -- Game Boy picture is drawn with its see-through inside filled white,
-    -- or the dark paper would show through it; a full-colour one (Yellow's
-    -- Pikachu, Facets' sets) as it is -Elvie
-    if require("mods.facets.classic").generation() == 1 and not love.graphics.facetsPaperPics then
-      local G = love.graphics
-      G.facetsPaperPics = true
-      local okSp, Sprites = pcall(require, "src.pokemon.Sprites")
-      local picPaths = {}
-      if okSp and type(Sprites) == "table" and type(Sprites.pic) == "function" then
-        local ownPic = Sprites.pic
-        Sprites.pic = function(...)
-          local path, tc = ownPic(...)
-          local ctx = select(2, ...)
-          if type(path) == "string" then
-            picPaths[path] = { back = type(ctx) == "table" and ctx.side == "back", full = tc and true or false }
-          end
-          return path, tc
-        end
-      end
-      local pics = setmetatable({}, { __mode = "k" })
-      local made = setmetatable({}, { __mode = "k" })
-      local ownNew = G.newImage
-      G.newImage = function(src, ...)
-        local img = ownNew(src, ...)
-        if type(src) == "string" and picPaths[src] then pics[img] = src end
-        return img
-      end
-      -- the picture with its inside filled -Elvie
-      local function filled(img)
-        -- a full-colour picture has no see-through inside: as it is
-        if picPaths[pics[img]].full then return img end
-        local got = made[img]
-        if got ~= nil then return got or nil end
-        made[img] = false
-        local ok, out = pcall(function()
-          local data = love.image.newImageData(pics[img])
-          local w, h = data:getDimensions()
-          local function clear(x, y)
-            if x < 0 or y < 0 or x >= w or y >= h then return true end
-            local _, _, _, a = data:getPixel(x, y)
-            return a < 0.5
-          end
-          -- inside: a see-through pixel the background can't reach,
-          -- flooding in from the edges up, down, left and right (not
-          -- diagonally, which leaks through an outline's corners). A back
-          -- picture is cut off at the bottom, so that edge is the body,
-          -- not background, and isn't flooded from. As Emerald Lens fills
-          -- its trainers -Elvie
-          local outside, queue = {}, {}
-          local function push(x, y)
-            if x < 0 or y < 0 or x >= w or y >= h or outside[y * w + x] or not clear(x, y) then return end
-            outside[y * w + x] = true
-            queue[#queue + 1] = y * w + x
-          end
-          local back = picPaths[pics[img]].back
-          for x = 0, w - 1 do
-            push(x, 0)
-            if not back then push(x, h - 1) end
-          end
-          for y = 0, h - 1 do push(0, y); push(w - 1, y) end
-          local n = 1
-          while queue[n] do
-            local k = queue[n]
-            local x, y = k % w, math.floor(k / w)
-            push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1)
-            n = n + 1
-          end
-          local inside = {}
-          for k = 0, w * h - 1 do
-            if not outside[k] and clear(k % w, math.floor(k / w)) then inside[k] = true end
-          end
-          local o = data:clone()
-          o:mapPixel(function(x, y, r, g, b, a)
-            if inside[y * w + x] then return 1, 1, 1, 1 end
-            return r, g, b, a
-          end)
-          local image = ownNew(o)
-          image:setFilter(img:getFilter())
-          return image
-        end)
-        if ok and out then made[img] = out end
-        return made[img] or nil
-      end
-      local ownDraw = G.draw
-      G.draw = function(drawable, x, ...)
-        if pics[drawable] and type(x) == "number" and select(5, filter.settings(get)) == "dark" then
-          local target = G.getCanvas()
-          local game = package.loaded["src.core.Game"]
-          local big = target and not battleShowing(1, game) and filled(drawable)
-          if big then
-            local args = { x, ... }
-            ownDraw(big, unpack(args))
-            -- and where it went, on a copy the size of the layer -Elvie
-            local w, h = target:getDimensions()
-            if not picKeep or picKeep:getWidth() ~= w or picKeep:getHeight() ~= h then
-              local okK, k = pcall(G.newCanvas, w, h, { dpiscale = target:getDPIScale() })
-              picKeep = okK and k or nil
-              picKeepFresh = false
-            end
-            if picKeep then
-              G.push("all")
-              G.setCanvas(picKeep)
-              if not picKeepFresh then
-                G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
-                picKeepFresh = true
-              end
-              G.setShader()
-              G.setColor(1, 1, 1, 1)
-              ownDraw(big, unpack(args))
-              G.pop()
-              picsDrawn = true
-            end
-            return
-          end
-        end
-        return ownDraw(drawable, x, ...)
       end
     end
 
