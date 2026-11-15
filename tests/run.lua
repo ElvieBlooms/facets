@@ -2288,6 +2288,17 @@ do
   eq(table.concat(names, " "), "FIT=fit FULL=1 SMALL=0.75 TINY=0.5", "options page: FIT, FULL, SMALL, TINY")
 end
 
+-- ANIMATION: LOOP for the GBA games' own animations (gba_loop.lua) -Elvie
+do
+  local L = require("mods.facets.gba_loop")
+  eq(L.ownLoop("ds_hgss") and L.ownLoop("bw_anim") and not L.ownLoop("gbc_anim") and not L.ownLoop("__off"), true,
+    "gba loop: DS and BW loop on their own; the game's and GBC's don't")
+  eq(L.due("loop", "command", 3.2, 3), true, "gba loop: again after the rest, at the command menu")
+  eq(L.due("loop", "actions", 9, 3), false, "gba loop: ...never while moves play")
+  eq(L.due("intro", "command", 9, 3), false, "gba loop: ...nor on INTRO")
+  eq(L.due("loop", "command", 1, 3), false, "gba loop: ...nor before the rest's over")
+end
+
 -- SURROUND on the Game Boy games (classic_surround.lua) -Elvie
 do
   local sur = require("mods.facets.classic_surround")
