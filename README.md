@@ -81,6 +81,7 @@ The same choices for the game you're playing are on a screen of their own, laid 
 * A preview of what you've picked: a starter from each region in turn, drawn the way the game draws it and playing its front animation when the game has one (so GBC Pokémon flip through Crystal's frames), and everyday NPCs (a nurse, a Youngster, a Lass and others) walking through all four facings with your set's sprites and fallbacks. The NPCs show once a game is loaded.
 * Under the rows: the selected set's credit, or what OFF keeps.
 * **CREDITS** (press A) opens a page with every set's credit in full, then Facets' own. Up and down scroll, left and right turn a page, B goes back.
+* **SELECT** on any row, on all three screens, opens its **ABOUT** page: what the setting changes, every choice with a line on what it does (the current one has the cursor), and which of your games a choice uses, or needs and you haven't imported yet (in red). Left and right still change it there, up and down scroll, and B goes back.
 
 The mod options still have every row for both families.
 
@@ -409,7 +410,15 @@ Red, Blue, Yellow, Gold, Silver and Crystal have their own set of Facets' option
 
 **FACETS** is on the START menu (above MODS, or QUIT) and at the bottom of the game's OPTION menu, showing your NPC set. With Emerald Lens or Crystal Lens installed too, they share one **PRISM** item there, as in the Gen 3 games: a list drawn the Game Boy way, with each mod's gem, its current setting and a line on what it changes. Picking one opens its page, and B comes back to the list.
 
-The page is the game's own OPTION page with Facets' rows. Up and down pick a row, left and right (or A) change it, and B or START closes it. Changes apply straight away and are saved with the game's options, so they're still there after you quit. The last row, **CREDITS**, opens a page naming who made everything Facets can show on these games, from each set's meta.json, in the game's own font: up and down scroll a line, left and right a page, and A or B goes back.
+The page opens on a short list, so it's never a wall of settings:
+
+* **STYLE** sets the main looks together in one go: **ORIGINAL** (everything as the game drew it), **FIRERED** or **EMERALD** (that game's people, trainers, Pokémon, battle backgrounds and window frames, from your own imported game), or **DS** (DIEGO's people, DS trainers, the best DS Pokémon you have, a scene behind each battle and HeartGold's battle boxes). Change anything afterwards and STYLE shows **CUSTOM**.
+* **PEOPLE**, **POKEMON**, **TRAINERS**, **BATTLE**, **WINDOWS** and **SCREEN**, each showing its main setting. A opens the topic's own page of settings, and B comes back.
+* **CREDITS**, which opens a page naming who made everything Facets can show on these games, from each set's meta.json, in the game's own font: up and down scroll a line, left and right a page, and A or B goes back.
+
+On every page, up and down pick a row, left and right (or A) change it, and B or START closes it. Changes apply straight away and are saved with the game's options, so they're still there after you quit.
+
+**SELECT** on any row opens its **ABOUT** page: what the setting changes, every choice with a line on what it does (the current one has the cursor), and which of your games a choice uses, or needs and you haven't imported yet. Left and right still change it there, up and down scroll, and B goes back.
 
 ### People
 

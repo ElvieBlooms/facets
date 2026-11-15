@@ -9,7 +9,8 @@ local screen = {}
 
 local LAYER = "facets"
 local HELP_BG = { 0 / 255, 123 / 255, 197 / 255, 1 } -- same blue as the OPTION menu -Elvie
-local HELP = "{DPAD_LEFTRIGHT}CHANGE {B_BUTTON}EXIT"
+local HELP = "{DPAD_LEFTRIGHT}CHANGE {SELECT_BUTTON}ABOUT {B_BUTTON}EXIT"
+local ABOUT_HELP = "{DPAD_LEFTRIGHT}CHANGE {B_BUTTON}BACK"
 local CREDITS_HELP = "{DPAD_UPDOWN}SCROLL {B_BUTTON}BACK"
 
 -- Window(1, 3, 28, 16): 8..232 x 24..152 inside the frame. -Elvie
@@ -148,12 +149,63 @@ function screen.new(mod, model)
     end
   end
 
+  -- ABOUT (SELECT): what the row's setting does and each choice, from
+  -- help.lua; left and right still change it -Elvie
+  local function aboutLines()
+    local FrlgFont = engine("src.ui.game3.frlg_font")
+    local help = require("mods.facets.help")
+    local row = rows()[state.about.index]
+    if not row then return {} end
+    local okD, ds = pcall(require, "mods.facets.ds")
+    local page = help.page({ key = row.key, label = row.label, choices = row.choices, value = row.value },
+      okD and ds.api(mod) or nil)
+    if row.page then page.about = "Everyone whose art Facets uses, in full. Press A on CREDITS to read it." end
+    local measure = FrlgFont and function(t) return FrlgFont.measure(t) end or nil
+    return help.lines(page, measure and CREDITS_W - 8 or 34, measure), row.label
+  end
+  local function openAbout()
+    state.about = { index = state.index, scroll = 0 }
+    state.about.lines, state.about.title = aboutLines()
+    -- from the top, unless that leaves the current choice out of sight -Elvie
+    for i, line in ipairs(state.about.lines) do
+      if line.current and i + 1 > CREDITS_ROWS then
+        state.about.scroll = math.max(0, math.min(i + 1 - CREDITS_ROWS, #state.about.lines - CREDITS_ROWS))
+      end
+    end
+  end
+  screen.openAbout = openAbout
+
+  local function aboutInput(input)
+    local page = state.about
+    local last = math.max(0, #page.lines - CREDITS_ROWS)
+    if input:wasPressed("up") then page.scroll = math.max(0, page.scroll - 1)
+    elseif input:wasPressed("down") then page.scroll = math.min(last, page.scroll + 1)
+    elseif input:wasPressed("left") or input:wasPressed("right") then
+      local row = rows()[page.index]
+      if row and row.choices and #row.choices > 1 then
+        step(row, input:wasPressed("left") and -1 or 1)
+        page.lines = aboutLines()
+        for i, line in ipairs(page.lines) do
+          if line.current then
+            local l2 = math.max(0, #page.lines - CREDITS_ROWS)
+            if i - 1 < page.scroll then page.scroll = math.max(0, i - 2) end
+            if i + 1 > page.scroll + CREDITS_ROWS then page.scroll = math.min(l2, i + 1 - CREDITS_ROWS) end
+          end
+        end
+      end
+    elseif input:wasPressed("b") or input:wasPressed("a") or input:wasPressed("select") then state.about = nil
+    elseif input:wasPressed("start") then S.close()
+    end
+  end
+
   function S.handleInput(input)
     if not (state and input) then return end
     if state.credits then return creditsInput(input) end
+    if state.about then return aboutInput(input) end
     local list = rows()
     local row = list[state.index]
-    if input:wasPressed("up") then state.index = (state.index - 2) % #list + 1
+    if input:wasPressed("select") then if row then openAbout() end
+    elseif input:wasPressed("up") then state.index = (state.index - 2) % #list + 1
     elseif input:wasPressed("down") then state.index = state.index % #list + 1
     elseif row and row.page and input:wasPressed("a") then openCredits()
     -- a row that does something (BUILD NOW) instead of changing -Elvie
@@ -221,12 +273,35 @@ function screen.new(mod, model)
     end
   end
 
+  local function drawAbout(Window, FrlgFont)
+    local page = state.about
+    drawChrome(Window, FrlgFont, page.title or "ABOUT", ABOUT_HELP)
+    for slot = 1, CREDITS_ROWS do
+      local line = page.lines[page.scroll + slot]
+      if line then
+        local y = ROW_Y0 + (slot - 1) * ROW_STEP
+        local colors = FrlgFont.COLOR.NORMAL
+        if line.kind == "choice" then colors = FrlgFont.COLOR.OPTION_VALUE
+        elseif line.missing then colors = FrlgFont.COLOR.RED
+        elseif line.kind == "need" then colors = FrlgFont.COLOR.BLUE end
+        if line.current then Window.cursorPx(LABEL_X - 8, y) end
+        Window.printPx(line.text, line.kind == "text" and LABEL_X or LABEL_X + 4, y, { colors = colors })
+      end
+    end
+    local red = { colors = FrlgFont.COLOR.RED }
+    if page.scroll > 0 then FrlgFont.drawGlyph(FrlgFont.CHAR_UP_ARROW, 220, 24, red) end
+    if page.scroll + CREDITS_ROWS < #page.lines then
+      FrlgFont.drawGlyph(FrlgFont.CHAR_DOWN_ARROW, 220, WIN_BOTTOM - 14, red)
+    end
+  end
+
   function S.draw()
     if not state then return end
     local Window = engine("src.ui.game3.window")
     local FrlgFont = engine("src.ui.game3.frlg_font")
     if not (Window and FrlgFont) then return end
     if state.credits then return drawCredits(Window, FrlgFont) end
+    if state.about then return drawAbout(Window, FrlgFont) end
     drawChrome(Window, FrlgFont, model.title(), HELP)
 
     local list = rows()

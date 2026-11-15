@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.6
+
+- **ABOUT pages:** press **SELECT** on any Facets setting, on every game, for a page on what it does: what the setting changes, every choice with a line on it, and which of your games a choice uses or still needs importing. Left and right still change the setting there.
+- **Red to Crystal's FACETS page is now a short list of topics:** PEOPLE, POKEMON, TRAINERS, BATTLE, WINDOWS and SCREEN, each opening its own page, then CREDITS. Before, it was one long list of every setting. The game's COLORS row still opens straight at COLORS.
+- **STYLE**, at the top of that list, sets the main looks together in one go: **ORIGINAL**, **FIRERED**, **EMERALD** or **DS**. Change anything afterwards and it shows **CUSTOM**.
+
 ## 1.2.5
 
 - **The game's own GB FILTER row** (on Red to Crystal's OPTION screen) and Facets' **FILTER** now move together. Turning GB FILTER off there turns off Facets' FILTER and DOTS too, so it stays off. Before, FILTER stayed on, so the filter came back on every time the game started. Turning GB FILTER on there brings back the last FILTER look (GRAY at first).

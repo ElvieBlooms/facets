@@ -2281,6 +2281,53 @@ do
   eq(table.concat(names, " "), "FIT=fit FULL=1 SMALL=0.75 TINY=0.5", "options page: FIT, FULL, SMALL, TINY")
 end
 
+-- FACETS on the Game Boy games: topics, STYLE and ABOUT -Elvie
+do
+  local cm = require("mods.facets.classic_menu")
+  local entries = {
+    { key = "classicNpcs", label = "NPCS", choices = { { "DIEGO", "diego" }, { "FIRERED", "gba_firered" }, { "OFF", "__off" } } },
+    { key = "classicTrainers", label = "TRAINERS", choices = { { "DS", "ds" }, { "FIRERED", "gba_firered" }, { "OFF", "__off" } } },
+    { key = "classicMons", label = "POKEMON", choices = { { "DS", "ds" }, { "FIRERED", "gba_firered" }, { "OFF", "__off" } } },
+    { key = "animMode", label = "ANIMATION", choices = { { "LOOP", "loop" }, { "OFF", "off" } } },
+    { key = "classicBattleBg", label = "BATTLE BG", choices = { { "GAME", "game" }, { "SCENERY", "scenery" }, { "FRLG", "gba_frlg" } } },
+    { key = "filter", label = "FILTER", choices = { { "OFF", "off" }, { "GRAY", "gray" } } },
+    { key = "somethingNew", label = "NEW", choices = { { "A", "a" }, { "B", "b" } } },
+  }
+  local t = cm.topics(entries)
+  local names = {}
+  for _, topic in ipairs(t) do names[#names + 1] = topic.label .. "=" .. #topic.entries end
+  eq(table.concat(names, ","), "PEOPLE=1,POKEMON=2,TRAINERS=1,BATTLE=1,SCREEN=2",
+    "facets page: topics with this game's settings, and a stray one on the last")
+  local ds = cm.styleValues("ds", entries)
+  eq(ds.classicMons .. "," .. ds.classicNpcs .. "," .. tostring(ds.classicBattleUi), "ds,diego,nil",
+    "style: the best value the game offers, and nothing it doesn't")
+  local now = { classicNpcs = "diego", classicTrainers = "ds", classicMons = "ds", classicBattleBg = "scenery" }
+  local function get(k) return now[k] end
+  eq(cm.styleOf(get, entries), "ds", "style: these settings are DS")
+  now.classicNpcs = "gba_firered"
+  eq(cm.styleOf(get, entries), "custom", "style: change one and it's CUSTOM")
+  for k, v in pairs(cm.styleValues("original", entries)) do now[k] = v end
+  eq(cm.styleOf(get, entries), "original", "style: ORIGINAL puts it all back")
+
+  local help = require("mods.facets.help")
+  for _, key in ipairs({ "classicNpcs", "classicTrainers", "classicMons", "animMode", "classicSide", "classicBattleBg",
+      "sceneBorders", "classicWindows", "classicTextBox", "classicColors", "filter", "dots", "setMons", "setTrainers",
+      "setFrlg", "backMons", "prebuild", "style" }) do
+    check(help.TEXT[key] and (help.TEXT[key].about or "") ~= "", "help: " .. key .. " says what it does")
+  end
+  eq(help.choiceLine("classicWindows", "pink:3"), "One of the PINK frames.", "help: a window set's line by its prefix")
+  eq(help.needsOf("classicMons", "ds_hgss"), "hgss", "help: HGSS needs its dump")
+  eq(help.needsOf("classicBattleBg", "gba_rs"), "rs", "help: R/S needs Ruby or Sapphire")
+  eq(help.have("hgss", nil), false, "help: no Prism Importer, no dump")
+  local page = help.page({ key = "animMode", label = "ANIMATION", value = "off",
+    choices = { { "LOOP", "loop" }, { "OFF", "off" } } })
+  local lines = help.lines(page, 16)
+  local current
+  for _, l in ipairs(lines) do if l.current then current = l.text end end
+  eq(current, "OFF", "help: the page marks the current choice")
+  for _, l in ipairs(lines) do check(#l.text <= 17, "help: every line fits the Game Boy page: " .. l.text) end
+end
+
 -- PRISM on the Game Boy games: where the item goes, and the lens first -Elvie
 do
   local P = require("mods.facets.prism")
