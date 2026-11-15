@@ -218,8 +218,11 @@ function scenes.edges(info)
   -- canvas (BATTLE SIZE: FILL draws it bigger than the letterbox) -Elvie
   local real = scenes.screenRect(s, G.getCanvas and G.getCanvas())
   if real then ox, oy, sw, sh = real[1], real[2], real[3], real[4] end
+  -- pixels to a unit, each way: on some handhelds (the AYN Thor) they
+  -- differ, and getDPIScale is only one of them -Elvie
   local d = type(G.getDPIScale) == "function" and G.getDPIScale() or 1
-  local bl, bt, bw2, bh2 = scenes.borderEdges(ox, oy, sw, sh, d)
+  local dx, dy = tonumber(info.dpiX) or d, tonumber(info.dpiY) or d
+  local bl, bt, bw2, bh2 = scenes.borderEdges(ox, oy, sw, sh, dx, dy)
   if mode == "fill" then
     -- the scene, sharp, zoomed until it covers the whole window and
     -- centred on it (some of it goes past the edges, never mirrored);
@@ -236,9 +239,8 @@ function scenes.edges(info)
     for _, r in ipairs(scenes.bars(bl, bt, bw2, bh2, ww, wh)) do
       G.push("all")
       G.origin()
-      G.intersectScissor(r[1], r[2], r[3], r[4])
       scenes.setLight(s.light)
-      G.draw(s.image, q, fx, fy, 0, kc, kc)
+      scenes.drawPart(s.image, iw, ih, cx, cy, fx, fy, kc, kc, r)
       G.pop()
     end
     return
@@ -246,11 +248,29 @@ function scenes.edges(info)
   for _, r in ipairs(scenes.bars(bl, bt, bw2, bh2, ww, wh)) do
     G.push("all")
     G.origin()
-    G.intersectScissor(r[1], r[2], r[3], r[4])
     scenes.setLight(s.light, scenes.DIM)
-    G.draw(blur, (ww - dw) / 2, (wh - dh) / 2, 0, dw / bw, dh / bh)
+    scenes.drawPart(blur, bw, bh, 0, 0, (ww - dw) / 2, (wh - dh) / 2, dw / bw, dh / bh, r)
     G.pop()
   end
+end
+
+-- One border: the part of a picture (drawn at x0, y0, scaled kx, ky, its
+-- own top left at sx, sy) that falls in r, drawn as that part itself. Not
+-- cut out with a scissor: LOVE places a scissor by getDPIScale on both
+-- axes, so where a unit is more pixels one way than the other (the AYN
+-- Thor) it missed the screen's edge, leaving white lines round the game
+-- and down the window's own edges -Elvie
+scenes._partQuads = {}
+function scenes.drawPart(img, iw, ih, sx, sy, x0, y0, kx, ky, r)
+  local qx, qy = sx + (r[1] - x0) / kx, sy + (r[2] - y0) / ky
+  local qw, qh = r[3] / kx, r[4] / ky
+  local q = scenes._partQuads[img]
+  if q then q:setViewport(qx, qy, qw, qh, iw, ih)
+  else
+    q = love.graphics.newQuad(qx, qy, qw, qh, iw, ih)
+    scenes._partQuads[img] = q
+  end
+  love.graphics.draw(img, q, r[1], r[2], 0, kx, ky)
 end
 
 -- The game screen's rectangle as it was really drawn this frame (it can
@@ -269,12 +289,13 @@ end
 -- sliver of the surround shows between them (on a high-DPI screen a whole
 -- unit is two or three pixels, which used to leave a faint line). d is
 -- pixels to a unit -Elvie
-function scenes.borderEdges(ox, oy, sw, sh, d)
-  d = d or 1
-  local l = math.ceil(ox * d - 1e-6) / d
-  local t = math.ceil(oy * d - 1e-6) / d
-  local r = math.floor((ox + sw) * d + 1e-6) / d
-  local b = math.floor((oy + sh) * d + 1e-6) / d
+function scenes.borderEdges(ox, oy, sw, sh, d, dy)
+  local dx = d or 1
+  dy = dy or dx
+  local l = math.ceil(ox * dx - 1e-6) / dx
+  local t = math.ceil(oy * dy - 1e-6) / dy
+  local r = math.floor((ox + sw) * dx + 1e-6) / dx
+  local b = math.floor((oy + sh) * dy + 1e-6) / dy
   return l, t, math.max(0, r - l), math.max(0, b - t)
 end
 

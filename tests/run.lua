@@ -3065,6 +3065,21 @@ do
       "scenes: the borders run over the pixels the screen's edges cut through")
     eq(string.format("%g,%g,%g,%g", Sc.borderEdges(250.3, 0, 500.2, 400, 2)), "250.5,0,500,400",
       "scenes: ...counted in the screen's own pixels at high DPI")
+    -- a unit more pixels across than down (the AYN Thor): each way by its own -Elvie
+    eq(string.format("%g,%g,%g,%g", Sc.borderEdges(16.2, 41.3, 600, 300, 2.5, 2)), "16.4,41.5,599.6,299.5",
+      "borders: each edge by its own axis's pixels")
+    -- a border is the part of the picture under it, drawn without a scissor -Elvie
+    local drawn
+    local realQuad, realDraw = love.graphics.newQuad, love.graphics.draw
+    love.graphics.newQuad = function(x, y, w, h, iw, ih)
+      return { v = { x, y, w, h }, setViewport = function(q, a, b, c, d2) q.v = { a, b, c, d2 } end }
+    end
+    love.graphics.draw = function(img, q, x, y, r, kx, ky) drawn = { q.v, x, y, kx, ky } end
+    Sc._partQuads = {}
+    Sc.drawPart({}, 100, 50, 0, 0, -20, -10, 4, 4, { 0, 0, 16, 120 })
+    love.graphics.newQuad, love.graphics.draw = realQuad, realDraw
+    eq(string.format("%g,%g,%g,%g@%g,%g", drawn[1][1], drawn[1][2], drawn[1][3], drawn[1][4], drawn[2], drawn[3]),
+      "5,2.5,4,30@0,0", "borders: the picture's part under the border, at the border")
     eq(Sc.screenRect({ canvas = cv, screen = { 0, 0, 160, 144 } }, {}), nil,
       "scenes: ...but not from another canvas")
     eq(Sc.screenRect({ canvas = cv }, cv), nil, "scenes: ...nor when it wasn't noted")

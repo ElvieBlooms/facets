@@ -5,6 +5,7 @@
 - **ABOUT pages:** press **SELECT** on any Facets setting, on every game, for a page on what it does: what the setting changes, every choice with a line on it, and which of your games a choice uses or still needs importing. Left and right still change the setting there.
 - **Red to Crystal's FACETS page is now a short list of topics:** PEOPLE, POKEMON, TRAINERS, BATTLE, WINDOWS and SCREEN, each opening its own page, then CREDITS. Before, it was one long list of every setting. The game's COLORS row still opens straight at COLORS.
 - **STYLE**, at the top of that list, sets the main looks together in one go: **ORIGINAL**, **FIRERED**, **EMERALD** or **DS**. Change anything afterwards and it shows **CUSTOM**.
+- **Fixed: white lines round the battle on handhelds like the AYN Thor** (Red to Crystal, BORDERS: BLUR or FILL). Where the screen's pixels aren't square to LÖVE's units, the borders missed the game screen by a couple of pixels and stopped short of the window's right and bottom edges. They now line up on every screen.
 
 ## 1.2.5
 
