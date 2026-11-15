@@ -294,8 +294,11 @@ function scenes.borderEdges(ox, oy, sw, sh, d, dy)
   dy = dy or dx
   local l = math.ceil(ox * dx - 1e-6) / dx
   local t = math.ceil(oy * dy - 1e-6) / dy
-  local r = math.floor((ox + sw) * dx + 1e-6) / dx
-  local b = math.floor((oy + sh) * dy + 1e-6) / dy
+  -- right and bottom start a pixel inside: the engine's own picture of
+  -- the screen can stop short of its last pixel (it did on the AYN Thor,
+  -- leaving a white line down the right and along the bottom) -Elvie
+  local r = (math.floor((ox + sw) * dx + 1e-6) - 1) / dx
+  local b = (math.floor((oy + sh) * dy + 1e-6) - 1) / dy
   return l, t, math.max(0, r - l), math.max(0, b - t)
 end
 

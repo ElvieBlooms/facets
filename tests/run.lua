@@ -3061,12 +3061,12 @@ do
     local cv = {}
     local r = Sc.screenRect({ canvas = cv, screen = { 10.4, 3.6, 777.6, 699.8 } }, cv)
     eq(r and string.format("%g,%g,%g,%g", r[1], r[2], r[3], r[4]), "10.4,3.6,777.6,699.8", "scenes: the screen as drawn")
-    eq(string.format("%g,%g,%g,%g", Sc.borderEdges(10.4, 3.6, 777.6, 699.8, 1)), "11,4,777,699",
-      "scenes: the borders run over the pixels the screen's edges cut through")
-    eq(string.format("%g,%g,%g,%g", Sc.borderEdges(250.3, 0, 500.2, 400, 2)), "250.5,0,500,400",
+    eq(string.format("%g,%g,%g,%g", Sc.borderEdges(10.4, 3.6, 777.6, 699.8, 1)), "11,4,776,698",
+      "scenes: the borders run over the pixels the screen's edges cut through, and one more right and below")
+    eq(string.format("%g,%g,%g,%g", Sc.borderEdges(250.3, 0, 500.2, 400, 2)), "250.5,0,499.5,399.5",
       "scenes: ...counted in the screen's own pixels at high DPI")
     -- a unit more pixels across than down (the AYN Thor): each way by its own -Elvie
-    eq(string.format("%g,%g,%g,%g", Sc.borderEdges(16.2, 41.3, 600, 300, 2.5, 2)), "16.4,41.5,599.6,299.5",
+    eq(string.format("%g,%g,%g,%g", Sc.borderEdges(16.2, 41.3, 600, 300, 2.5, 2)), "16.4,41.5,599.2,299",
       "borders: each edge by its own axis's pixels")
     -- a border is the part of the picture under it, drawn without a scissor -Elvie
     local drawn
