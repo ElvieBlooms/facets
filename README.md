@@ -473,6 +473,7 @@ Red, Blue and Yellow show pictures on some screens (summary, Hall of Fame, Poké
 **SURROUND** (on the SCREEN page) fills the space round the game screen outside battle, where the game leaves white or black. The game's own **OPTION > UI LETTERBOX** already has plain colours (AUTO, BLACK, WHITE, PALETTE), and **GAME** (the default) leaves it to that. The others:
 
 * **WORLD**: the map you're on, round the menu, as BATTLE BG: WORLD shows it round a battle. On Red, Blue and Yellow the game keeps drawing the map under the menu; on Gold, Silver and Crystal it's the map as it was when the menu opened, dimmed as their WORLD battles dim it.
+* **GLOW**: soft, out-of-focus lights drifting slowly across a deep shade of your menus' colour, in that colour (your WINDOWS frame's, or the screen's paper with the game's own frame).
 * **SCENE**: the blurred battle scene for where you are (forest, cave, town and so on), from BATTLE BG's set, or SCENERY when that's GAME.
 * **WINDOWS**: your WINDOWS frame's colour, so the surround matches your menus.
 * **DOTS**, **CHECKS** and **STRIPES**: a soft pattern in your colours (the screen's paper and your WINDOWS frame's colour), drawn in Game Boy pixels and lined up with the screen.

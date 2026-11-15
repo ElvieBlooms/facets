@@ -2293,6 +2293,16 @@ do
   local m = sur.mix({ 1, 1, 1 }, { 0, 0.5, 1 }, 0.5)
   eq(string.format("%g,%g,%g", m[1], m[2], m[3]), "0.5,0.75,1", "surround: colours mix")
   eq(sur.draw({ ww = 100, wh = 100 }), false, "surround: GAME leaves the window to the game")
+  local a, b = sur.lights(10, 640, 360), sur.lights(10.5, 640, 360)
+  eq(#a, sur.LIGHTS, "surround: GLOW's lights")
+  local moved, far = 0, 0
+  for i = 1, #a do
+    local d = math.sqrt((a[i].x - b[i].x) ^ 2 + (a[i].y - b[i].y) ^ 2)
+    if d > 0 then moved = moved + 1 end
+    if d > 20 then far = far + 1 end
+  end
+  check(moved >= #a - 1 and far <= 1, "surround: GLOW's lights drift, slowly")
+  eq(sur.lights(10, 640, 360)[3].x, a[3].x, "surround: ...the same lights every time")
 end
 
 -- FACETS on the Game Boy games: topics, STYLE and ABOUT -Elvie

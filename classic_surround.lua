@@ -4,6 +4,8 @@
 -- own:
 --   WORLD    the map you were on, dimmed round the menu, as BATTLE BG:
 --            WORLD shows it round a battle
+--   GLOW     soft lights drifting slowly, in your menus' colour, on a
+--            darker shade of it
 --   SCENE    the blurred battle scene for where you are
 --   WINDOWS  your WINDOWS frame's colour
 --   DOTS, CHECKS, STRIPES  a soft pattern in your colours
@@ -16,7 +18,7 @@ local surround = {}
 
 local GAME = "game"
 surround.CHOICES = {
-  { "GAME", GAME }, { "WORLD", "world" }, { "SCENE", "scene" }, { "WINDOWS", "windows" },
+  { "GAME", GAME }, { "WORLD", "world" }, { "GLOW", "glow" }, { "SCENE", "scene" }, { "WINDOWS", "windows" },
   { "DOTS", "dots" }, { "CHECKS", "checks" }, { "STRIPES", "stripes" },
 }
 surround.DIM = 0.7
@@ -175,6 +177,57 @@ local function tileImage(kind, paper, ink)
   return img
 end
 
+-- GLOW's lights: where each one is at time t (seconds), across a window w
+-- by h, with its size and brightness. The same lights every time (a fixed
+-- seed), each drifting slowly on its own line and wrapping round -Elvie
+surround.LIGHTS = 14
+function surround.lights(t, w, h)
+  local out = {}
+  local seed = 12345
+  local function rnd()
+    seed = (seed * 1103515245 + 12345) % 2147483648
+    return seed / 2147483648
+  end
+  local span = math.max(w, h)
+  for i = 1, surround.LIGHTS do
+    local x0, y0 = rnd(), rnd()
+    local angle = rnd() * math.pi * 2
+    local speed = 0.006 + rnd() * 0.012 -- of the window a second: slow -Elvie
+    local size = (0.06 + rnd() * 0.12) * span
+    local glow = 0.18 + rnd() * 0.22
+    local tint = rnd() * 0.45
+    local phase = rnd() * math.pi * 2
+    local m = size / span
+    local x = ((x0 + math.cos(angle) * speed * t) % (1 + 2 * m)) - m
+    local y = ((y0 + math.sin(angle) * speed * t) % (1 + 2 * m)) - m
+    -- each one breathes a little as it goes -Elvie
+    local a = glow * (0.75 + 0.25 * math.sin(t * 0.4 + phase))
+    out[i] = { x = x * w, y = y * h, r = size / 2, a = a, tint = tint }
+  end
+  return out
+end
+
+-- a soft round light, bright in the middle and fading to nothing -Elvie
+local disc = nil
+local function discImage()
+  if disc then return disc end
+  local n = 64
+  local data = love.image.newImageData(n, n)
+  for y = 0, n - 1 do
+    for x = 0, n - 1 do
+      local dx, dy = (x + 0.5) / n * 2 - 1, (y + 0.5) / n * 2 - 1
+      local d = math.sqrt(dx * dx + dy * dy)
+      -- a flat middle with a soft rim, like an out-of-focus light -Elvie
+      local a = d >= 1 and 0 or (d < 0.7 and 1 or (1 - (d - 0.7) / 0.3))
+      a = a * a
+      data:setPixel(x, y, 1, 1, 1, a)
+    end
+  end
+  disc = love.graphics.newImage(data)
+  disc:setFilter("linear", "linear")
+  return disc
+end
+
 -- Whether a battle is up: battles size their screen their own way
 -- (BATTLE SIZE), so SURROUND leaves them to BORDERS and the game -Elvie
 local battleKinds = nil
@@ -219,6 +272,39 @@ function surround.draw(info)
       G.pop()
     end
   end
+  if mode == "glow" then
+    -- the menus' colour (your WINDOWS frame's, or the screen's paper) as
+    -- the lights, on a deep shade of it -Elvie
+    local paper, ink = surround.colours()
+    local base = ink
+    local okW, framed = pcall(function() return require("mods.facets.classic_windows").colour() end)
+    if not (okW and framed) then base = paper end
+    local bg = { base[1] * 0.28, base[2] * 0.28, base[3] * 0.32 }
+    local img = discImage()
+    local iw = img:getWidth()
+    local t = love.timer and love.timer.getTime() or 0
+    -- only the borders: some screens are drawn before the surround, so a
+    -- light crossing the screen's edge is cut there (as the part of it in
+    -- each border, not with a scissor) -Elvie
+    local lights = surround.lights(t, ww, wh)
+    each(function(r)
+      G.setColor(bg[1], bg[2], bg[3], 1)
+      G.rectangle("fill", r[1], r[2], r[3], r[4])
+      G.setBlendMode("add")
+      for _, l in ipairs(lights) do
+        local x0, y0, k = l.x - l.r, l.y - l.r, 2 * l.r / iw
+        local ax, ay = math.max(r[1], x0), math.max(r[2], y0)
+        local bx, by = math.min(r[1] + r[3], x0 + 2 * l.r), math.min(r[2] + r[4], y0 + 2 * l.r)
+        if bx > ax and by > ay then
+          local c = surround.mix(base, { 1, 1, 1 }, l.tint)
+          G.setColor(c[1], c[2], c[3], l.a)
+          scenes.drawPart(img, iw, iw, 0, 0, x0, y0, k, k, { ax, ay, bx - ax, by - ay })
+        end
+      end
+    end)
+    return true
+  end
+
   if mode == "world" then
     -- Red to Yellow draw the map themselves (above); Gold to Crystal get
     -- the kept picture of it, dimmed as the battles dim theirs -Elvie

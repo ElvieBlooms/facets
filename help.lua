@@ -256,6 +256,7 @@ help.TEXT = {
     choices = {
       game = "The game's own, from UI LETTERBOX.",
       world = "The map you're on, dimmed round the menu, as BATTLE BG: WORLD does round a battle.",
+      glow = "Soft lights drifting slowly, in your menus' colour, on a darker shade of it.",
       scene = "The blurred battle scene for where you are.",
       windows = "Your WINDOWS frame's colour.",
       dots = "Soft dots in your colours.",
