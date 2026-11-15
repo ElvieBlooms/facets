@@ -174,13 +174,16 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
         // the greys turned round: white to the dark paper, black to the
         // letters' white. Pictures stay as they are: a picture's pixels are
         // its colours (and on Red to Crystal its middle greys, where
-        // letters are only ever black). White touching a picture stays
-        // white, and so does black (its outline); a dark grey only turns
+        // letters are only ever black). Black touching a picture stays
+        // black (its outline), and white inside one stays white (below);
+        // a dark grey only turns
         // where it's on white paper, within two game pixels, so letters in
         // a coloured box and black screens stay too
         float l = dot(o, vec3(0.299, 0.587, 0.114));
         float here = picture(tex, tc, texStep);
         float near = 0.0;
+        // (one game pixel only: further, the letters by a coloured frame
+        // would stay black)
         for (int i = 0; i < 8; i++) near = max(near, picture(tex, tc + texStep * around(i), texStep));
         float onPaper = paperish(o);
         if (onPaper < 0.5) {
@@ -189,7 +192,37 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
             onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * 2.0 * around(i)).rgb));
           }
         }
-        float turn = (1.0 - here) * (1.0 - near) * onPaper;
+        // Red to Crystal's pictures are see-through where they're white,
+        // so the paper shows there: white with a picture's colours (or on
+        // Red to Crystal, middle greys) on all four sides, within eight
+        // game pixels, is the inside of a picture and stays white -Elvie
+        float inside = 0.0;
+        if (paperish(o) > 0.5) {
+          inside = 1.0;
+          for (int d = 0; d < 4; d++) {
+            float hit = 0.0;
+            for (int k = 1; k <= 8; k++) {
+              vec3 c = Texel(tex, tc + texStep * around(d) * float(k)).rgb;
+              hit = max(hit, max(colourful(c), midGrey(c)));
+            }
+            inside *= hit;
+          }
+        }
+        // the GBA games also print white letters on their own dark boxes
+        // (the battle's, 49 grey), and their own letters on white are a
+        // lighter grey (74): white beside anything darker than those is a
+        // letter on a dark box there, and stays, with its shadow -Elvie
+        float lettered = 0.0;
+        if (midGreys < 0.5) {
+          for (int i = 0; i < 8; i++) {
+            vec3 c = Texel(tex, tc + texStep * around(i)).rgb;
+            lettered = max(lettered, step(dot(c, vec3(0.299, 0.587, 0.114)), 0.24));
+          }
+        }
+        // white only stays for being inside a picture, not for touching
+        // one, or the paper round a picture's edge would ring it in white
+        float keep = paperish(o) > 0.5 ? inside : max(near, inside);
+        float turn = (1.0 - here) * (1.0 - keep) * (1.0 - lettered) * onPaper;
         o = mix(o, mix(ink, paper, l), Texel(ui, p).a * grey * turn);
       } else {
         float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * grey;
