@@ -9,7 +9,7 @@
 --            games, for the ground of your last battle)
 --   WINDOWS  your WINDOWS frame's colour
 --   DOTS, CHECKS, STRIPES  a soft pattern in your colours
--- WORLD is Red to Crystal's only. Drawn by the engine's render.letterbox
+-- Drawn by the engine's render.letterbox
 -- (classic_scenes, or gbui on the GBA games, hands it on), as
 -- parts of a picture, never through a scissor, so it lines up on every
 -- screen -Elvie
@@ -28,6 +28,9 @@ surround.WORLD_DIM = 0.55
 
 local mod = nil
 local snapshot, snapAt = nil, 0
+-- on the GBA games the kept picture is the map alone, placed as the game
+-- places it: centred, snapScale pixels to a GBA pixel -Elvie
+local snapScale = nil
 
 -- Whether WORLD should show the map round the screen now: it's chosen, no
 -- battle is up (battles have BORDERS and their own BATTLE BG), and the map
@@ -48,14 +51,8 @@ local function worldUnder(stack)
 end
 surround.worldUnder = worldUnder
 
--- The choices for this game: WORLD needs a map that reaches past the
--- screen, which the GBA games' doesn't -Elvie
-function surround.choices()
-  if surround.gen ~= 3 then return surround.CHOICES end
-  local out = {}
-  for _, c in ipairs(surround.CHOICES) do if c[2] ~= "world" then out[#out + 1] = c end end
-  return out
-end
+-- The choices: the same on every game -Elvie
+function surround.choices() return surround.CHOICES end
 
 function surround.init(m, rows, gen)
   mod = m
@@ -87,19 +84,32 @@ function surround.init(m, rows, gen)
         end
       end
     end)
-    -- Gold, Silver and Crystal draw the map and the menus into one picture:
-    -- the last frame of just the map is kept (every few frames), to show
-    -- round the menus -Elvie
+    -- Gold, Silver and Crystal draw the map and the menus into one picture,
+    -- and FireRed to Emerald leave the map out under their full-screen
+    -- menus: so the last frame of just the map is kept (every few frames)
+    -- to show round the menus -Elvie
     pcall(function()
       mod.hooks:wrap("render.compose", function(nextFn, renderer, ctx, ...)
-        if type(ctx) == "table" and ctx.generation == 2 and ctx.worldActive and ctx.sceneCanvas
-            and surround.mode() == "world" then
-          snapAt = snapAt + 1
+        local gen = type(ctx) == "table" and ctx.generation
+        local src
+        if gen == 2 and ctx.worldActive and ctx.sceneCanvas then
           local okT, top = pcall(function() return renderer.stack:top() end)
-          if okT and top == nil and snapAt % 6 == 1 then
+          if okT and top == nil then src = ctx.sceneCanvas end
+        elseif gen == 3 and ctx.worldActive and ctx.worldCanvas then
+          src = ctx.worldCanvas
+        end
+        if src and surround.mode() == "world" then
+          snapAt = snapAt + 1
+          if snapAt % 6 == 1 then
             pcall(function()
               local G = love.graphics
-              local src = ctx.sceneCanvas
+              if gen == 3 then
+                local okZ, Zoom = pcall(require, "src.render.Zoom")
+                local sp = tonumber(ctx.scale) or 1
+                snapScale = okZ and type(Zoom.scale) == "function" and Zoom.scale(sp) or sp
+              else
+                snapScale = nil
+              end
               local w, h = src:getDimensions()
               if not snapshot or snapshot:getWidth() ~= w or snapshot:getHeight() ~= h then
                 snapshot = G.newCanvas(w, h)
@@ -389,16 +399,24 @@ function surround.draw(info)
   end
 
   if mode == "world" then
-    -- Red to Yellow draw the map themselves (above); Gold to Crystal get
-    -- the kept picture of it, dimmed as the battles dim theirs -Elvie
+    -- Red to Yellow draw the map themselves (above); Gold to Emerald get
+    -- the kept picture of it, dimmed as Crystal's WORLD battles dim theirs -Elvie
     if not snapshot then return false end
     local sw, sh = snapshot:getDimensions()
     local pw = tonumber(info.pw) or ww * dx
+    local ph = tonumber(info.ph) or wh * dy
+    local k = 1 - surround.WORLD_DIM
     each(function(r)
-      local k = 1 - surround.WORLD_DIM
       G.setColor(k, k, k, 1)
-      -- the picture is the window in pixels: one unit is pw / ww of them -Elvie
-      scenes.drawPart(snapshot, sw, sh, 0, 0, 0, 0, ww / pw, wh / (tonumber(info.ph) or wh * dy), r)
+      if snapScale then
+        -- the GBA map, centred in the window at the game's own scale -Elvie
+        local x0 = math.floor((pw - sw * snapScale) / 2) / dx
+        local y0 = math.floor((ph - sh * snapScale) / 2) / dy
+        scenes.drawPart(snapshot, sw, sh, 0, 0, x0, y0, snapScale / dx, snapScale / dy, r)
+      else
+        -- the picture is the window in pixels: one unit is pw / ww of them -Elvie
+        scenes.drawPart(snapshot, sw, sh, 0, 0, 0, 0, ww / pw, wh / ph, r)
+      end
     end)
     return true
   end

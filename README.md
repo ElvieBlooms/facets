@@ -84,7 +84,7 @@ The same choices for the game you're playing are on a screen of their own, laid 
 * **CREDITS** (press A) opens a page with every set's credit in full, then Facets' own. Up and down scroll, left and right turn a page, B goes back.
 * **SELECT** on any row, on all three screens, opens its **ABOUT** page: what the setting changes, every choice with a line on what it does (the current one has the cursor), and which of your games a choice uses, or needs and you haven't imported yet (in red). Left and right still change it there, up and down scroll, and B goes back.
 
-The SCREEN page also has **SURROUND**, for the space round the GBA screen where the game leaves black (menus, the summary, the Pokédex and the like; the map and battles fill the window themselves): **GLOW**, **SCENE** (the blurred battle scene for the ground of your last battle, from BATTLE BG's set, or SCENERY), **WINDOWS** (your WINDOWS frame's colour, or the GBA windows' blue-grey with the game's own), **DOTS**, **CHECKS** or **STRIPES**, as on [Gen 1 and 2](#colours-and-the-screen). WORLD is Red to Crystal's only, since the GBA map doesn't reach past the screen there.
+The SCREEN page also has **SURROUND**, for the space round the GBA screen where the game leaves black (menus, the summary, the Pokédex and the like; the map and battles fill the window themselves): **GLOW**, **SCENE** (the blurred battle scene for the ground of your last battle, from BATTLE BG's set, or SCENERY), **WINDOWS** (your WINDOWS frame's colour, or the GBA windows' blue-grey with the game's own), **DOTS**, **CHECKS** or **STRIPES** or **WORLD** (the map from just before the menu opened, round it, dimmed), as on [Gen 1 and 2](#colours-and-the-screen).
 
 The mod options still have every row for both families.
 

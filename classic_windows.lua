@@ -472,14 +472,16 @@ function windows.init(mod, rows)
       local value = mod.options:get("classicWindows")
       local out = {}
       local kind, key, n = windows.parse(value)
+      -- a set without frames (TITO's, from before TEXT BOX) goes back to
+      -- the game's own, as its row shows -Elvie
+      if kind == "set" then
+        local st = styleOf(key, n)
+        if not (st and type(st.frame) == "string") then kind, value = nil, "game" end
+      end
       if kind == "fr" then
         out.frame = fromGame("chrome/user_frame_" .. (n - 1) .. ".rgba", 24, 24)
       elseif kind == "set" then
-        local st = styleOf(key, n)
-        -- a set without frames (TITO's, from before TEXT BOX): FireRed's
-        -- frame 1, as it was then -Elvie
-        if st and type(st.frame) == "string" then out.frame = fromSet(key, st.frame)
-        elseif st then out.frame = fromGame("chrome/user_frame_0.rgba", 24, 24) end
+        out.frame = fromSet(key, styleOf(key, n).frame)
       end
       local tkind, tkey, tn = windows.textParse(mod.options:get("classicTextBox"), value)
       if tkind == "fr" then

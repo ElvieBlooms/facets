@@ -1764,7 +1764,9 @@ do
   local st = G.style("tito:10")
   eq(st and st.dialogue, "dialogue_woody.png", "gbc ui: a style's dialogue box")
   eq(st and table.concat(st.fill, ","), "248,200,120", "gbc ui: ...filled with its colour 1")
-  eq(G.settings(function(k) return k == "gbcFrame" and "tito:3" or nil end), "tito:3", "gbc ui: a set's style is a WINDOWS value")
+  eq(G.settings(function(k) return k == "gbcFrame" and "libertytwins:3" or nil end), "libertytwins:3", "gbc ui: a set's style is a WINDOWS value")
+  eq(G.settings(function(k) return k == "gbcFrame" and "tito:3" or nil end), "game",
+    "gbc ui: ...but one with no frame (TITO's, from before TEXT BOX) is the game's")
   eq(G.settings(function(k) return k == "gbcFrame" and "nope:3" or nil end), "game", "gbc ui: an unknown one is GAME")
   check(G.SETS.libertytwins, "gbc ui: LibertyTwins' window set is found")
   eq(frames["libertytwins:1"] .. "," .. frames["libertytwins:10"], "LIBERTY 1,LIBERTY 10", "gbc ui: LIBERTY's ten frames")

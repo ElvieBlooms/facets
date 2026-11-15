@@ -54,8 +54,11 @@ function gbui.style(value)
 end
 
 function gbui.settings(get)
+  -- a WINDOWS choice that's gone (a set with no frames, as TITO's has had
+  -- none since TEXT BOX) goes back to the game's own -Elvie
   local frame = tostring(get("gbcFrame") or "game")
-  if not (frame:match("^[1-8]$") or gbui.style(frame)) then frame = "game" end
+  local frameStyle = gbui.style(frame)
+  if not (frame:match("^[1-8]$") or (frameStyle and type(frameStyle.frame) == "string")) then frame = "game" end
   local text = tostring(get("gbcTextBox") or "match")
   if not (text == "game" or text:match("^[1-8]$") or gbui.style(text)) then text = "match" end
   local hud = tostring(get("gbcHud") or "game")
