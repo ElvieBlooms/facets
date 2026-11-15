@@ -2361,6 +2361,12 @@ do
   eq(help.needsOf("classicMons", "ds_hgss"), "hgss", "help: HGSS needs its dump")
   eq(help.needsOf("classicBattleBg", "gba_rs"), "rs", "help: R/S needs Ruby or Sapphire")
   eq(help.have("hgss", nil), false, "help: no Prism Importer, no dump")
+  local missing = help.page({ key = "classicMons", label = "POKEMON", value = "__off",
+    choices = { { "HGSS", "ds_hgss" }, { "OFF", "__off" } } })
+  eq(tostring(missing.choices[1].have), "false", "help: a dump that isn't there is false, not unknown")
+  local needLine
+  for _, l in ipairs(help.lines(missing, 30)) do if l.kind == "need" then needLine = l end end
+  eq(needLine and needLine.missing, true, "help: ...so its page says it's needed")
   local page = help.page({ key = "animMode", label = "ANIMATION", value = "off",
     choices = { { "LOOP", "loop" }, { "OFF", "off" } } })
   local lines = help.lines(page, 16)

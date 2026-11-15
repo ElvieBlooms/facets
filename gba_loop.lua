@@ -54,8 +54,23 @@ function loop.init(mod)
       local mode = bw.mode(mod)
       if mode ~= "loop" or loop.ownLoop(mod.options:get("setMons")) then return end
       local phase = B._phase
+      -- only a Pokémon that's out and standing: a fainted one, or one gone
+      -- from the field, is never brought back to play -Elvie
+      local okS, State = pcall(require, "src.core.game3.battle.state")
+      local okA, Anim = pcall(require, "src.core.game3.battle.anim")
+      local function standing(key)
+        local st = B._st
+        local b
+        if type(key) == "number" then b = okS and st and State.battler(st, key)
+        else b = type(st) == "table" and st[key] or nil end
+        if not b or b.fainted or (tonumber(b.mon and b.mon.hp) or 0) <= 0 then return false end
+        local p = okA and type(Anim.present) == "function" and Anim.present(key)
+        return not (p and p.visible == false)
+      end
       for key, s in pairs(shown) do
-        if MAB.busy({ key }) then
+        if not standing(key) then
+          s.still = 0
+        elseif MAB.busy({ key }) then
           s.still = 0
         else
           s.still = s.still + (tonumber(dt) or 0)

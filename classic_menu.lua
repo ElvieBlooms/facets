@@ -185,11 +185,14 @@ function cmenu.start(mod, rows)
     else mod.log:warn("ABOUT couldn't open: %s", tostring(page)) end
   end
 
-  -- A page's rows: its settings, as the Mods manager has them -Elvie
+  -- A page's rows: its settings, as the Mods manager has them. On its
+  -- topic's page a SIZE needs no POKEMON or TRAINER before it, and Gen 2's
+  -- page has room for nine letters before the values -Elvie
+  local SHORT = { classicSize = "SIZE", classicTrainerSize = "SIZE" }
   local function settingRows(list)
     local out = {}
     for _, e in ipairs(list) do
-      out[#out + 1] = { id = "facets." .. e.key, label = e.label, port = true, facetsKey = e.key,
+      out[#out + 1] = { id = "facets." .. e.key, label = SHORT[e.key] or e.label, port = true, facetsKey = e.key,
         -- a long one scrolls under the cursor, as the screen's own do -Elvie
         value = function() return labelFor(e) end,
         step = function(game, dir)
@@ -316,8 +319,7 @@ function cmenu.start(mod, rows)
   end
 
   -- Gen 2's OPTION page lays rows out two lines apart; the TEXT BOX row
-  -- here takes four, for its box -Elvie
-  -- the bottom line is SELECT:ABOUT's -Elvie
+  -- here takes four, for its box, and the bottom line is SELECT:ABOUT's -Elvie
   local FIRST, LAST, ARROW = 2, 14, 16
   local function height(row)
     if boxed(row) then return 4 end
@@ -440,7 +442,7 @@ function cmenu.start(mod, rows)
   local function open(g, key)
     local top = openPage(g, topRows())
     if not key then return end
-    for i, t in ipairs(topics) do
+    for _, t in ipairs(topics) do
       for _, e in ipairs(t.entries) do
         if e.key == key then
           local shown = top.view or top.rows or {}

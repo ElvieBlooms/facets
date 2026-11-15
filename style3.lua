@@ -9,10 +9,9 @@ local OFF = "__off"
 
 -- each style's values, best first: the first one this game offers is
 -- used. NPCS is setFrlg or setRse, by the game's family -Elvie
-local function npcs(list) return list end
 style3.STYLES = {
   { "ORIGINAL", "original", {
-    setFrlg = npcs({ OFF }), setRse = npcs({ OFF }), setTrainers = { OFF }, setMons = { OFF },
+    setFrlg = { OFF }, setRse = { OFF }, setTrainers = { OFF }, setMons = { OFF },
     gbcBattleBg = { "game" }, gbcFrame = { "game" }, gbcTextBox = { "match" }, gbcHud = { "game" } } },
   { "GBC", "gbc", {
     setFrlg = { "gbc" }, setRse = { "gbc" }, setTrainers = { "gbcish", "gameboy" }, setMons = { "gbc_anim", "gbcish" },

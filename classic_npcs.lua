@@ -232,7 +232,8 @@ classic.PIKA_HGSS = "hgss"
 classic.PIKA_BW2 = "bw2"
 classic.PINK = "pink"
 
--- HeartGold/SoulSilver's walking Pikachu (Prism Importer's
+-- HeartGold/SoulSilver's walking Pikachu, or Clefairy with Pokémon Pink,
+-- and Black 2 and White 2's the same way (Prism Importer's
 -- walking_pokemon, eight 32x32 frames: up, down, left, right, two each) in
 -- the 9-frame column the looks use: down, up and left standing, then each
 -- one's two steps. HeartGold swaps between its two frames as it walks, so

@@ -16,7 +16,6 @@ help.NEEDS = {
   frames = { name = "FireRed, LeafGreen or Emerald", games = { "firered", "leafgreen", "emerald" } },
   emerald = { name = "Emerald", games = { "emerald" } },
   rs = { name = "Ruby or Sapphire", games = { "ruby", "sapphire" } },
-  gba = { name = "a GBA game", games = { "firered", "leafgreen", "emerald", "ruby", "sapphire" } },
   crystal = { name = "Crystal, Gold or Silver", games = { "crystal", "gold", "silver" } },
   gen12 = { name = "a Game Boy game", games = { "crystal", "gold", "silver", "yellow", "red", "blue" } },
   dppt = { name = "a Diamond, Pearl or Platinum dump (Prism Importer)", ds = "dppt" },
@@ -39,7 +38,8 @@ function help.needsOf(key, value)
   if (key == "classicPikachu" or key == "classicClefairy") and value == "hgss" then return "hgss" end
   if key == "classicClefairy" and value == "bw2" then return "bw2" end
   if (key == "classicWindows" or key == "classicTextBox") and (value == "fr" or value:match("^fr:")) then return "frames" end
-  if key == "classicBattleUi" and value ~= "game" then return "gba" end
+  -- its words are in FireRed's small font, from FireRed, LeafGreen or Emerald -Elvie
+  if key == "classicBattleUi" and value ~= "game" then return "frames" end
   if key == "animMons" and value == "emerald" then return "emerald" end
   if (key == "setFrlg" or key == "setRse") and (value == "gbc" or value == "gbc_2x") then return "gen12" end
   if key == "setTrainers" and (value == "gameboy" or value == "gbcish") then return "gen12" end
@@ -52,8 +52,7 @@ end
 
 -- The settings. about: what it changes. choices: a line for a choice,
 -- by value; prefix: a line for every value starting with that (window
--- sets and their numbers). sets: the choice's own credit says who drew
--- it, so a set's line is that (from the set's meta.json) -Elvie
+-- sets and their numbers); other: the line for any choice not named -Elvie
 help.TEXT = {
   style = {
     about = "Sets the people, trainers, Pokémon and battle scene together, in one look. Change any of them afterwards and STYLE shows CUSTOM.",
@@ -216,11 +215,11 @@ help.TEXT = {
     },
   },
   classicBattleUi = {
-    about = "The battle boxes with each Pokémon's name and health. For the wide battle screen.",
+    about = "The battle boxes with each Pokémon's name and health, in GBA style, in wide battles. The normal screen keeps the game's own.",
     choices = {
       game = "The game's own boxes.",
     },
-    other = "That game's battle boxes.",
+    other = "A set of battle boxes in that game's style.",
   },
   classicWindows = {
     about = "The frame round every menu and box.",
@@ -255,7 +254,7 @@ help.TEXT = {
   surround = {
     about = "What fills the space round the game screen, outside battle. On Red to Crystal, OPTION's UI LETTERBOX has plain colours; these are more.",
     choices = {
-      game = "The game's own, from UI LETTERBOX.",
+      game = "The game's own (on Red to Crystal, OPTION's UI LETTERBOX).",
       world = "The map you're on, dimmed round the menu, as BATTLE BG: WORLD does round a battle.",
       glow = "Soft lights drifting slowly, in your menus' colour, on a darker shade of it.",
       scene = "The blurred battle scene for where you are (on the GBA games, for the ground of your last battle).",
@@ -352,7 +351,8 @@ help.TEXT = {
   },
   gbcBattleBg = {
     about = "What stands behind the battle.",
-    choices = { game = "The game's own background.", white = "Plain white, like a Game Boy." },
+    choices = { game = "The game's own background.", white = "Plain white, like a Game Boy.",
+      scenery = "A painted scene for where you are: caves, forests, gyms, the sea." },
     other = "That game's battle backgrounds.",
   },
   prebuild = {
@@ -410,10 +410,14 @@ function help.page(row, dsApi)
   for _, c in ipairs(row.choices or {}) do
     local value = c[2]
     local need = help.needsOf(key, value)
+    -- have is true, false or nil: an "and ... or nil" would turn false
+    -- (not imported) into nil (can't tell) -Elvie
+    local have = nil
+    if need then have = help.have(need, dsApi) end
     out.choices[#out.choices + 1] = {
       label = c[1], value = value, line = help.choiceLine(key, value),
       need = need and help.NEEDS[need].name or nil,
-      have = need and help.have(need, dsApi) or nil,
+      have = have,
       current = value == row.value,
     }
   end
@@ -421,8 +425,8 @@ function help.page(row, dsApi)
 end
 
 -- The page as lines of at most n letters each (measure: a function for
--- the width of a line, or nil for letters). kinds: title, text, choice,
--- line, need. -Elvie
+-- the width of a line, or nil for letters). kinds: text (what it does),
+-- gap, choice, line (the choice's) and need -Elvie
 function help.lines(page, n, measure)
   local wrap = require("mods.facets.classic_credits").wrap
   local function wrapped(text, width)

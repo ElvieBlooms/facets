@@ -8,6 +8,7 @@
 - **SURROUND**, on Red to Crystal's SCREEN page: what fills the space round the game screen outside battle. **WORLD** (the map you're on, round the menu, as BATTLE BG: WORLD does round a battle), **GLOW** (soft lights drifting slowly, in your menus' colour on a darker shade of it), **SCENE** (the blurred battle scene for where you are), **WINDOWS** (your frame's colour), or a soft **DOTS**, **CHECKS** or **STRIPES** pattern in your colours. **GAME** (the default) leaves it to the game's own UI LETTERBOX.
 - **STYLE and SURROUND on FireRed, LeafGreen, Ruby, Sapphire and Emerald too.** STYLE is the FACETS screen's first row there, with **ORIGINAL**, **GBC** and **DS**; SURROUND is on the SCREEN page, with every fill but WORLD.
 - **ANIMATION: LOOP on FireRed to Emerald** now loops the game's own animations too (Emerald's hops and shakes, FR/LG ANIMS, and the GBC looks' Crystal frames): while the battle waits for your command, each Pokémon plays its animation again every few seconds, without its cry. Before, LOOP only looped the DS and BW looks there.
+- **ABOUT** now says when a choice needs a game or dump you haven't imported yet (in red on the GBA games). It always said "Uses" before, imported or not.
 - **Fixed: white lines round the battle on handhelds like the AYN Thor** (Red to Crystal, BORDERS: BLUR or FILL). Where the screen's pixels aren't square to LÖVE's units, the borders missed the game screen by a couple of pixels and stopped short of the window's right and bottom edges. They now line up on every screen.
 
 ## 1.2.5

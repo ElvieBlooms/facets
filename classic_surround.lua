@@ -1,15 +1,16 @@
--- SURROUND: what fills the window round the game screen on Red to Crystal,
--- outside battle (battles have BORDERS). The
--- engine's own UI LETTERBOX (OPTION) gives flat colours; these are Facets'
--- own:
+-- SURROUND: what fills the window round the game screen outside battle
+-- (battles have BORDERS), on all eleven games. Red to Crystal's own UI
+-- LETTERBOX (OPTION) gives flat colours; these are Facets' own:
 --   WORLD    the map you were on, dimmed round the menu, as BATTLE BG:
 --            WORLD shows it round a battle
 --   GLOW     soft lights drifting slowly, in your menus' colour, on a
 --            darker shade of it
---   SCENE    the blurred battle scene for where you are
+--   SCENE    the blurred battle scene for where you are (on the GBA
+--            games, for the ground of your last battle)
 --   WINDOWS  your WINDOWS frame's colour
 --   DOTS, CHECKS, STRIPES  a soft pattern in your colours
--- Drawn by the engine's render.letterbox (classic_scenes hands it on), as
+-- WORLD is Red to Crystal's only. Drawn by the engine's render.letterbox
+-- (classic_scenes, or gbui on the GBA games, hands it on), as
 -- parts of a picture, never through a scissor, so it lines up on every
 -- screen -Elvie
 -- --------------------------------------------------
@@ -127,8 +128,6 @@ function surround.mode()
   return ok and v or GAME
 end
 
--- Two colours to draw with: the screen's paper and a deeper one. The
--- deeper one is the WINDOWS frame's colour when there is one -Elvie
 -- The commonest colour in a picture that isn't near white or near black,
 -- or nil -Elvie
 function surround.commonColour(data)
@@ -175,6 +174,8 @@ function surround.frameColour()
   return ok and c or nil
 end
 
+-- Two colours to draw with: the screen's paper and a deeper one, the
+-- WINDOWS frame's colour when there is one -Elvie
 function surround.colours()
   local pr, pg, pb = 1, 1, 1
   if surround.gen == 3 then
