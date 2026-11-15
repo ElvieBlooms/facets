@@ -152,6 +152,7 @@ end
 -- smooth sampling (each halving averages 2x2), down to about 16 across;
 -- drawn back up with smooth filtering, that's the blur -Elvie
 local blurs = setmetatable({}, { __mode = "k" })
+function scenes.blurOf(image) return blurOf(image) end
 blurOf = function(image)
   local hit = blurs[image]
   if hit ~= nil then return hit or nil end
@@ -243,7 +244,7 @@ function scenes.edges(info)
       scenes.drawPart(s.image, iw, ih, cx, cy, fx, fy, kc, kc, r)
       G.pop()
     end
-    return
+    return true
   end
   for _, r in ipairs(scenes.bars(bl, bt, bw2, bh2, ww, wh)) do
     G.push("all")
@@ -252,6 +253,7 @@ function scenes.edges(info)
     scenes.drawPart(blur, bw, bh, 0, 0, (ww - dw) / 2, (wh - dh) / 2, dw / bw, dh / bh, r)
     G.pop()
   end
+  return true
 end
 
 -- One border: the part of a picture (drawn at x0, y0, scaled kx, ky, its
@@ -822,12 +824,37 @@ function scenes.init(mod, rows)
       if not ok then error(err, 0) end
     end
 
-    -- the window round the game screen carries the scene on -Elvie
+    -- the scene for where the player is now, outside battle, for
+    -- SURROUND: SCENE (classic_surround.lua): BATTLE BG's set, or SCENERY
+    -- when that's GAME. Looked up again when the map changes -Elvie
+    local hereMap, hereScene = nil, nil
+    function scenes.here()
+      local game = mod.game
+      if not game then return nil end
+      local setKey = mod.options:get("classicBattleBg")
+      if setKey == GAME or not byKey[setKey] then setKey = "scenery" end
+      if not byKey[setKey] then return nil end
+      local w = where({ game = game })
+      local id = setKey .. "|" .. tostring(w.map) .. "|" .. tostring(w.surfing) .. "|"
+        .. tostring(mod.options:get("classicSceneColours"))
+      if id ~= hereMap then
+        hereMap = id
+        hereScene = scene(setKey, scenes.pick(w)) or false
+      end
+      return hereScene or nil
+    end
+
+    -- the window round the game screen carries the scene on in battle,
+    -- and SURROUND fills it the rest of the time -Elvie
     pcall(function()
       mod.hooks:wrap("render.letterbox", function(nextFn, info, ...)
         local results = { nextFn(info, ...) }
-        local ok, err = pcall(scenes.edges, info)
-        if not ok then mod.log:warn("scenery round the screen: %s", tostring(err)) end
+        local ok, drew = pcall(scenes.edges, info)
+        if not ok then mod.log:warn("scenery round the screen: %s", tostring(drew)) end
+        if not (ok and drew) then
+          local okS, err = pcall(function() require("mods.facets.classic_surround").draw(info) end)
+          if not okS then mod.log:warn("SURROUND: %s", tostring(err)) end
+        end
         return unpack(results)
       end)
     end)

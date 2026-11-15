@@ -251,6 +251,18 @@ help.TEXT = {
       game = "The game's own COLORS setting, always.",
     },
   },
+  surround = {
+    about = "What fills the space round the game screen, outside battle. OPTION's UI LETTERBOX has plain colours; these are more.",
+    choices = {
+      game = "The game's own, from UI LETTERBOX.",
+      glow = "The screen itself, blurred and dimmed, moving with the game.",
+      scene = "The blurred battle scene for where you are.",
+      windows = "Your WINDOWS frame's colour.",
+      dots = "Soft dots in your colours.",
+      checks = "Soft checks in your colours.",
+      stripes = "Soft stripes in your colours.",
+    },
+  },
   filter = {
     about = "Gives the screen an old handheld's colours.",
     choices = {

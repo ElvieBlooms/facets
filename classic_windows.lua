@@ -505,6 +505,37 @@ function windows.init(mod, rows)
       return ok and raw or false
     end
 
+    -- the frame's own colour, for SURROUND: WINDOWS (classic_surround):
+    -- its commonest colour that isn't near white or near black, or nil
+    -- with the game's own frame -Elvie
+    local colours = {}
+    windows.colour = function()
+      local a = art()
+      local img = a and a.frame
+      local data = img and datas[img]
+      if not data then return nil end
+      if colours[img] ~= nil then return colours[img] or nil end
+      colours[img] = false
+      pcall(function()
+        local count, best, bestN = {}, nil, 0
+        local w, h = data:getDimensions()
+        for y = 0, h - 1 do
+          for x = 0, w - 1 do
+            local r, g, b, al = data:getPixel(x, y)
+            local hi, lo = math.max(r, g, b), math.min(r, g, b)
+            if al > 0.9 and lo < 0.9 and hi > 0.15 then
+              local key = math.floor(r * 255) * 65536 + math.floor(g * 255) * 256 + math.floor(b * 255)
+              local n = (count[key] or 0) + 1
+              count[key] = n
+              if n > bestN then best, bestN = { r, g, b }, n end
+            end
+          end
+        end
+        colours[img] = best or false
+      end)
+      return colours[img] or nil
+    end
+
     windows.styled = function() return art() ~= nil end
     windows.textStyled = function() local a = art(); return a ~= nil and a.dialogue ~= nil end
 

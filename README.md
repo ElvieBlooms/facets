@@ -470,6 +470,15 @@ Red, Blue and Yellow show pictures on some screens (summary, Hall of Fame, Poké
 
 **COLORS**: **ADVANCED** on Red, Blue and Yellow, **GEN 2** on Gold, Silver and Crystal (the default), or **GAME**. Facets' art is drawn for the games' full-colour mode, and the DMG greys only half shade it, so while anything in Facets is on (the FILTER included), the game stays in full colour whatever its own COLORS says. The game's COLORS row then reads FACETS, and A on it opens the FACETS page. Your own COLORS is kept, and comes back when everything in Facets is off, or with COLORS on GAME. For a Game Boy look with Facets, use the FILTER.
 
+**SURROUND** (on the SCREEN page) fills the space round the game screen outside battle, where the game leaves white or black. The game's own **OPTION > UI LETTERBOX** already has plain colours (AUTO, BLACK, WHITE, PALETTE), and **GAME** (the default) leaves it to that. The others:
+
+* **GLOW**: the screen itself, blurred and dimmed behind it, moving with the game, like a TV's ambient light.
+* **SCENE**: the blurred battle scene for where you are (forest, cave, town and so on), from BATTLE BG's set, or SCENERY when that's GAME.
+* **WINDOWS**: your WINDOWS frame's colour, so the surround matches your menus.
+* **DOTS**, **CHECKS** and **STRIPES**: a soft pattern in your colours (the screen's paper and your WINDOWS frame's colour), drawn in Game Boy pixels and lined up with the screen.
+
+Battles keep **BORDERS**, so SURROUND leaves them alone.
+
 **FILTER**, **FILTER ON**, **DOTS** and **SHADES** work just as on Gen 3, and share their settings with it.
 
 ### Adding art

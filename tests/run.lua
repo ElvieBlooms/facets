@@ -2281,6 +2281,20 @@ do
   eq(table.concat(names, " "), "FIT=fit FULL=1 SMALL=0.75 TINY=0.5", "options page: FIT, FULL, SMALL, TINY")
 end
 
+-- SURROUND on the Game Boy games (classic_surround.lua) -Elvie
+do
+  local sur = require("mods.facets.classic_surround")
+  local function count(kind)
+    local n = 0
+    for _, row in ipairs(sur.tile(kind)) do for _, v in ipairs(row) do n = n + v end end
+    return n
+  end
+  eq(count("dots") .. "," .. count("checks") .. "," .. count("stripes"), "4,32,24", "surround: each pattern's ink")
+  local m = sur.mix({ 1, 1, 1 }, { 0, 0.5, 1 }, 0.5)
+  eq(string.format("%g,%g,%g", m[1], m[2], m[3]), "0.5,0.75,1", "surround: colours mix")
+  eq(sur.draw({ ww = 100, wh = 100 }), false, "surround: GAME leaves the window to the game")
+end
+
 -- FACETS on the Game Boy games: topics, STYLE and ABOUT -Elvie
 do
   local cm = require("mods.facets.classic_menu")

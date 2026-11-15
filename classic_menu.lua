@@ -53,8 +53,8 @@ cmenu.TOPICS = {
     about = "The frames round menus, and the text box.",
     keys = { "classicWindows", "classicTextBox" } },
   { id = "screen", label = "SCREEN", lead = "filter",
-    about = "Colours and old-handheld looks for the whole screen.",
-    keys = { "classicColors", "filter", "filterOn", "dots", "shades" } },
+    about = "Colours, what fills the space round the game, and old-handheld looks.",
+    keys = { "classicColors", "surround", "filter", "filterOn", "dots", "shades" } },
 }
 
 -- The topics with the settings this game has, each with its entries in
