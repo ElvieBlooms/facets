@@ -172,7 +172,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       float hi = max(o.r, max(o.g, o.b));
       float lo = min(o.r, min(o.g, o.b));
       float grey = 1.0 - smoothstep(0.08, 0.14, hi - lo);
-      // a Pokémon picture DARK has outlined and filled itself (Red, Blue
+      // a Pokémon picture DARK has filled itself (Red, Blue
       // and Yellow): left just as it's drawn
       float kept = keepOn > 0.5 ? Texel(keep, p).a : 0.0;
       if (paperDark > 0.5 && kept < 0.5) {
@@ -545,7 +545,7 @@ function filter.init(mod, rows, menu)
         if canvas then layer.origin, layer.size = origin, size end
         layer.band = 0
         layer.gen = ctx.generation
-        -- the pictures DARK outlined this frame, if they were drawn on
+        -- the pictures DARK filled this frame, if they were drawn on
         -- this UI layer -Elvie
         layer.keep = nil
         if picKeep and canvas == ctx.uiCanvas and canvas
@@ -728,11 +728,11 @@ function filter.init(mod, rows, menu)
       end
     end
 
-    -- DARK on Red, Blue and Yellow: a Pokémon picture is see-through where
-    -- it's white, so the dark paper would show through it. Drawn on a menu
-    -- (not in battle), each picture is drawn instead with its inside
-    -- filled white and a one-pixel black outline round it, and where it
-    -- went is kept for the pass, which leaves it as it is -Elvie
+    -- DARK on Red, Blue and Yellow: a Game Boy Pokémon picture can be
+    -- see-through inside, so the dark paper would show through it. Drawn
+    -- on a menu (not in battle), each one is drawn instead with its inside
+    -- filled white, and where it went is kept for the pass, which leaves it
+    -- as it is. Full-colour pictures (Facets' sets) are left alone -Elvie
     if require("mods.facets.classic").generation() == 1 and not love.graphics.facetsPaperPics then
       local G = love.graphics
       G.facetsPaperPics = true
@@ -743,7 +743,7 @@ function filter.init(mod, rows, menu)
         Sprites.pic = function(...)
           local path, tc = ownPic(...)
           local ctx = select(2, ...)
-          if type(path) == "string" then
+          if type(path) == "string" and not tc then
             picPaths[path] = type(ctx) == "table" and ctx.side == "back" and "back" or "front"
           end
           return path, tc
@@ -757,8 +757,8 @@ function filter.init(mod, rows, menu)
         if type(src) == "string" and picPaths[src] then pics[img] = src end
         return img
       end
-      -- the picture filled and outlined, a pixel bigger each way -Elvie
-      local function outlined(img)
+      -- the picture with its inside filled -Elvie
+      local function filled(img)
         local got = made[img]
         if got ~= nil then return got or nil end
         made[img] = false
@@ -799,17 +799,10 @@ function filter.init(mod, rows, menu)
           for k = 0, w * h - 1 do
             if not outside[k] and clear(k % w, math.floor(k / w)) then inside[k] = true end
           end
-          local o = love.image.newImageData(w + 2, h + 2)
-          o:mapPixel(function(x, y)
-            local sx, sy = x - 1, y - 1
-            if not clear(sx, sy) then return data:getPixel(sx, sy) end
-            if sx >= 0 and sy >= 0 and sx < w and sy < h and inside[sy * w + sx] then return 1, 1, 1, 1 end
-            for dy = -1, 1 do
-              for dx = -1, 1 do
-                if not clear(sx + dx, sy + dy) then return 0, 0, 0, 1 end
-              end
-            end
-            return 0, 0, 0, 0
+          local o = data:clone()
+          o:mapPixel(function(x, y, r, g, b, a)
+            if inside[y * w + x] then return 1, 1, 1, 1 end
+            return r, g, b, a
           end)
           local image = ownNew(o)
           image:setFilter(img:getFilter())
@@ -823,10 +816,9 @@ function filter.init(mod, rows, menu)
         if pics[drawable] and type(x) == "number" and select(5, filter.settings(get)) == "dark" then
           local target = G.getCanvas()
           local game = package.loaded["src.core.Game"]
-          local big = target and not battleShowing(1, game) and outlined(drawable)
+          local big = target and not battleShowing(1, game) and filled(drawable)
           if big then
-            local y, r, sx, sy, ox, oy, kx, ky = ...
-            local args = { x, y or 0, r or 0, sx or 1, sy or sx or 1, (ox or 0) + 1, (oy or 0) + 1, kx or 0, ky or 0 }
+            local args = { x, ... }
             ownDraw(big, unpack(args))
             -- and where it went, on a copy the size of the layer -Elvie
             local w, h = target:getDimensions()
