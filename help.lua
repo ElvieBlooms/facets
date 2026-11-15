@@ -63,6 +63,7 @@ help.TEXT = {
       firered = "FireRed's people, trainers, Pokémon and battle backgrounds.",
       emerald = "Emerald's people, trainers, Pokémon and battle backgrounds.",
       ds = "DS-style trainers and Pokémon, HeartGold's battle boxes and a scene behind each battle.",
+      gbc = "Game Boy Color people, trainers and Pokémon, with Crystal's frames and battle boxes on white.",
     },
   },
   classicNpcs = {
@@ -252,12 +253,12 @@ help.TEXT = {
     },
   },
   surround = {
-    about = "What fills the space round the game screen, outside battle. OPTION's UI LETTERBOX has plain colours; these are more.",
+    about = "What fills the space round the game screen, outside battle. On Red to Crystal, OPTION's UI LETTERBOX has plain colours; these are more.",
     choices = {
       game = "The game's own, from UI LETTERBOX.",
       world = "The map you're on, dimmed round the menu, as BATTLE BG: WORLD does round a battle.",
       glow = "Soft lights drifting slowly, in your menus' colour, on a darker shade of it.",
-      scene = "The blurred battle scene for where you are.",
+      scene = "The blurred battle scene for where you are (on the GBA games, for the ground of your last battle).",
       windows = "Your WINDOWS frame's colour.",
       dots = "Soft dots in your colours.",
       checks = "Soft checks in your colours.",

@@ -1233,8 +1233,13 @@ function gbui.init(mod, rows, menu)
       pcall(function()
         mod.hooks:wrap("render.letterbox", function(nextFn, info, ...)
           local results = { nextFn(info, ...) }
-          local ok, err = pcall(Edges.edges, info)
-          if not ok then mod.log:warn("scenery round the screen: %s", tostring(err)) end
+          local ok, drew = pcall(Edges.edges, info)
+          if not ok then mod.log:warn("scenery round the screen: %s", tostring(drew)) end
+          -- SURROUND has the window the rest of the time -Elvie
+          if not (ok and drew) then
+            local okS, err = pcall(function() require("mods.facets.classic_surround").draw(info) end)
+            if not okS then mod.log:warn("SURROUND: %s", tostring(err)) end
+          end
           return unpack(results)
         end)
       end)

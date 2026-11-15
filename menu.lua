@@ -196,8 +196,11 @@ function menu.new(mod, opts)
       order = 20, -- under the lens mods in PRISM -Elvie
       draw = function(area, clock) M.drawPreview(area, clock) end,
       value = function()
-        local first = M.rows()[1]
-        return first and first.valueLabel or "OFF"
+        -- the NPC set: the first row after STYLE -Elvie
+        for _, row in ipairs(M.rows()) do
+          if row.key ~= "style" then return row.valueLabel or "OFF" end
+        end
+        return "OFF"
       end,
       open = function(g) screen.open(liveGame(g)) end,
     }

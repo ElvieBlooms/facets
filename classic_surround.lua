@@ -47,9 +47,19 @@ local function worldUnder(stack)
 end
 surround.worldUnder = worldUnder
 
-function surround.init(m, rows)
+-- The choices for this game: WORLD needs a map that reaches past the
+-- screen, which the GBA games' doesn't -Elvie
+function surround.choices()
+  if surround.gen ~= 3 then return surround.CHOICES end
+  local out = {}
+  for _, c in ipairs(surround.CHOICES) do if c[2] ~= "world" then out[#out + 1] = c end end
+  return out
+end
+
+function surround.init(m, rows, gen)
   mod = m
-  rows[#rows + 1] = { key = "surround", type = "choice", label = "SURROUND", choices = surround.CHOICES, default = GAME }
+  surround.gen = gen or 1
+  rows[#rows + 1] = { key = "surround", type = "choice", label = "SURROUND", choices = surround.choices(), default = GAME }
   return function()
     -- Red, Blue and Yellow: the game itself keeps drawing the map under a
     -- menu, as it does under a BATTLE BG: WORLD battle, and dims it the
@@ -119,17 +129,65 @@ end
 
 -- Two colours to draw with: the screen's paper and a deeper one. The
 -- deeper one is the WINDOWS frame's colour when there is one -Elvie
+-- The commonest colour in a picture that isn't near white or near black,
+-- or nil -Elvie
+function surround.commonColour(data)
+  local count, best, bestN = {}, nil, 0
+  local w, h = data:getDimensions()
+  for y = 0, h - 1 do
+    for x = 0, w - 1 do
+      local r, g, b, al = data:getPixel(x, y)
+      local hi, lo = math.max(r, g, b), math.min(r, g, b)
+      if al > 0.9 and lo < 0.9 and hi > 0.15 then
+        local key = math.floor(r * 255) * 65536 + math.floor(g * 255) * 256 + math.floor(b * 255)
+        local n = (count[key] or 0) + 1
+        count[key] = n
+        if n > bestN then best, bestN = { r, g, b }, n end
+      end
+    end
+  end
+  return best
+end
+
+-- the GBA games: a window set's frame, read once each -Elvie
+local gen3Colours = {}
+local function gen3Frame()
+  local gbui = package.loaded["mods.facets.gbui"]
+  if not (gbui and mod) then return nil end
+  local value = tostring(mod.options:get("gbcFrame") or "game")
+  if gen3Colours[value] ~= nil then return gen3Colours[value] or nil end
+  gen3Colours[value] = false
+  pcall(function()
+    local st, set = gbui.style(value)
+    local file = st and st.frame
+    if type(file) == "string" and file:match("^[%w_%-%.]+%.png$") then
+      local data = love.image.newImageData(mod.assets:path(gbui.WINDOWS_DIR .. "/" .. set.key .. "/" .. file))
+      gen3Colours[value] = surround.commonColour(data) or false
+    end
+  end)
+  return gen3Colours[value] or nil
+end
+
+-- Your WINDOWS frame's colour, or nil with the game's own frame -Elvie
+function surround.frameColour()
+  if surround.gen == 3 then return gen3Frame() end
+  local ok, c = pcall(function() return require("mods.facets.classic_windows").colour() end)
+  return ok and c or nil
+end
+
 function surround.colours()
   local pr, pg, pb = 1, 1, 1
-  pcall(function()
-    local PaletteFX = require("src.render.PaletteFX")
-    pr, pg, pb = PaletteFX.paperShade(mod.game and mod.game.data)
-  end)
-  local ink
-  pcall(function()
-    local c = require("mods.facets.classic_windows").colour()
-    if c then ink = c end
-  end)
+  if surround.gen == 3 then
+    -- the GBA games' windows are near white, with a blue-grey edge -Elvie
+    pr, pg, pb = 0.97, 0.97, 0.98
+  else
+    pcall(function()
+      local PaletteFX = require("src.render.PaletteFX")
+      pr, pg, pb = PaletteFX.paperShade(mod.game and mod.game.data)
+    end)
+  end
+  local ink = surround.frameColour()
+  if not ink and surround.gen == 3 then ink = { 0.45, 0.55, 0.72 } end
   ink = ink or { pr * 0.78, pg * 0.78, pb * 0.86 }
   return { pr, pg, pb }, ink
 end
@@ -228,10 +286,32 @@ local function discImage()
   return disc
 end
 
+-- The GBA games' SCENE: BATTLE BG's set (SCENERY when it's GAME or
+-- WHITE) for the ground of your last battle, grass before any -Elvie
+local gen3Scenes = {}
+function surround.gen3Scene()
+  local gbui = package.loaded["mods.facets.gbui"]
+  if not (gbui and mod) then return nil end
+  local setKey = tostring(mod.options:get("gbcBattleBg") or "game")
+  if not gbui.BG_SETS[setKey] then setKey = "scenery" end
+  if not gbui.BG_SETS[setKey] then return nil end
+  local key = gbui.lastTerrain or "grass"
+  local id = setKey .. "/" .. tostring(key)
+  if gen3Scenes[id] == nil then
+    local ok, img = pcall(gbui.scene, mod, setKey, key)
+    gen3Scenes[id] = ok and img and { image = img } or false
+  end
+  return gen3Scenes[id] or nil
+end
+
 -- Whether a battle is up: battles size their screen their own way
 -- (BATTLE SIZE), so SURROUND leaves them to BORDERS and the game -Elvie
 local battleKinds = nil
 function surround.inBattle(game)
+  if surround.gen == 3 then
+    local ok, active = pcall(function() return require("src.core.game3.battle").isActive() end)
+    return ok and active and true or false
+  end
   if not battleKinds then
     battleKinds = {}
     for _, name in ipairs({ "src.battle.BattleState", "src.ui.gen2.BattleState" }) do
@@ -250,7 +330,10 @@ end
 -- Fill the window round the game screen (info: render.letterbox's) -Elvie
 function surround.draw(info)
   local mode = surround.mode()
-  if mode == GAME or type(info) ~= "table" or info.worldActive then return false end
+  if mode == GAME or type(info) ~= "table" then return false end
+  -- Red to Crystal's map fills the window itself; the GBA games' map is
+  -- the GBA screen, with room round it like any other -Elvie
+  if info.worldActive and surround.gen ~= 3 then return false end
   if surround.inBattle(mod and mod.game) then return false end
   local ww, wh = tonumber(info.ww), tonumber(info.wh)
   local ox, oy, vpw, vph = tonumber(info.ox), tonumber(info.oy), tonumber(info.vpw), tonumber(info.vph)
@@ -277,8 +360,7 @@ function surround.draw(info)
     -- the lights, on a deep shade of it -Elvie
     local paper, ink = surround.colours()
     local base = ink
-    local okW, framed = pcall(function() return require("mods.facets.classic_windows").colour() end)
-    if not (okW and framed) then base = paper end
+    if not surround.frameColour() and surround.gen ~= 3 then base = paper end
     local bg = { base[1] * 0.28, base[2] * 0.28, base[3] * 0.32 }
     local img = discImage()
     local iw = img:getWidth()
@@ -322,6 +404,7 @@ function surround.draw(info)
 
   if mode == "scene" then
     local s = type(scenes.here) == "function" and scenes.here() or nil
+    if surround.gen == 3 then s = surround.gen3Scene() end
     local blur = s and scenes.blurOf(s.image)
     if not blur then return false end
     local iw, ih = s.image:getDimensions()
@@ -348,7 +431,7 @@ function surround.draw(info)
   -- a pattern, in Game Boy pixels, lined up with the screen -Elvie
   local img = tileImage(mode, paper, ink)
   -- one Game Boy pixel, in units: the screen is 160 by 144 of them -Elvie
-  local px, py = vpw / 160, vph / 144
+  local px, py = vpw / (tonumber(info.uiw) or 160), vph / (tonumber(info.uih) or 144)
   each(function(r)
     G.setColor(1, 1, 1, 1)
     scenes.drawPart(img, 8, 8, 0, 0, ox, oy, px, py, r)

@@ -100,9 +100,9 @@ cmenu.STYLES = {
 cmenu.CUSTOM = "custom"
 
 -- What a style sets, as key = value, for the settings this game has -Elvie
-function cmenu.styleValues(style, entries)
+function cmenu.styleValues(style, entries, styles)
   local want
-  for _, s in ipairs(cmenu.STYLES) do if s[2] == style then want = s[3] end end
+  for _, s in ipairs(styles or cmenu.STYLES) do if s[2] == style then want = s[3] end end
   if not want then return nil end
   local offered = {}
   for _, e in ipairs(entries) do
@@ -121,9 +121,9 @@ function cmenu.styleValues(style, entries)
 end
 
 -- The style the settings are in now, or CUSTOM -Elvie
-function cmenu.styleOf(get, entries)
-  for _, s in ipairs(cmenu.STYLES) do
-    local values, same = cmenu.styleValues(s[2], entries), true
+function cmenu.styleOf(get, entries, styles)
+  for _, s in ipairs(styles or cmenu.STYLES) do
+    local values, same = cmenu.styleValues(s[2], entries, styles), true
     if not next(values) then same = false end
     for key, v in pairs(values) do
       if get(key) ~= v then same = false break end

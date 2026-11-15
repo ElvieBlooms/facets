@@ -1227,7 +1227,7 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sceneTime,sceneBorders,sectionSpeed,prebuild", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sceneTime,sceneBorders,sectionSpeed,prebuild,surround", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED, then SURROUND")
   local trainerSets = {}
   for _, c in ipairs(mod.rows[6].choices) do trainerSets[#trainerSets + 1] = c[1] end
   eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
@@ -1261,7 +1261,7 @@ for _, version in ipairs({ "firered", "emerald" }) do
   local tag = "screen (" .. version .. "): "
   local keys = {}
   for _, r in ipairs(M.rows()) do keys[#keys + 1] = r.label end
-  eq(table.concat(keys, ","), frlg and "NPCS,TRAINERS,POKéMON,ANIMS,ANIMATION,YOUR SIDE,CREDITS" or "NPCS,TRAINERS,POKéMON,ANIMATION,YOUR SIDE,CREDITS",
+  eq(table.concat(keys, ","), frlg and "STYLE,NPCS,TRAINERS,POKéMON,ANIMS,ANIMATION,YOUR SIDE,CREDITS" or "STYLE,NPCS,TRAINERS,POKéMON,ANIMATION,YOUR SIDE,CREDITS",
     tag .. "the running game's rows only")
   -- YOUR SIDE: one row here for both options -Elvie
   local side
@@ -1286,10 +1286,12 @@ for _, version in ipairs({ "firered", "emerald" }) do
   eq(sideRow().valueLabel, "FRONT", tag .. "...front alone as FRONT")
   mod.options:set("backMons", "back")
   local rows = M.rows()
-  eq(rows[1].key, frlg and "setFrlg" or "setRse", tag .. "NPCS is this family's SET")
-  eq(rows[1].valueLabel, "COMMUNITY", tag .. "NPCS shows the set's label")
-  eq(rows[2].valueLabel, "OFF", tag .. "TRAINERS starts OFF")
-  eq(rows[3].valueLabel, "OFF", tag .. "POKEMON starts OFF")
+  eq(rows[1].key, "style", tag .. "STYLE first")
+  eq(rows[1].valueLabel, "CUSTOM", tag .. "...CUSTOM with the settings mixed")
+  eq(rows[2].key, frlg and "setFrlg" or "setRse", tag .. "NPCS is this family's SET")
+  eq(rows[2].valueLabel, "COMMUNITY", tag .. "NPCS shows the set's label")
+  eq(rows[3].valueLabel, "OFF", tag .. "TRAINERS starts OFF")
+  eq(rows[4].valueLabel, "OFF", tag .. "POKEMON starts OFF")
 
   -- START menu: PRISM above MODS, with FACETS and PERFORMANCE; OPTION
   -- menu: PRISM last -Elvie
@@ -1371,11 +1373,16 @@ for _, version in ipairs({ "firered", "emerald" }) do
   press("down")
   eq(layers.facets.state().index, 2, tag .. "down picks the next row")
   press("down")
+  press("down")
   press("right")
   eq(emitted[1] and emitted[1].key, "setMons", tag .. "right changes POKEMON")
   eq(emitted[1].value, "ds", tag .. "...to the next set")
   eq(game.options.modOptions.facets.setMons, "ds", tag .. "...saved with the options")
   press("up"); press("up"); press("up")
+  emitted = {}
+  press("right")
+  eq(emitted[1] and emitted[1].key .. "=" .. tostring(emitted[1].value), "style=original", tag .. "right on STYLE picks the next style")
+  press("up")
   eq(layers.facets.state().index, #rows, tag .. "up from the top wraps to CREDITS")
   press("a")
   check(layers.facets.state().credits ~= nil, tag .. "A on CREDITS opens the credits page")

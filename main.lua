@@ -83,8 +83,27 @@ return function(mod)
     local start = require("mods.facets." .. name).init(mod, rows, PAGE[name] or menu)
     if start then starts[#starts + 1] = start end
   end
+  -- SURROUND, on SCREEN, for the space round the GBA screen -Elvie
+  local okS, surround = pcall(require, "mods.facets.classic_surround")
+  if okS then
+    local start = surround.init(mod, rows, 3)
+    if start then starts[#starts + 1] = start end
+    screenPage.register({
+      rows = function()
+        return { { key = "surround", label = "SURROUND", who = "surround", choices = surround.choices(),
+          value = mod.options:get("surround") or "game" } }
+      end,
+      preview = function(who)
+        if who ~= "surround" then return nil end
+        return { lines = { { text = "The space round the screen." } } }
+      end,
+    })
+  end
   if #rows > 0 then mod.options:define(rows) end
   for _, start in ipairs(starts) do start() end
+  -- STYLE, first on the FACETS screen -Elvie
+  local okY, errY = pcall(function() require("mods.facets.style3").init(mod, menu) end)
+  if not okY then mod.log:warn("STYLE is off: %s", tostring(errY)) end
   local ok, err = pcall(menu.start)
   if not ok then mod.log:warn("FACETS screen is off: %s", tostring(err)) end
 end
