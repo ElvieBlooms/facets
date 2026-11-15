@@ -180,8 +180,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
         // letters' white. Pictures stay as they are: a picture's pixels are
         // its colours (and on Red to Crystal its middle greys, where
         // letters are only ever black). Black touching a picture stays
-        // black (its outline), and white inside one stays white (below);
-        // a dark grey only turns
+        // black (its outline); a dark grey only turns
         // where it's on white paper, within two game pixels, so letters in
         // a coloured box and black screens stay too
         float l = dot(o, vec3(0.299, 0.587, 0.114));
@@ -197,22 +196,6 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
             onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * 2.0 * around(i)).rgb));
           }
         }
-        // Red to Crystal's pictures are see-through where they're white,
-        // so the paper shows there: white with a picture's colours (or on
-        // Red to Crystal, middle greys) on all four sides, within eight
-        // game pixels, is the inside of a picture and stays white -Elvie
-        float inside = 0.0;
-        if (paperish(o) > 0.5) {
-          inside = 1.0;
-          for (int d = 0; d < 4; d++) {
-            float hit = 0.0;
-            for (int k = 1; k <= 8; k++) {
-              vec3 c = Texel(tex, tc + texStep * around(d) * float(k)).rgb;
-              hit = max(hit, max(colourful(c), midGrey(c)));
-            }
-            inside *= hit;
-          }
-        }
         // the GBA games also print white letters on their own dark boxes
         // (the battle's, 49 grey), and their own letters on white are a
         // lighter grey (74): white beside anything darker than those is a
@@ -224,9 +207,10 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
             lettered = max(lettered, step(dot(c, vec3(0.299, 0.587, 0.114)), 0.24));
           }
         }
-        // white only stays for being inside a picture, not for touching
-        // one, or the paper round a picture's edge would ring it in white
-        float keep = paperish(o) > 0.5 ? inside : max(near, inside);
+        // white doesn't stay for touching a picture, or the paper round a
+        // picture's edge would ring it in white (Red, Blue and Yellow's
+        // see-through pictures are filled where they're drawn, above)
+        float keep = paperish(o) > 0.5 ? 0.0 : near;
         float turn = (1.0 - here) * (1.0 - keep) * (1.0 - lettered) * onPaper;
         o = mix(o, mix(ink, paper, l), Texel(ui, p).a * grey * turn);
       } else if (paperDark < 0.5) {
@@ -728,11 +712,11 @@ function filter.init(mod, rows, menu)
       end
     end
 
-    -- DARK on Red, Blue and Yellow: a Game Boy Pokémon picture can be
-    -- see-through inside, so the dark paper would show through it. Drawn
-    -- on a menu (not in battle), each one is drawn instead with its inside
-    -- filled white, and where it went is kept for the pass, which leaves it
-    -- as it is. Full-colour pictures (Facets' sets) are left alone -Elvie
+    -- DARK on Red, Blue and Yellow: a Pokémon picture on a menu (not in
+    -- battle) is kept from the pass, which leaves it just as it's drawn: a
+    -- Game Boy picture is drawn with its see-through inside filled white,
+    -- or the dark paper would show through it; a full-colour one (Yellow's
+    -- Pikachu, Facets' sets) as it is -Elvie
     if require("mods.facets.classic").generation() == 1 and not love.graphics.facetsPaperPics then
       local G = love.graphics
       G.facetsPaperPics = true
@@ -743,8 +727,8 @@ function filter.init(mod, rows, menu)
         Sprites.pic = function(...)
           local path, tc = ownPic(...)
           local ctx = select(2, ...)
-          if type(path) == "string" and not tc then
-            picPaths[path] = type(ctx) == "table" and ctx.side == "back" and "back" or "front"
+          if type(path) == "string" then
+            picPaths[path] = { back = type(ctx) == "table" and ctx.side == "back", full = tc and true or false }
           end
           return path, tc
         end
@@ -759,6 +743,8 @@ function filter.init(mod, rows, menu)
       end
       -- the picture with its inside filled -Elvie
       local function filled(img)
+        -- a full-colour picture has no see-through inside: as it is
+        if picPaths[pics[img]].full then return img end
         local got = made[img]
         if got ~= nil then return got or nil end
         made[img] = false
@@ -782,7 +768,7 @@ function filter.init(mod, rows, menu)
             outside[y * w + x] = true
             queue[#queue + 1] = y * w + x
           end
-          local back = picPaths[pics[img]] == "back"
+          local back = picPaths[pics[img]].back
           for x = 0, w - 1 do
             push(x, 0)
             if not back then push(x, h - 1) end
