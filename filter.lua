@@ -109,6 +109,27 @@ extern float keepOn;
 extern Image keep;
 extern vec2 keepOrigin;
 extern vec2 keepSize;
+extern float paperDark;
+extern vec2 texStep;
+extern float cellPx;
+// the eight pixels round one, as steps
+vec2 around(int i) {
+  if (i == 0) return vec2(1.0, 0.0);
+  if (i == 1) return vec2(-1.0, 0.0);
+  if (i == 2) return vec2(0.0, 1.0);
+  if (i == 3) return vec2(0.0, -1.0);
+  if (i == 4) return vec2(1.0, 1.0);
+  if (i == 5) return vec2(-1.0, -1.0);
+  if (i == 6) return vec2(1.0, -1.0);
+  return vec2(-1.0, 1.0);
+}
+// how much a picture kept this frame covers screen pixel at
+float keptAt(vec2 at) {
+  if (keepOn < 0.5) return 0.0;
+  vec2 k = (at - keepOrigin) / keepSize;
+  if (k.x < 0.0 || k.y < 0.0 || k.x >= 1.0 || k.y >= 1.0) return 0.0;
+  return Texel(keep, k).a;
+}
 vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
   vec4 c = Texel(tex, tc);
   vec3 o = c.rgb;
@@ -121,11 +142,21 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       float lo = min(o.r, min(o.g, o.b));
       float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.08, 0.14, hi - lo));
       // a picture drawn this frame keeps its white, as drawn
-      if (keepOn > 0.5) {
-        vec2 k = (sc - keepOrigin) / keepSize;
-        if (k.x >= 0.0 && k.y >= 0.0 && k.x < 1.0 && k.y < 1.0) w *= 1.0 - Texel(keep, k).a;
+      w *= 1.0 - keptAt(sc);
+      // DARK: paper beside a black letter (or a frame's black line) is its
+      // outline, a game pixel wide, in white, so the letters needn't be
+      // recoloured. A picture's own black (kept) gets none
+      float edge = 0.0;
+      if (paperDark > 0.5 && w > 0.5) {
+        for (int i = 0; i < 8; i++) {
+          vec3 c = Texel(tex, tc + texStep * around(i)).rgb;
+          float chi = max(c.r, max(c.g, c.b));
+          float clo = min(c.r, min(c.g, c.b));
+          float black = step(dot(c, vec3(0.299, 0.587, 0.114)), 0.3) * (1.0 - smoothstep(0.08, 0.14, chi - clo));
+          edge = max(edge, black * (1.0 - keptAt(sc + around(i) * cellPx)));
+        }
       }
-      o = mix(o, paper * hi, w);
+      o = edge > 0.5 ? vec3(1.0) : mix(o, paper * hi, w);
     }
   }
   if (mode > 0.5 && mode < 1.5) {
@@ -254,7 +285,7 @@ function filter.init(mod, rows, menu)
   -- the game's pixel grid on screen, and the UI layer and where it sits,
   -- from the last render.compose -Elvie
   local grid = { origin = { 0, 0 }, cell = 0 }
-  local layer = { canvas = nil, origin = { 0, 0 }, size = { 1, 1 } }
+  local layer = { canvas = nil, origin = { 0, 0 }, size = { 1, 1 }, cell = 1 }
   -- DARK's pictures this frame: a copy the size of what they were drawn
   -- on (keep), and where that sits on screen -Elvie
   local pics = { keep = nil, drawn = false, fresh = false, origin = nil, size = nil }
@@ -344,6 +375,14 @@ function filter.init(mod, rows, menu)
     else
       sh:send("paperOn", 0)
     end
+    sh:send("paperDark", paper == "dark" and 1 or 0)
+    -- a game pixel, in whole screen pixels, so the look round lands on
+    -- pixels and not between them, where black and white would blend
+    -- -Elvie
+    local cellPx = math.max(1, math.floor((tonumber(layer.cell) or 1) + 0.5))
+    local sw, shh = src:getPixelDimensions()
+    sh:send("cellPx", cellPx)
+    sh:send("texStep", { cellPx / math.max(1, sw), cellPx / math.max(1, shh) })
     if tint and layer.canvas and pics.keep and pics.drawn and pics.origin then
       sh:send("keepOn", 1)
       sh:send("keep", pics.keep)
@@ -408,6 +447,15 @@ function filter.init(mod, rows, menu)
         end
         layer.canvas = canvas
         if canvas then layer.origin, layer.size = origin, size end
+        -- screen pixels to a game pixel -Elvie
+        if ctx.generation == 2 then
+          local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
+          if okC and type(Chrome.fitScale) == "function" then
+            layer.cell = Chrome.fitScale(tonumber(ctx.ww) or 0, tonumber(ctx.wh) or 0) * (tonumber(ctx.dpiX) or 1)
+          end
+        elseif canvas and tonumber(ctx.uiw) and ctx.uiw > 0 then
+          layer.cell = size[1] / ctx.uiw
+        end
         -- where the pictures' copy sits: the UI layer's place on Red to
         -- Emerald, the whole picture on Gold to Crystal -Elvie
         pics.origin, pics.size = nil, nil
@@ -606,6 +654,9 @@ function filter.init(mod, rows, menu)
           if ok and type(r) == "string" then paths[r] = paths[path] end
         end
       end
+      -- and the gym leaders' faces on Red, Blue and Yellow's trainer card
+      -- (one sheet, drawn a face at a time) -Elvie
+      note("assets/generated/trainer_card/badges.png", false)
       for name, fn in pairs(Sprites) do
         if type(fn) == "function" and name ~= "facetsPaper" then
           Sprites[name] = function(...)
@@ -638,54 +689,69 @@ function filter.init(mod, rows, menu)
           return tag(ownImage(path, ...), path)
         end
       end
-      -- the filled copy, made once per picture -Elvie
+      -- the filled copy of each picture. A sheet drawn a part at a time
+      -- (the leaders' faces) is filled a part at a time, each from its
+      -- own edges -Elvie
       local filled = setmetatable({}, { __mode = "k" })
-      local function fill(img)
-        local got = filled[img]
-        if got ~= nil then return got or nil end
-        filled[img] = false
-        local info = images[img]
-        local ok, out = pcall(function()
-          local data = love.image.newImageData(info.path)
-          local w, h = data:getDimensions()
-          local seen, queue = {}, {}
-          local function push(x, y)
-            if x < 0 or y < 0 or x >= w or y >= h or seen[y * w + x] then return end
-            local _, _, _, a = data:getPixel(x, y)
-            if a >= 0.5 then return end
-            seen[y * w + x] = true
-            queue[#queue + 1] = y * w + x
-          end
+      local function floodFill(data, x0, y0, w, h, back)
+        local seen, queue = {}, {}
+        local function push(x, y)
+          if x < 0 or y < 0 or x >= w or y >= h or seen[y * w + x] then return end
+          local _, _, _, a = data:getPixel(x0 + x, y0 + y)
+          if a >= 0.5 then return end
+          seen[y * w + x] = true
+          queue[#queue + 1] = y * w + x
+        end
+        for x = 0, w - 1 do
+          push(x, 0)
+          if not back then push(x, h - 1) end
+        end
+        for y = 0, h - 1 do push(0, y); push(w - 1, y) end
+        local i = 1
+        while queue[i] do
+          local x, y = queue[i] % w, math.floor(queue[i] / w)
+          push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1)
+          i = i + 1
+        end
+        for y = 0, h - 1 do
           for x = 0, w - 1 do
-            push(x, 0)
-            if not info.back then push(x, h - 1) end
+            local _, _, _, a = data:getPixel(x0 + x, y0 + y)
+            if a < 0.5 and not seen[y * w + x] then data:setPixel(x0 + x, y0 + y, 1, 1, 1, 1) end
           end
-          for y = 0, h - 1 do push(0, y); push(w - 1, y) end
-          local i = 1
-          while queue[i] do
-            local x, y = queue[i] % w, math.floor(queue[i] / w)
-            push(x + 1, y); push(x - 1, y); push(x, y + 1); push(x, y - 1)
-            i = i + 1
+        end
+      end
+      local function fill(img, quad)
+        local got = filled[img]
+        if got == false then return nil end
+        local ok, out = pcall(function()
+          if not got then
+            got = { data = love.image.newImageData(images[img].path), parts = {} }
+            filled[img] = got
           end
-          data:mapPixel(function(x, y, r, g, b, a)
-            if a < 0.5 and not seen[y * w + x] then return 1, 1, 1, 1 end
-            return r, g, b, a
-          end)
-          local image = ownNew(data)
-          image:setFilter(img:getFilter())
-          return image
+          local w, h = got.data:getDimensions()
+          local x0, y0, qw, qh = 0, 0, w, h
+          if quad then x0, y0, qw, qh = quad:getViewport() end
+          local key = ("%d,%d,%d,%d"):format(x0, y0, qw, qh)
+          if not got.parts[key] then
+            got.parts[key] = true
+            floodFill(got.data, x0, y0, math.min(qw, w - x0), math.min(qh, h - y0), images[img].back)
+            got.image = ownNew(got.data)
+            got.image:setFilter(img:getFilter())
+          end
+          return got.image
         end)
-        if ok and out then filled[img] = out end
-        return filled[img] or nil
+        if not ok then filled[img] = false; return nil end
+        return out
       end
       local ownDraw = G.draw
       G.draw = function(drawable, x, ...)
         local target = G.getCanvas()
-        if not (images[drawable] and type(x) == "number" and target
-            and select(5, filter.settings(get)) == "dark") then
+        if not (images[drawable] and target and select(5, filter.settings(get)) == "dark") then
           return ownDraw(drawable, x, ...)
         end
-        local img = fill(drawable) or drawable
+        local quad = type(x) == "userdata" and x:typeOf("Quad") and x or nil
+        if not (quad or type(x) == "number") then return ownDraw(drawable, x, ...) end
+        local img = fill(drawable, quad) or drawable
         ownDraw(img, x, ...)
         -- and where it went, on a copy the size of what it was drawn on
         -- -Elvie
