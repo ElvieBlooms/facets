@@ -305,15 +305,33 @@ function screen.new(mod, model)
     drawChrome(Window, FrlgFont, model.title(), HELP)
 
     local list = rows()
-    for i, row in ipairs(list) do
-      local y = ROW_Y0 + (i - 1) * ROW_STEP
-      Window.printPx(row.label, LABEL_X, y, { colors = FrlgFont.COLOR.NORMAL })
-      local value = fit(FrlgFont, row.valueLabel or "", VALUE_W)
-      local changes = row.choices and #row.choices > 1 or row.page or row.action
-      Window.printPx(value, VALUE_X, y,
-        { colors = changes and FrlgFont.COLOR.OPTION_VALUE or FrlgFont.COLOR.NORMAL })
+    -- more rows than the window holds (the SCREEN page): it scrolls to
+    -- keep the cursor in sight, with arrows for what's past the edges
+    -- -Elvie
+    local fits = math.floor((WIN_BOTTOM - ROW_Y0) / ROW_STEP)
+    local top = 0
+    if #list > fits then
+      top = math.max(0, math.min(state.index - fits, #list - fits))
+      if state.top and state.index > state.top and state.index <= state.top + fits then top = state.top end
     end
-    Window.cursorPx(LABEL_X - 8, ROW_Y0 + (state.index - 1) * ROW_STEP)
+    state.top = top
+    for i, row in ipairs(list) do
+      local slot = i - top
+      if slot >= 1 and slot <= fits then
+        local y = ROW_Y0 + (slot - 1) * ROW_STEP
+        Window.printPx(row.label, LABEL_X, y, { colors = FrlgFont.COLOR.NORMAL })
+        local value = fit(FrlgFont, row.valueLabel or "", VALUE_W)
+        local changes = row.choices and #row.choices > 1 or row.page or row.action
+        Window.printPx(value, VALUE_X, y,
+          { colors = changes and FrlgFont.COLOR.OPTION_VALUE or FrlgFont.COLOR.NORMAL })
+      end
+    end
+    Window.cursorPx(LABEL_X - 8, ROW_Y0 + (state.index - top - 1) * ROW_STEP)
+    if #list > fits then
+      local red = { colors = FrlgFont.COLOR.RED }
+      if top > 0 then FrlgFont.drawGlyph(FrlgFont.CHAR_UP_ARROW, 220, 24, red) end
+      if top + fits < #list then FrlgFont.drawGlyph(FrlgFont.CHAR_DOWN_ARROW, 220, WIN_BOTTOM - 14, red) end
+    end
 
     local selected = list[state.index]
     love.graphics.setColor(1, 1, 1, 1)
@@ -321,7 +339,7 @@ function screen.new(mod, model)
     love.graphics.setColor(1, 1, 1, 1)
 
     local preview = model.preview(selected and selected.who or "npcs")
-    local y = ROW_Y0 + #list * ROW_STEP + 2
+    local y = ROW_Y0 + math.min(#list, fits) * ROW_STEP + 2
     for _, line in ipairs(screen.fitting(preview.lines or {}, math.floor((WIN_BOTTOM - y) / ROW_STEP))) do
       if y + ROW_STEP > WIN_BOTTOM then break end
       local colors = line.red and FrlgFont.COLOR.RED or FrlgFont.COLOR.NORMAL

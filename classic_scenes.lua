@@ -563,7 +563,8 @@ function scenes.init(mod, rows)
   for _, g in ipairs(gbaBg.SETS) do
     sets[#sets + 1] = { key = g.key, label = g.label, gba = true, scenes = {} }
   end
-  if #sets == 0 then return nil end
+  -- COLOURS: plain colour, BG COLOUR's (filter.bgColour) -Elvie
+  sets[#sets + 1] = { key = "colours", label = "COLOURS", colours = true, scenes = {} }
   local byKey = {}
   local choices = { { "GAME", GAME } }
   for _, set in ipairs(sets) do
@@ -573,6 +574,8 @@ function scenes.init(mod, rows)
   rows[#rows + 1] = { key = "classicBattleBg", type = "choice", label = "BATTLE BG", choices = choices, default = GAME }
   rows[#rows + 1] = { key = "classicSceneColours", type = "choice", label = "SCENE COLOURS",
     choices = { { "ORIGINAL", "original" }, { "GBC", "gbc" } }, default = "original" }
+  rows[#rows + 1] = { key = "bgColour", type = "choice", label = "BG COLOUR",
+    choices = require("mods.facets.filter").BG_COLOURS, default = "paper" }
   rows[#rows + 1] = { key = "sceneBorders", type = "choice", label = "BORDERS", choices = scenes.BORDERS, default = "blur" }
   scenes.borders = function() return mod.options:get("sceneBorders") or "blur" end
   if gen == 2 then
@@ -597,7 +600,18 @@ function scenes.init(mod, rows)
       local set = byKey[setKey]
       local gbaData
       local file
-      if set and set.gba then
+      if set and set.colours then
+        -- one plain picture, as big as the GBA ones with their
+        -- surroundings, so it's cropped and carried on like any scene
+        -- -Elvie
+        local c = require("mods.facets.filter").bgColour(function(k) return mod.options:get(k) end)
+        local id = ("colours#%d,%d,%d"):format(c[1], c[2], c[3])
+        local hit = images[id]
+        if hit ~= nil then return hit or nil end
+        gbaData = love.image.newImageData(scenes.WIDE_W + 2 * gbaBg.PAD, scenes.SCREEN_H + 2 * gbaBg.PAD)
+        gbaData:mapPixel(function() return c[1] / 255, c[2] / 255, c[3] / 255, 1 end)
+        file = id
+      elseif set and set.gba then
         local terrain
         -- widened, so the wide battles' sides carry the background on
         -- rather than mirroring a platform in -Elvie
@@ -609,7 +623,7 @@ function scenes.init(mod, rows)
         if type(file) ~= "string" or not file:match("^[%w_%-%.]+%.png$") then return nil end
       end
       local path = setKey .. "/" .. file
-      local gbc = mod.options:get("classicSceneColours") == "gbc"
+      local gbc = mod.options:get("classicSceneColours") == "gbc" and not (set and set.colours)
       local id = path .. (gbc and "#gbc" or "")
       local hit = images[id]
       if hit ~= nil then return hit or nil end
@@ -705,6 +719,7 @@ function scenes.init(mod, rows)
       if setKey == GAME or not byKey[setKey] then return nil end
       if type(self.extendedWorldHUD) == "function" and self:extendedWorldHUD() then return nil end
       local look = setKey .. "|" .. tostring(mod.options:get("classicSceneColours"))
+        .. "|" .. tostring(mod.options:get("bgColour")) .. "|" .. tostring(mod.options:get("paper"))
       if self._facetsScene == nil or self._facetsSceneSet ~= look then
         local name = scenes.pick(where(self))
         self._facetsScene = scene(setKey, name) or false

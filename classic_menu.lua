@@ -48,7 +48,7 @@ cmenu.TOPICS = {
     keys = { "classicTrainers", "classicTrainerSize" } },
   { id = "battle", label = "BATTLE", lead = "classicBattleBg",
     about = "What stands behind each battle, and the battle boxes.",
-    keys = { "classicBattleBg", "sceneBorders", "classicSceneColours", "sceneTime", "classicBattleUi" } },
+    keys = { "classicBattleBg", "sceneBorders", "classicSceneColours", "bgColour", "sceneTime", "classicBattleUi" } },
   { id = "windows", label = "WINDOWS", lead = "classicWindows",
     about = "The frames round menus, and the text box.",
     keys = { "classicWindows", "classicTextBox" } },

@@ -86,6 +86,19 @@ filter.PAPER = {
   dark = { 34, 36, 46 }, cocoa = { 52, 38, 30 }, olive = { 44, 44, 22 }, rust = { 64, 34, 24 },
   wine = { 64, 22, 36 }, plum = { 46, 30, 62 }, navy = { 22, 32, 64 }, forest = { 22, 48, 34 },
 }
+-- BATTLE BG: COLOURS, a battle on plain colour, and BG COLOUR, which:
+-- PAPER (whatever PAPER is, white when it's off) or any of PAPER's colours
+-- -Elvie
+filter.BG_COLOURS = { { "PAPER", "paper" } }
+for _, c in ipairs(filter.PAPERS) do filter.BG_COLOURS[#filter.BG_COLOURS + 1] = c end
+function filter.bgColour(get)
+  local pick = tostring(get("bgColour") or "paper")
+  if pick == "paper" then pick = select(5, filter.settings(get)) end
+  local c = filter.PAPER[pick]
+  if not c then return { 255, 255, 255 } end
+  return c
+end
+
 -- the dark papers, which turn the letters round (white edges, white GBA
 -- letters) and keep pictures' white -Elvie
 filter.DARKS = { dark = true, cocoa = true, olive = true, rust = true, wine = true, plum = true, navy = true, forest = true }

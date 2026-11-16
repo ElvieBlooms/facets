@@ -1227,7 +1227,7 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,sceneTime,sceneBorders,sectionSpeed,prebuild,surround", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED, then SURROUND")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,bgColour,sceneTime,sceneBorders,sectionSpeed,prebuild,surround", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED, then SURROUND")
   local trainerSets = {}
   for _, c in ipairs(mod.rows[6].choices) do trainerSets[#trainerSets + 1] = c[1] end
   eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
@@ -1793,7 +1793,8 @@ do
   G.loadBgSets(wmod)
   local bset = G.BG_SETS.scenery
   check(bset, "gbc ui: the SCENERY battle backgrounds are found")
-  eq(G.BG[3] and (G.BG[3][1] .. "," .. G.BG[3][2]), "SCENERY,scenery", "gbc ui: ...as a BATTLE BG choice")
+  eq(G.BG[3] and (G.BG[3][1] .. "," .. G.BG[3][2]), "COLOURS,colours", "gbc ui: COLOURS after WHITE")
+  eq(G.BG[4] and (G.BG[4][1] .. "," .. G.BG[4][2]), "SCENERY,scenery", "gbc ui: ...as a BATTLE BG choice")
   eq(bset and (bset.keys.cave .. "," .. bset.keys.champion .. "," .. bset.keys.leader), "cave,space,gym", "gbc ui: the games' backgrounds map to scenes")
   local n = 0
   for name, file in pairs(bset and bset.scenes or {}) do

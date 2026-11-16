@@ -64,7 +64,7 @@ function gbui.settings(get)
   local hud = tostring(get("gbcHud") or "game")
   if hud ~= "gbc" and not gbui.UI_SETS[hud] then hud = "game" end
   local bg = tostring(get("gbcBattleBg") or "game")
-  if bg ~= "white" and not gbui.BG_SETS[bg] then bg = "game" end
+  if bg ~= "white" and bg ~= "colours" and not gbui.BG_SETS[bg] then bg = "game" end
   return frame, hud, bg, text
 end
 
@@ -390,7 +390,7 @@ function gbui.loadBgSets(mod)
       credit = { "From your own " .. g.name .. "." } }
     list[#list + 1] = gbui.BG_SETS[g.key]
   end
-  gbui.BG = { { "GAME", "game" }, { "WHITE", "white" } }
+  gbui.BG = { { "GAME", "game" }, { "WHITE", "white" }, { "COLOURS", "colours" } }
   for _, set in ipairs(list) do gbui.BG[#gbui.BG + 1] = { set.label, set.key } end
   return list
 end
@@ -755,7 +755,8 @@ end
 -- picked): your healthbox and the message box for BATTLE UI, the text
 -- box for WINDOWS, the foe's spot for BATTLE BG. -Elvie
 gbui.SAMPLE = { x = 160, y = 82, size = 64,
-  crops = { gbcHud = { 176, 80 }, gbcFrame = { 0, 0 }, gbcTextBox = { 0, 96 }, gbcBattleBg = { 152, 8 } } }
+  crops = { gbcHud = { 176, 80 }, gbcFrame = { 0, 0 }, gbcTextBox = { 0, 96 }, gbcBattleBg = { 152, 8 },
+  bgColour = { 152, 8 } } }
 local sampleCanvas, sampleQuads = nil, {}
 local sampleWarned = false
 local function logSample(e)
@@ -764,6 +765,7 @@ local function logSample(e)
   print("[facets] SCREEN sample healthbox: " .. tostring(e))
 end
 function gbui.drawSample(who, bg)
+  if who == "bgColour" then bg = "colours" end
   local crop = gbui.SAMPLE.crops[who]
   if not (crop and love and love.graphics and love.graphics.newCanvas) then return end
   local G = love.graphics
@@ -789,7 +791,11 @@ function gbui.drawSample(who, bg)
       pcall(Chrome.dialogueFrame)
     end
   else
-    if bg == "white" then
+    if bg == "white" or bg == "colours" then
+      if bg == "colours" and gbui.get then
+        local c = require("mods.facets.filter").bgColour(gbui.get)
+        G.setColor(c[1] / 255, c[2] / 255, c[3] / 255, 1)
+      end
       G.rectangle("fill", 0, 0, 240, 160)
     else
       pcall(BattleChrome.drawTerrain, "grass", 0, 0, 0)
@@ -824,6 +830,7 @@ end
 
 function gbui.init(mod, rows, menu)
   local get = getter(mod)
+  gbui.get = get
   gbui.loadSets(mod)
   gbui.loadBgSets(mod)
   gbui.loadUiSets(mod)
@@ -837,6 +844,8 @@ function gbui.init(mod, rows, menu)
   rows[#rows + 1] = { key = "gbcTextBox", type = "choice", label = "  TEXT BOX", choices = gbui.TEXTBOX, default = "match" }
   rows[#rows + 1] = { key = "gbcHud", type = "choice", label = "  BATTLE UI", choices = gbui.HUD, default = "game" }
   rows[#rows + 1] = { key = "gbcBattleBg", type = "choice", label = "  BATTLE BG", choices = gbui.BG, default = "game" }
+  rows[#rows + 1] = { key = "bgColour", type = "choice", label = "  BG COLOUR",
+    choices = require("mods.facets.filter").BG_COLOURS, default = "paper" }
   rows[#rows + 1] = { key = "sceneTime", type = "choice", label = "  SCENE TIME",
     choices = { { "ON", "on" }, { "OFF", "off" } }, default = "on" }
   -- the window's borders round a battle scene: blurred, the scene
@@ -861,6 +870,8 @@ function gbui.init(mod, rows, menu)
           { key = "gbcTextBox", label = "TEXT BOX", who = "gbcTextBox", choices = gbui.TEXTBOX, value = text },
           { key = "gbcHud", label = "BATTLE UI", who = "gbcHud", choices = gbui.HUD, value = hud },
           { key = "gbcBattleBg", label = "BATTLE BG", who = "gbcBattleBg", choices = gbui.BG, value = bg },
+          { key = "bgColour", label = "BG COLOUR", who = "bgColour", choices = require("mods.facets.filter").BG_COLOURS,
+            value = tostring(get("bgColour") or "paper") },
         }
       end,
       preview = function(who)
@@ -918,8 +929,12 @@ function gbui.init(mod, rows, menu)
             local credit = type(bset.credit) == "table" and bset.credit[1] or bset.credit
             if type(credit) == "string" then lines[#lines + 1] = { text = credit } end
           else
-            lines[#lines + 1] = { text = bg == "white" and "Plain white, like Gen 2." or "The game's own scenery." }
+            lines[#lines + 1] = { text = bg == "white" and "Plain white, like Gen 2."
+              or bg == "colours" and "Plain colour: BG COLOUR's." or "The game's own scenery." }
           end
+        elseif who == "bgColour" then
+          lines[#lines + 1] = { text = tostring(get("bgColour") or "paper") == "paper"
+            and "PAPER's colour, for COLOURS." or "This colour, for COLOURS." }
         else
           return nil
         end
@@ -1330,9 +1345,12 @@ function gbui.init(mod, rows, menu)
       local origBg = BattleBg.draw
       BattleBg.draw = function(...)
         local _, _, bg = gbui.settings(get)
-        if bg == "white" then
-          love.graphics.setColor(1, 1, 1, 1)
+        if bg == "white" or bg == "colours" then
+          -- WHITE, or COLOURS in BG COLOUR's -Elvie
+          local c = bg == "colours" and require("mods.facets.filter").bgColour(get) or { 255, 255, 255 }
+          love.graphics.setColor(c[1] / 255, c[2] / 255, c[3] / 255, 1)
           love.graphics.rectangle("fill", 0, 0, 240, 160)
+          love.graphics.setColor(1, 1, 1, 1)
           return true
         end
         return origBg(...)
