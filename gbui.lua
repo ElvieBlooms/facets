@@ -64,7 +64,8 @@ function gbui.settings(get)
   local hud = tostring(get("gbcHud") or "game")
   if hud ~= "gbc" and not gbui.UI_SETS[hud] then hud = "game" end
   local bg = tostring(get("gbcBattleBg") or "game")
-  if bg ~= "white" and bg ~= "colours" and not gbui.BG_SETS[bg] then bg = "game" end
+  if bg ~= "white" and bg ~= "colours" and not gbui.BG_SETS[bg]
+      and not require("mods.facets.classic_surround").FILL[bg] then bg = "game" end
   return frame, hud, bg, text
 end
 
@@ -392,6 +393,8 @@ function gbui.loadBgSets(mod)
   end
   gbui.BG = { { "GAME", "game" }, { "WHITE", "white" }, { "COLORS", "colours" } }
   for _, set in ipairs(list) do gbui.BG[#gbui.BG + 1] = { set.label, set.key } end
+  -- GLOW, DOTS, CHECKS, STRIPES: SURROUND's fills, behind the battle -Elvie
+  for _, f in ipairs(require("mods.facets.classic_surround").FILLS) do gbui.BG[#gbui.BG + 1] = f end
   return list
 end
 
@@ -791,7 +794,9 @@ function gbui.drawSample(who, bg)
       pcall(Chrome.dialogueFrame)
     end
   else
-    if bg == "white" or bg == "colours" then
+    if require("mods.facets.classic_surround").FILL[bg] then
+      pcall(require("mods.facets.classic_surround").paint, bg, 240, 160, 1)
+    elseif bg == "white" or bg == "colours" then
       if bg == "colours" and gbui.get then
         local c = require("mods.facets.filter").bgColour(gbui.get)
         G.setColor(c[1] / 255, c[2] / 255, c[3] / 255, 1)
@@ -930,7 +935,9 @@ function gbui.init(mod, rows, menu)
             if type(credit) == "string" then lines[#lines + 1] = { text = credit } end
           else
             lines[#lines + 1] = { text = bg == "white" and "Plain white, like Gen 2."
-              or bg == "colours" and "Plain colour: BG COLOR's." or "The game's own scenery." }
+              or bg == "colours" and "Plain colour: BG COLOR's."
+              or require("mods.facets.classic_surround").FILL[bg] and "SURROUND's fill, as round your menus."
+              or "The game's own scenery." }
           end
         elseif who == "bgColour" then
           lines[#lines + 1] = { text = tostring(get("bgColour") or "paper") == "paper"
@@ -1345,6 +1352,12 @@ function gbui.init(mod, rows, menu)
       local origBg = BattleBg.draw
       BattleBg.draw = function(...)
         local _, _, bg = gbui.settings(get)
+        if require("mods.facets.classic_surround").FILL[bg] then
+          -- SURROUND's fill, in your menus' colours -Elvie
+          pcall(require("mods.facets.classic_surround").paint, bg, 240, 160, 1)
+          love.graphics.setColor(1, 1, 1, 1)
+          return true
+        end
         if bg == "white" or bg == "colours" then
           -- WHITE, or COLORS in BG COLOR's -Elvie
           local c = bg == "colours" and require("mods.facets.filter").bgColour(get) or { 255, 255, 255 }

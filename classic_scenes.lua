@@ -565,6 +565,11 @@ function scenes.init(mod, rows)
   end
   -- COLORS: plain colour, BG COLOR's (filter.bgColour) -Elvie
   sets[#sets + 1] = { key = "colours", label = "COLORS", colours = true, scenes = {} }
+  -- GLOW, DOTS, CHECKS, STRIPES: SURROUND's fills, behind the battle
+  -- (classic_surround.paint) -Elvie
+  for _, f in ipairs(require("mods.facets.classic_surround").FILLS) do
+    sets[#sets + 1] = { key = f[2], label = f[1], fill = f[2], scenes = {} }
+  end
   local byKey = {}
   local choices = { { "GAME", GAME } }
   for _, set in ipairs(sets) do
@@ -600,7 +605,46 @@ function scenes.init(mod, rows)
       local set = byKey[setKey]
       local gbaData
       local file
-      if set and set.colours then
+      if set and set.fill then
+        -- painted on a canvas the size of the others, so it's cropped and
+        -- carried on like any scene; GLOW is painted again each frame
+        -- (refresh, from sceneFor) -Elvie
+        local hit = images[set.fill]
+        if hit ~= nil then return hit or nil end
+        images[set.fill] = false
+        local surround = require("mods.facets.classic_surround")
+        local w, h = scenes.WIDE_W + 2 * gbaBg.PAD, scenes.SCREEN_H + 2 * gbaBg.PAD
+        local ok, canvas = pcall(love.graphics.newCanvas, w, h, { dpiscale = 1 })
+        if not ok then return nil end
+        canvas:setFilter("nearest", "nearest")
+        canvas:setWrap("mirroredrepeat", "mirroredrepeat")
+        local function paint()
+          love.graphics.push("all")
+          love.graphics.setCanvas(canvas)
+          love.graphics.origin()
+          love.graphics.clear(0, 0, 0, 1)
+          pcall(surround.paint, set.fill, w, h, 1)
+          love.graphics.pop()
+        end
+        paint()
+        local pad = gbaBg.PAD
+        local x, y, cw, ch = scenes.crop(w - 2 * pad, h - 2 * pad)
+        x, y = x + pad, y + pad
+        local wx, wy, _, wh = scenes.crop(w - 2 * pad, h - 2 * pad, w - 2 * pad)
+        wy = wy + pad
+        local ww = scenes.WIDE_W
+        wx = math.floor((w - ww) / 2)
+        local down = scenes.SCREEN_H - ch
+        local at = -1
+        images[set.fill] = { image = canvas, quad = love.graphics.newQuad(x, y, cw, ch + down, w, h),
+          wide = love.graphics.newQuad(wx, wy, ww, wh + down, w, h), wideX = math.floor((scenes.W - ww) / 2),
+          x = x, y = y, wx = wx, wy = wy, coreBottom = h - pad,
+          refresh = set.fill == "glow" and function()
+            local now = love.timer and love.timer.getTime() or 0
+            if now - at >= 1 / 60 then at = now; paint() end
+          end or nil }
+        return images[set.fill]
+      elseif set and set.colours then
         -- one plain picture, as big as the GBA ones with their
         -- surroundings, so it's cropped and carried on like any scene
         -- -Elvie
@@ -729,6 +773,7 @@ function scenes.init(mod, rows)
         self._facetsSceneName = name
       end
       lit = self._facetsScene and lightOf(self, self._facetsSceneName) or nil
+      if self._facetsScene and self._facetsScene.refresh then self._facetsScene.refresh() end
       return self._facetsScene or nil
     end
     -- Gold, Silver and Crystal's wide battle with BATTLE HUD: EXTENDED

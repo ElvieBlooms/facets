@@ -299,6 +299,44 @@ local function discImage()
   return disc
 end
 
+-- BATTLE BG's fills: SURROUND's own, behind a battle, in the same
+-- colours as round your menus -Elvie
+surround.FILLS = { { "GLOW", "glow" }, { "DOTS", "dots" }, { "CHECKS", "checks" }, { "STRIPES", "stripes" } }
+surround.FILL = { glow = true, dots = true, checks = true, stripes = true }
+
+-- Paints one of them over 0, 0 to w, h of what's being drawn on, px units
+-- to a game pixel (the patterns' pixels). GLOW's lights drift as round
+-- the menus, so it's painted again each frame -Elvie
+function surround.paint(kind, w, h, px)
+  local G = love.graphics
+  px = px or 1
+  local paper, ink = surround.colours()
+  G.push("all")
+  G.setShader()
+  if kind == "glow" then
+    local base = ink
+    if not surround.frameColour() and surround.gen ~= 3 then base = paper end
+    G.setColor(base[1] * 0.28, base[2] * 0.28, base[3] * 0.32, 1)
+    G.rectangle("fill", 0, 0, w, h)
+    G.setBlendMode("add")
+    local img = discImage()
+    local iw = img:getWidth()
+    local t = love.timer and love.timer.getTime() or 0
+    for _, l in ipairs(surround.lights(t, w, h)) do
+      local c = surround.mix(base, { 1, 1, 1 }, l.tint)
+      G.setColor(c[1], c[2], c[3], l.a)
+      G.draw(img, l.x - l.r, l.y - l.r, 0, 2 * l.r / iw, 2 * l.r / iw)
+    end
+  elseif surround.FILL[kind] then
+    local img = tileImage(kind, paper, ink)
+    G.setColor(1, 1, 1, 1)
+    surround._quad = surround._quad or G.newQuad(0, 0, 8, 8, 8, 8)
+    surround._quad:setViewport(0, 0, w / px, h / px, 8, 8)
+    G.draw(img, surround._quad, 0, 0, 0, px, px)
+  end
+  G.pop()
+end
+
 -- The GBA games' SCENE: BATTLE BG's set (SCENERY when it's GAME or
 -- WHITE) for the ground of your last battle, grass before any -Elvie
 local gen3Scenes = {}

@@ -600,6 +600,9 @@ function windows.init(mod, rows)
       -- -Elvie
       local okF, filter = pcall(require, "mods.facets.filter")
       local keep = okF and type(filter.keepDraw) == "function" and filter.keepDraw or function() end
+      -- the box covers whatever was kept under it (another window's frame)
+      -- before its own frame is kept -Elvie
+      if okF and type(filter.markPaper) == "function" then filter.markPaper(tx * T, ty * T, tw * T, th * T) end
       if kind == "dialogue" then
         windows.dialogueCells(tx, ty, tw, th, function(i, cx, cy, flip, dx, dy)
           local x, y = cx * T + (dx or 0), cy * T + (dy or 0)

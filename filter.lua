@@ -142,6 +142,9 @@ extern float cellF;
 extern vec2 srcPx;
 extern float bandTop;
 extern float gba;
+// Gold to Crystal: its battle's text band, and the boxes over it (the move's
+// type box), both go dark
+extern float bandToo;
 // whether a pixel is the white or near-white of a menu's paper
 float paperish(vec3 c) {
   float hi = max(c.r, max(c.g, c.b));
@@ -229,7 +232,7 @@ float goesDark(Image tex, vec2 tc, vec2 sc, vec2 d) {
     vec2 b = (at - keepOrigin) / keepSize;
     if (b.x >= 0.0 && b.y >= 0.0 && b.x < 1.0 && b.y < 1.0) inBox = Texel(boxes, b).a;
   }
-  float region = boxesOn > 0.5 ? inBox : (gba > 0.5 ? inBox : step(bandTop, p.y));
+  float region = boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : (gba > 0.5 ? inBox : step(bandTop, p.y));
   return paperish(c) * Texel(ui, p).a * region * (1.0 - keptAt(at) * (1.0 - inBox));
 }
 // whether a light pixel near this one stays light (a picture's white, the
@@ -265,7 +268,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       }
       // (where the boxes are known, they alone: the text box is one). The
       // GBA games' paper is only ever in their windows
-      w *= boxesOn > 0.5 ? inBox : (gba > 0.5 && paperDark > 0.5 ? 0.0 : step(bandTop, p.y));
+      w *= boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : (gba > 0.5 && paperDark > 0.5 ? 0.0 : step(bandTop, p.y));
       // a picture drawn this frame keeps its white, as drawn, unless a box
       // covers it (the move box over your Pokémon)
       w *= 1.0 - keptAt(sc) * (1.0 - inBox);
@@ -298,7 +301,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       o = edge > 0.5 ? outline : mix(o, paper * hi, w);
       if (gba < 0.5 && paperDark > 0.5 && w < 0.5) {
         float l = dot(before, vec3(0.299, 0.587, 0.114));
-        float region = Texel(ui, p).a * (boxesOn > 0.5 ? inBox : step(bandTop, p.y)) * (1.0 - keptAt(sc) * (1.0 - inBox));
+        float region = Texel(ui, p).a * (boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : step(bandTop, p.y)) * (1.0 - keptAt(sc) * (1.0 - inBox));
         if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region > 0.5
             && inBar(tex, tc, sc) < 0.5) {
           float onPaper = 0.0;
@@ -583,6 +586,7 @@ function filter.init(mod, rows, menu)
     sh:send("paperDark", filter.isDark(paper) and 1 or 0)
     sh:send("bandTop", filter.isDark(paper) and layer.band or 0)
     sh:send("gba", layer.gen == 3 and 1 or 0)
+    sh:send("bandToo", layer.gen == 2 and 1 or 0)
     -- a game pixel, in screen pixels, and the screen's size, so the look
     -- round lands on the middle of each game pixel and not between them,
     -- where black and white would blend -Elvie
@@ -1090,27 +1094,32 @@ function filter.init(mod, rows, menu)
     filter.markPaper = function(x, y, w, h)
       local G = love.graphics
       local target = G.getCanvas()
-      if not (target and tonumber(x) and tonumber(w) and filter.isDark(select(5, filter.settings(get)))) then return end
+      if not (target and tonumber(x) and tonumber(w)) then return end
+      local dark = filter.isDark(select(5, filter.settings(get)))
       pcall(function()
         local cw, ch = target:getDimensions()
         local dpi = target:getDPIScale()
-        if not pics.boxes or pics.boxes:getWidth() ~= cw or pics.boxes:getHeight() ~= ch or pics.boxes:getDPIScale() ~= dpi then
-          pics.boxes = G.newCanvas(cw, ch, { dpiscale = dpi })
-          pics.boxesFresh = false
-        end
         G.push("all")
-        G.setCanvas(pics.boxes)
-        if not pics.boxesFresh then
-          G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
-          pics.boxesFresh = true
-        end
         G.setScissor()
         G.setShader()
-        G.setBlendMode("alpha")
-        G.setColor(1, 1, 1, 1)
-        G.rectangle("fill", x, y, w, h)
+        if dark then
+          if not pics.boxes or pics.boxes:getWidth() ~= cw or pics.boxes:getHeight() ~= ch or pics.boxes:getDPIScale() ~= dpi then
+            pics.boxes = G.newCanvas(cw, ch, { dpiscale = dpi })
+            pics.boxesFresh = false
+          end
+          G.setCanvas(pics.boxes)
+          if not pics.boxesFresh then
+            G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
+            pics.boxesFresh = true
+          end
+          G.setBlendMode("alpha")
+          G.setColor(1, 1, 1, 1)
+          G.rectangle("fill", x, y, w, h)
+          pics.boxesDrawn = true
+        end
         -- a box drawn over a picture covers it: that part of the picture's
-        -- copy goes (the move box over your Pokémon) -Elvie
+        -- copy goes (the move box over your Pokémon, a menu over another
+        -- window's frame) -Elvie
         if pics.keep and pics.fresh and pics.keep:getWidth() == cw and pics.keep:getHeight() == ch then
           G.setCanvas(pics.keep)
           G.setBlendMode("replace", "premultiplied")
@@ -1118,20 +1127,19 @@ function filter.init(mod, rows, menu)
           G.rectangle("fill", x, y, w, h)
         end
         G.pop()
-        pics.boxesDrawn = true
       end)
     end
 
-    -- Red, Blue and Yellow: every box the game draws (Font.drawBox); the
-    -- pass uses them in battles only -Elvie
+    -- Red to Crystal: every box the game draws (Font.drawBox), marked
+    -- before it's drawn, so its own frame's copy stays; the pass uses them
+    -- in battles only -Elvie
     local okF, Font = pcall(require, "src.render.Font")
-    if gen == 1 and okF and type(Font) == "table" and type(Font.drawBox) == "function" and not Font.facetsPaperBoxes then
+    if (gen == 1 or gen == 2) and okF and type(Font) == "table" and type(Font.drawBox) == "function" and not Font.facetsPaperBoxes then
       Font.facetsPaperBoxes = true
       local ownBox = Font.drawBox
       Font.drawBox = function(tx, ty, tw, th, ...)
-        local results = { ownBox(tx, ty, tw, th, ...) }
         if type(tx) == "number" and type(tw) == "number" then filter.markPaper(tx * 8, ty * 8, tw * 8, th * 8) end
-        return unpack(results)
+        return ownBox(tx, ty, tw, th, ...)
       end
     end
 
