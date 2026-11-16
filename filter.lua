@@ -769,6 +769,33 @@ function filter.init(mod, rows, menu)
         G.draw(gen2Mask, 0, 0)
         G.pop()
         gen2Drawn = true
+        -- with a SHADER FX on that shades the map on its own (the voxel
+        -- world), the menus go on a layer of their own that's laid over
+        -- after the pass: PAPER is done on that layer, here -Elvie
+        local paper = select(5, filter.settings(get))
+        if paper ~= "off" and rawget(game, "fxUiLayer") == target then
+          pcall(function()
+            local pw, ph = target:getPixelDimensions()
+            local saved = { layer.canvas, layer.origin, layer.size, pics.origin, pics.size }
+            layer.canvas, layer.origin, layer.size = gen2Mask, { 0, 0 }, { pw, ph }
+            if pics.keep and pics.keep:getPixelWidth() == pw and pics.keep:getPixelHeight() == ph then
+              pics.origin, pics.size = { 0, 0 }, { pw, ph }
+            end
+            local out = run(target, "ui", "off", false, "4", paper)
+            layer.canvas, layer.origin, layer.size, pics.origin, pics.size = saved[1], saved[2], saved[3], saved[4], saved[5]
+            if out then
+              G.push("all")
+              G.setCanvas(target)
+              G.origin()
+              G.setScissor()
+              G.setShader()
+              G.setColor(1, 1, 1, 1)
+              G.setBlendMode("replace", "premultiplied")
+              G.draw(out, 0, 0)
+              G.pop()
+            end
+          end)
+        end
         if not results[1] then error(results[2], 0) end
         return unpack(results, 2)
       end
