@@ -185,6 +185,13 @@ function gbui.reset() art = nil; quads = {} end
 -- Drawing
 -- --------------------------------------------------
 
+-- PAPER: DARK's windows on the GBA games. A window Facets draws itself
+-- is marked as paper, as the game's own are (filter.lua) -Elvie
+function gbui.markPaper(x, y, w, h)
+  local ok, filter = pcall(require, "mods.facets.filter")
+  if ok and type(filter.markPaper) == "function" then filter.markPaper(x, y, w, h) end
+end
+
 -- A Crystal window: (x, y) its top-left pixel, w by h tiles, border
 -- included. Crystal reuses the top edge for the bottom and one side
 -- tile for both sides. -Elvie
@@ -196,6 +203,7 @@ function gbui.box(frame, x, y, w, h)
   G.setColor(PAPER[1] / 255, PAPER[2] / 255, PAPER[3] / 255, 1)
   G.rectangle("fill", x, y, w * T, h * T)
   G.setColor(1, 1, 1, 1)
+  gbui.markPaper(x + T, y + T, (w - 2) * T, (h - 2) * T)
   local img, base = a.framesImage, n * a.framesPerRow
   local function tile(i, cx, cy) G.draw(img, quad(img, base + i), x + cx * T, y + cy * T) end
   tile(0, 0, 0)
@@ -659,6 +667,7 @@ function gbui.nineSlice(img, tx, ty, tw, th)
   local G = love.graphics
   G.setColor(1, 1, 1, 1)
   G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
+  gbui.markPaper(tx * T, ty * T, tw * T, th * T)
   local function cell(i, cx, cy) G.draw(img, quad(img, i), cx * T, cy * T) end
   cell(0, tx - 1, ty - 1)
   for i = 0, tw - 1 do cell(1, tx + i, ty - 1) end
@@ -681,6 +690,7 @@ function gbui.dialogueBox(img, fill)
   G.setColor(fill[1], fill[2], fill[3], 1)
   G.rectangle("fill", L * T, Top * T, W * T, H * T)
   G.setColor(1, 1, 1, 1)
+  gbui.markPaper(L * T, Top * T, W * T, H * T)
   local function cell(i, cx, cy, flip)
     if flip then G.draw(img, quad(img, i), cx * T, cy * T + T, 0, 1, -1)
     else G.draw(img, quad(img, i), cx * T, cy * T) end

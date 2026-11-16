@@ -159,6 +159,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       // (white or a touch off it: the Super Game Boy's paper is 255, 239,
       // 255; a pale coloured box, PINK's 255, 236, 246, isn't paper)
       float w = Texel(ui, p).a * smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.066, 0.072, hi - lo));
+      // the GBA games' white is only paper in a stretch of it
       // in a battle, DARK covers only its text box (bandTop) and, on Red,
       // Blue and Yellow, the game's own HP boxes (boxes, where the battle
       // drew them, mapped as the pictures' copy is)
@@ -167,8 +168,9 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
         vec2 b = (sc - keepOrigin) / keepSize;
         if (b.x >= 0.0 && b.y >= 0.0 && b.x < 1.0 && b.y < 1.0) inBox = Texel(boxes, b).a;
       }
-      // (where the boxes are known, they alone: the text box is one)
-      w *= boxesOn > 0.5 ? inBox : step(bandTop, p.y);
+      // (where the boxes are known, they alone: the text box is one). The
+      // GBA games' paper is only ever in their windows
+      w *= boxesOn > 0.5 ? inBox : (gba > 0.5 && paperDark > 0.5 ? 0.0 : step(bandTop, p.y));
       // a picture drawn this frame keeps its white, as drawn, unless a box
       // covers it (the move box over your Pokémon)
       w *= 1.0 - keptAt(sc) * (1.0 - inBox);
@@ -176,7 +178,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       // outline, a game pixel wide, in white, so the letters needn't be
       // recoloured. A picture's own black (kept) gets none
       float edge = 0.0;
-      if (paperDark > 0.5 && w > 0.5) {
+      if (paperDark > 0.5 && w > 0.5 && gba < 0.5) {
         for (int i = 0; i < 8; i++) {
           vec3 c = Texel(tex, tc + texStep * around(i)).rgb;
           float chi = max(c.r, max(c.g, c.b));
@@ -186,23 +188,25 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
         }
       }
       // the GBA games' letters are dark grey with a light grey shadow, not
-      // black: on paper going dark, the letter turns white and its shadow
-      // darker than the paper, as the games' own dark boxes have them. A
-      // colour (the red of a choice) stays
+      // black: on paper going dark, the letter turns white and its shadow a
+      // grey a little lighter than the paper. A colour (the red of a
+      // choice) stays
       vec3 before = o;
       o = edge > 0.5 ? vec3(1.0) : mix(o, paper * hi, w);
       if (gba > 0.5 && paperDark > 0.5 && w < 0.5) {
         float l = dot(before, vec3(0.299, 0.587, 0.114));
-        float text = step(0.22, l) * step(l, 0.45);
+        // (black too: FireRed's PP numbers)
+        float text = step(l, 0.45);
         float shade = step(0.70, l) * step(l, 0.88);
         if ((text + shade) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * Texel(ui, p).a > 0.5
-            && step(bandTop, p.y) > 0.5 && keptAt(sc) < 0.5) {
+            && inBox > 0.5 && keptAt(sc) < 0.5) {
           float onPaper = 0.0;
           for (int i = 0; i < 8; i++) {
             onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * around(i)).rgb));
             onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * 2.0 * around(i)).rgb));
           }
-          if (onPaper > 0.5) o = text > 0.5 ? vec3(0.93, 0.93, 0.94) : paper * 0.55;
+          onPaper *= inBox;
+          if (onPaper > 0.5) o = text > 0.5 ? vec3(0.93, 0.93, 0.94) : vec3(0.36, 0.37, 0.42);
         }
       }
     }
@@ -458,7 +462,7 @@ function filter.init(mod, rows, menu)
     local sw, shh = src:getPixelDimensions()
     sh:send("cellPx", cellPx)
     sh:send("texStep", { cellPx / math.max(1, sw), cellPx / math.max(1, shh) })
-    if tint and paper == "dark" and layer.band > 0 and pics.boxes and pics.boxesDrawn and pics.origin then
+    if tint and paper == "dark" and (layer.band > 0 or layer.gen == 3) and pics.boxes and pics.boxesDrawn and pics.origin then
       sh:send("boxesOn", 1)
       sh:send("boxes", pics.boxes)
     else
@@ -921,45 +925,108 @@ function filter.init(mod, rows, menu)
     -- DARK in Red, Blue and Yellow's battles: the game's own boxes (the HP
     -- boxes, the text box) go dark with the text box, so where each box is
     -- drawn is kept on a copy the size of what it's drawn on -Elvie
+    -- Marks a box (x, y, w, h, in the pixels of what's being drawn on) as
+    -- paper DARK may darken, on a copy the size of what it's drawn on -Elvie
+    filter.markPaper = function(x, y, w, h)
+      local G = love.graphics
+      local target = G.getCanvas()
+      if not (target and tonumber(x) and tonumber(w) and select(5, filter.settings(get)) == "dark") then return end
+      pcall(function()
+        local cw, ch = target:getDimensions()
+        local dpi = target:getDPIScale()
+        if not pics.boxes or pics.boxes:getWidth() ~= cw or pics.boxes:getHeight() ~= ch or pics.boxes:getDPIScale() ~= dpi then
+          pics.boxes = G.newCanvas(cw, ch, { dpiscale = dpi })
+          pics.boxesFresh = false
+        end
+        G.push("all")
+        G.setCanvas(pics.boxes)
+        if not pics.boxesFresh then
+          G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
+          pics.boxesFresh = true
+        end
+        G.setScissor()
+        G.setShader()
+        G.setBlendMode("alpha")
+        G.setColor(1, 1, 1, 1)
+        G.rectangle("fill", x, y, w, h)
+        -- a box drawn over a picture covers it: that part of the picture's
+        -- copy goes (the move box over your Pokémon) -Elvie
+        if pics.keep and pics.fresh and pics.keep:getWidth() == cw and pics.keep:getHeight() == ch then
+          G.setCanvas(pics.keep)
+          G.setBlendMode("replace", "premultiplied")
+          G.setColor(0, 0, 0, 0)
+          G.rectangle("fill", x, y, w, h)
+        end
+        G.pop()
+        pics.boxesDrawn = true
+      end)
+    end
+
+    -- Red, Blue and Yellow: every box the game draws (Font.drawBox); the
+    -- pass uses them in battles only -Elvie
     local okF, Font = pcall(require, "src.render.Font")
     if gen == 1 and okF and type(Font) == "table" and type(Font.drawBox) == "function" and not Font.facetsPaperBoxes then
       Font.facetsPaperBoxes = true
       local ownBox = Font.drawBox
       Font.drawBox = function(tx, ty, tw, th, ...)
         local results = { ownBox(tx, ty, tw, th, ...) }
-        local G = love.graphics
-        local target = G.getCanvas()
-        if target and type(tx) == "number" and type(tw) == "number" and select(5, filter.settings(get)) == "dark" then
-          pcall(function()
-            local w, h = target:getDimensions()
-            local dpi = target:getDPIScale()
-            if not pics.boxes or pics.boxes:getWidth() ~= w or pics.boxes:getHeight() ~= h or pics.boxes:getDPIScale() ~= dpi then
-              pics.boxes = G.newCanvas(w, h, { dpiscale = dpi })
-              pics.boxesFresh = false
-            end
-            G.push("all")
-            G.setCanvas(pics.boxes)
-            if not pics.boxesFresh then
-              G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
-              pics.boxesFresh = true
-            end
-            G.setShader()
-            G.setBlendMode("alpha")
-            G.setColor(1, 1, 1, 1)
-            G.rectangle("fill", tx * 8, ty * 8, tw * 8, th * 8)
-            -- a box drawn over a picture covers it: that part of the
-            -- picture's copy goes (the move box over your Pokémon) -Elvie
-            if pics.keep and pics.fresh and pics.keep:getWidth() == w and pics.keep:getHeight() == h then
-              G.setCanvas(pics.keep)
-              G.setBlendMode("replace", "premultiplied")
-              G.setColor(0, 0, 0, 0)
-              G.rectangle("fill", tx * 8, ty * 8, tw * 8, th * 8)
-            end
-            G.pop()
-            pics.boxesDrawn = true
-          end)
-        end
+        if type(tx) == "number" and type(tw) == "number" then filter.markPaper(tx * 8, ty * 8, tw * 8, th * 8) end
         return unpack(results)
+      end
+    end
+
+    -- The GBA games: their white is only paper inside their windows, so
+    -- white letters on their own coloured boxes (the battle's teal, the
+    -- party's blue) and pictures stay as they are. The windows are the
+    -- game's frames (by their content), its text box, FireRed and
+    -- LeafGreen's battle menu boxes (drawn in one picture with the text
+    -- box), and Facets' own frames (gbui) -Elvie
+    local okW, Chrome3 = false, nil
+    if gen == 3 then okW, Chrome3 = pcall(require, "src.ui.game3.chrome") end
+    if okW and type(Chrome3) == "table" and not Chrome3.facetsPaper then
+      Chrome3.facetsPaper = true
+      local T = 8
+      for _, name in ipairs({ "stdFrame", "fixedStdFrame", "userFrame" }) do
+        local own = Chrome3[name]
+        if type(own) == "function" then
+          Chrome3[name] = function(...)
+            local results = { own(...) }
+            local a, b, c, d = ...
+            if name == "userFrame" then a, b, c, d = select(2, ...) end
+            if tonumber(a) and tonumber(c) then filter.markPaper(a * T, b * T, c * T, d * T) end
+            return unpack(results)
+          end
+        end
+      end
+      for _, name in ipairs({ "dialogueFrame", "signFrame" }) do
+        local own = Chrome3[name]
+        if type(own) == "function" then
+          Chrome3[name] = function(...)
+            local results = { own(...) }
+            local L, Top, W, H = 2, 15, 26, 4
+            if type(Chrome3.dialogueWindow) == "function" then
+              local ok, l, t, w, h = pcall(Chrome3.dialogueWindow)
+              if ok and tonumber(l) then L, Top, W, H = l, t, w, h end
+            end
+            filter.markPaper(L * T, Top * T, W * T, H * T)
+            return unpack(results)
+          end
+        end
+      end
+      local okB, BattleChrome = pcall(require, "src.ui.game3.battle_chrome")
+      if okB and type(BattleChrome) == "table" and type(BattleChrome.drawPanel) == "function" then
+        local ownPanel = BattleChrome.drawPanel
+        BattleChrome.drawPanel = function(mode, ...)
+          local results = { ownPanel(mode, ...) }
+          local hoenn = type(BattleChrome.isHoenn) == "function" and BattleChrome.isHoenn()
+          if not hoenn then
+            -- FireRed and LeafGreen: the FIGHT box on the right half, the
+            -- moves and PP boxes across the whole panel -Elvie
+            if mode == "menu" then filter.markPaper(120, 112, 120, 48)
+            elseif mode == "moves" then filter.markPaper(0, 112, 240, 48) end
+          end
+          return unpack(results)
+        end
       end
     end
 
