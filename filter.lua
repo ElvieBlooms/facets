@@ -284,10 +284,14 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
           float chi = max(c.r, max(c.g, c.b));
           float clo = min(c.r, min(c.g, c.b));
           float black = step(dot(c, vec3(0.299, 0.587, 0.114)), 0.2) * (1.0 - smoothstep(0.08, 0.14, chi - clo));
+          // (not the paper's own colour: COLORS' field, behind the HUDs)
+          black *= step(0.1, distance(c, paper));
           edge = max(edge, black * (1.0 - keptAt(nbAt(sc, around(i))) * (1.0 - inBox)));
         }
-        // a white letter on a black bar is the bar's: it stays white
-        if (edge > 0.5 && inBar(tex, tc, sc) > 0.5) {
+        // a white letter on a black bar is the bar's: it stays white. (Not
+        // in a battle, whose boxes are known: there a scene's dark round
+        // the HUDs would pass for a bar)
+        if (edge > 0.5 && boxesOn < 0.5 && inBar(tex, tc, sc) > 0.5) {
           w = 0.0;
           edge = 0.0;
         }
@@ -302,8 +306,8 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       if (gba < 0.5 && paperDark > 0.5 && w < 0.5) {
         float l = dot(before, vec3(0.299, 0.587, 0.114));
         float region = Texel(ui, p).a * (boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : step(bandTop, p.y)) * (1.0 - keptAt(sc) * (1.0 - inBox));
-        if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region > 0.5
-            && inBar(tex, tc, sc) < 0.5) {
+        if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region * step(0.1, distance(before, paper)) > 0.5
+            && (boxesOn > 0.5 || inBar(tex, tc, sc) < 0.5)) {
           float onPaper = 0.0;
           float light = 0.0;
           for (int i = 0; i < 8; i++) {
@@ -1140,6 +1144,31 @@ function filter.init(mod, rows, menu)
       Font.drawBox = function(tx, ty, tw, th, ...)
         if type(tx) == "number" and type(tw) == "number" then filter.markPaper(tx * 8, ty * 8, tw * 8, th * 8) end
         return ownBox(tx, ty, tw, th, ...)
+      end
+    end
+
+    -- Gold, Silver and Crystal: on a BATTLE BG behind the battle (a scene,
+    -- a colour, a fill), the HUDs' white tiles show as plates round the
+    -- names and bars; on dark paper they go dark with the text box. On the
+    -- game's own white field they stay, as the field does -Elvie
+    if gen == 2 and not filter.hudPlates then
+      local okB, BattleState = pcall(require, "src.ui.gen2.BattleState")
+      if okB and type(BattleState) == "table" and type(BattleState.drawEnemyHud) == "function"
+          and type(BattleState.drawPlayerHud) == "function" then
+        filter.hudPlates = true
+        local function plates(self)
+          local bg = get("classicBattleBg")
+          return bg ~= nil and bg ~= "game"
+        end
+        local ownEnemy, ownPlayer = BattleState.drawEnemyHud, BattleState.drawPlayerHud
+        BattleState.drawEnemyHud = function(self, ...)
+          if plates(self) then filter.markPaper(8, 0, 80, 32) end
+          return ownEnemy(self, ...)
+        end
+        BattleState.drawPlayerHud = function(self, ...)
+          if plates(self) then filter.markPaper(72, 56, 88, 40) end
+          return ownPlayer(self, ...)
+        end
       end
     end
 

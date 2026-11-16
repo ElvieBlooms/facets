@@ -90,9 +90,13 @@ scenes.ZOOM, scenes.DIM = 1.15, 0.8
 
 -- BORDERS: BLUR (that), FILL (one big scene behind the whole battle:
 -- sharp, zoomed until it covers the window, the screen's own field showing
--- its middle) or OFF (the engine's own surround). Set from the options by
--- whichever part is running -Elvie
-scenes.BORDERS = { { "BLUR", "blur" }, { "FILL", "fill" }, { "OFF", "off" } }
+-- its middle) or OFF (the engine's own surround); or one of SURROUND's
+-- own fills (GLOW, WINDOWS, DOTS, CHECKS, STRIPES), as round your menus,
+-- with or without a scene. Set from the options by whichever part is
+-- running -Elvie
+scenes.BORDERS = { { "BLUR", "blur" }, { "FILL", "fill" }, { "OFF", "off" },
+  { "GLOW", "glow" }, { "WINDOWS", "windows" }, { "DOTS", "dots" }, { "CHECKS", "checks" }, { "STRIPES", "stripes" } }
+scenes.SURROUNDS = { glow = true, windows = true, dots = true, checks = true, stripes = true }
 scenes.borders = function() return "blur" end
 
 -- FILL: where the big scene lies in the window, from the last frame's
@@ -192,6 +196,22 @@ end
 function scenes.edges(info)
   local s = shown
   frame = frame + 1
+  -- SURROUND's fills round a battle: drawn by SURROUND, round the screen
+  -- as it was really drawn when that's known -Elvie
+  local mode = scenes.borders()
+  if scenes.SURROUNDS[mode] and type(info) == "table" and not info.worldActive then
+    local surround = require("mods.facets.classic_surround")
+    if surround.inBattle(surround.game()) then
+      local canvas = love.graphics.getCanvas and love.graphics.getCanvas()
+      if type(canvas) == "table" and canvas[1] then canvas = canvas[1].texture or canvas[1] end
+      local real = s and s.stamp == frame - 1 and scenes.screenRect(s, canvas) or nil
+      -- with no scene, where the battle put itself (a wide battle, or one
+      -- BATTLE SIZE made bigger, is more than the letterbox) -Elvie
+      local b = scenes.battleScreen
+      if not real and b and b.frame >= frame - 2 and b.canvas == canvas then real = b.rect end
+      return surround.draw(info, mode, real)
+    end
+  end
   if not (s and s.stamp == frame - 1 and type(info) == "table") or info.worldActive then return end
   local cw, ch = s.canvas:getDimensions()
   local vpw, vph = tonumber(info.vpw), tonumber(info.vph)
@@ -565,11 +585,6 @@ function scenes.init(mod, rows)
   end
   -- COLORS: plain colour, BG COLOR's (filter.bgColour) -Elvie
   sets[#sets + 1] = { key = "colours", label = "COLORS", colours = true, scenes = {} }
-  -- GLOW, DOTS, CHECKS, STRIPES: SURROUND's fills, behind the battle
-  -- (classic_surround.paint) -Elvie
-  for _, f in ipairs(require("mods.facets.classic_surround").FILLS) do
-    sets[#sets + 1] = { key = f[2], label = f[1], fill = f[2], scenes = {} }
-  end
   local byKey = {}
   local choices = { { "GAME", GAME } }
   for _, set in ipairs(sets) do
@@ -605,46 +620,7 @@ function scenes.init(mod, rows)
       local set = byKey[setKey]
       local gbaData
       local file
-      if set and set.fill then
-        -- painted on a canvas the size of the others, so it's cropped and
-        -- carried on like any scene; GLOW is painted again each frame
-        -- (refresh, from sceneFor) -Elvie
-        local hit = images[set.fill]
-        if hit ~= nil then return hit or nil end
-        images[set.fill] = false
-        local surround = require("mods.facets.classic_surround")
-        local w, h = scenes.WIDE_W + 2 * gbaBg.PAD, scenes.SCREEN_H + 2 * gbaBg.PAD
-        local ok, canvas = pcall(love.graphics.newCanvas, w, h, { dpiscale = 1 })
-        if not ok then return nil end
-        canvas:setFilter("nearest", "nearest")
-        canvas:setWrap("mirroredrepeat", "mirroredrepeat")
-        local function paint()
-          love.graphics.push("all")
-          love.graphics.setCanvas(canvas)
-          love.graphics.origin()
-          love.graphics.clear(0, 0, 0, 1)
-          pcall(surround.paint, set.fill, w, h, 1)
-          love.graphics.pop()
-        end
-        paint()
-        local pad = gbaBg.PAD
-        local x, y, cw, ch = scenes.crop(w - 2 * pad, h - 2 * pad)
-        x, y = x + pad, y + pad
-        local wx, wy, _, wh = scenes.crop(w - 2 * pad, h - 2 * pad, w - 2 * pad)
-        wy = wy + pad
-        local ww = scenes.WIDE_W
-        wx = math.floor((w - ww) / 2)
-        local down = scenes.SCREEN_H - ch
-        local at = -1
-        images[set.fill] = { image = canvas, quad = love.graphics.newQuad(x, y, cw, ch + down, w, h),
-          wide = love.graphics.newQuad(wx, wy, ww, wh + down, w, h), wideX = math.floor((scenes.W - ww) / 2),
-          x = x, y = y, wx = wx, wy = wy, coreBottom = h - pad,
-          refresh = set.fill == "glow" and function()
-            local now = love.timer and love.timer.getTime() or 0
-            if now - at >= 1 / 60 then at = now; paint() end
-          end or nil }
-        return images[set.fill]
-      elseif set and set.colours then
+      if set and set.colours then
         -- one plain picture, as big as the GBA ones with their
         -- surroundings, so it's cropped and carried on like any scene
         -- -Elvie
@@ -773,7 +749,6 @@ function scenes.init(mod, rows)
         self._facetsSceneName = name
       end
       lit = self._facetsScene and lightOf(self, self._facetsSceneName) or nil
-      if self._facetsScene and self._facetsScene.refresh then self._facetsScene.refresh() end
       return self._facetsScene or nil
     end
     -- Gold, Silver and Crystal's wide battle with BATTLE HUD: EXTENDED
@@ -1002,6 +977,44 @@ function scenes.init(mod, rows)
         return results and results[1]
       end
     end
+    -- Where Gold, Silver and Crystal's battle screen really is in the
+    -- window, each frame, for BORDERS' SURROUND fills when there's no scene
+    -- to note it (scenes.edges) -Elvie
+    local function noteBattle(x, y, w, h)
+      local canvas = love.graphics.getCanvas and love.graphics.getCanvas()
+      if type(canvas) == "table" and canvas[1] then canvas = canvas[1].texture or canvas[1] end
+      scenes.battleScreen = { rect = { x, y, w, h }, frame = frame, canvas = canvas }
+    end
+    if type(BattleState.draw) == "function" and type(love.graphics.transformPoint) == "function" then
+      local ownState = BattleState.draw
+      BattleState.draw = function(self, ...)
+        if not (type(self.wideLayout) == "function" and self:wideLayout()) then
+          local x0, y0 = love.graphics.transformPoint(0, 0)
+          local x1, y1 = love.graphics.transformPoint(scenes.W, scenes.SCREEN_H)
+          noteBattle(x0, y0, x1 - x0, y1 - y0)
+        end
+        return ownState(self, ...)
+      end
+    end
+    if okW and type(WideBattle) == "table" and type(WideBattle.draw) == "function"
+        and type(Chrome.fitOriginFor) == "function" then
+      local ownWide = WideBattle.draw
+      WideBattle.draw = function(battle, winW, winH, ...)
+        pcall(function()
+          local scale = battle:battlePanelScale(winW, winH)
+          local ox, oy = Chrome.fitOriginFor(winW, winH, scale, WideBattle.TILES_W, WideBattle.TILES_H)
+          local okD, docked = pcall(WideBattle.docked, battle)
+          if okD and docked and type(Chrome.playfieldRect) == "function" then
+            local _, py, _, ph = Chrome.playfieldRect(winW, winH)
+            noteBattle(ox, py, WideBattle.WIDTH * scale, ph)
+          else
+            noteBattle(ox, oy, WideBattle.WIDTH * scale, WideBattle.HEIGHT * scale)
+          end
+        end)
+        return ownWide(battle, winW, winH, ...)
+      end
+    end
+
     if okW and type(WideBattle) == "table" and type(WideBattle.draw) == "function"
         and type(WideBattle.docked) == "function" and type(Chrome.paletteFill) == "function"
         and type(Chrome.fitOriginFor) == "function" and type(Chrome.playfieldRect) == "function" then

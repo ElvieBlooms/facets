@@ -299,44 +299,6 @@ local function discImage()
   return disc
 end
 
--- BATTLE BG's fills: SURROUND's own, behind a battle, in the same
--- colours as round your menus -Elvie
-surround.FILLS = { { "GLOW", "glow" }, { "DOTS", "dots" }, { "CHECKS", "checks" }, { "STRIPES", "stripes" } }
-surround.FILL = { glow = true, dots = true, checks = true, stripes = true }
-
--- Paints one of them over 0, 0 to w, h of what's being drawn on, px units
--- to a game pixel (the patterns' pixels). GLOW's lights drift as round
--- the menus, so it's painted again each frame -Elvie
-function surround.paint(kind, w, h, px)
-  local G = love.graphics
-  px = px or 1
-  local paper, ink = surround.colours()
-  G.push("all")
-  G.setShader()
-  if kind == "glow" then
-    local base = ink
-    if not surround.frameColour() and surround.gen ~= 3 then base = paper end
-    G.setColor(base[1] * 0.28, base[2] * 0.28, base[3] * 0.32, 1)
-    G.rectangle("fill", 0, 0, w, h)
-    G.setBlendMode("add")
-    local img = discImage()
-    local iw = img:getWidth()
-    local t = love.timer and love.timer.getTime() or 0
-    for _, l in ipairs(surround.lights(t, w, h)) do
-      local c = surround.mix(base, { 1, 1, 1 }, l.tint)
-      G.setColor(c[1], c[2], c[3], l.a)
-      G.draw(img, l.x - l.r, l.y - l.r, 0, 2 * l.r / iw, 2 * l.r / iw)
-    end
-  elseif surround.FILL[kind] then
-    local img = tileImage(kind, paper, ink)
-    G.setColor(1, 1, 1, 1)
-    surround._quad = surround._quad or G.newQuad(0, 0, 8, 8, 8, 8)
-    surround._quad:setViewport(0, 0, w / px, h / px, 8, 8)
-    G.draw(img, surround._quad, 0, 0, 0, px, px)
-  end
-  G.pop()
-end
-
 -- The GBA games' SCENE: BATTLE BG's set (SCENERY when it's GAME or
 -- WHITE) for the ground of your last battle, grass before any -Elvie
 local gen3Scenes = {}
@@ -379,15 +341,21 @@ function surround.inBattle(game)
 end
 
 -- Fill the window round the game screen (info: render.letterbox's) -Elvie
-function surround.draw(info)
-  local mode = surround.mode()
+-- the game, for BORDERS (classic_scenes) to tell a battle -Elvie
+function surround.game() return mod and mod.game end
+
+-- (battle: BORDERS' choice of fill, round a battle, and the screen as it
+-- was really drawn, { x, y, w, h }, when that's known) -Elvie
+function surround.draw(info, battle, real)
+  local mode = battle or surround.mode()
   if mode == GAME or type(info) ~= "table" then return false end
   -- Red to Crystal's map fills the window itself; the GBA games' map is
   -- the GBA screen, with room round it like any other -Elvie
   if info.worldActive and surround.gen ~= 3 then return false end
-  if surround.inBattle(mod and mod.game) then return false end
+  if not battle and surround.inBattle(mod and mod.game) then return false end
   local ww, wh = tonumber(info.ww), tonumber(info.wh)
   local ox, oy, vpw, vph = tonumber(info.ox), tonumber(info.oy), tonumber(info.vpw), tonumber(info.vph)
+  if real then ox, oy, vpw, vph = real[1], real[2], real[3], real[4] end
   if not (ww and wh and ox and oy and vpw and vph and ww > 0 and wh > 0) then return false end
   local scenes = require("mods.facets.classic_scenes")
   local G = love.graphics
