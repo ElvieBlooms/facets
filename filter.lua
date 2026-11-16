@@ -118,14 +118,6 @@ filter.DOT_SHADE = 0.82
 -- mode: 0 none, 1 four shades, 2 GBC. dots needs a game pixel at least 3
 -- screen pixels wide, or the grid would cover the picture. -Elvie
 filter.SHADER = [[
-// phones work in lower precision by default, too coarse for where a game
-// pixel's middle is on a big screen. The few values that place things on
-// the screen ask for LOVE's own "highp where offered" -Elvie
-#ifdef LOVE_HIGHP_OR_MEDIUMP
-#define FACETS_HP LOVE_HIGHP_OR_MEDIUMP
-#else
-#define FACETS_HP
-#endif
 extern float mode;
 extern vec3 s0; extern vec3 s1; extern vec3 s2; extern vec3 s3;
 extern vec3 cut;
@@ -139,15 +131,15 @@ extern vec2 origin;
 extern float paperOn;
 extern vec3 paper;
 extern Image ui;
-extern FACETS_HP vec2 uiOrigin;
-extern FACETS_HP vec2 uiSize;
+extern vec2 uiOrigin;
+extern vec2 uiSize;
 extern float keepOn;
 extern Image keep;
-extern FACETS_HP vec2 keepOrigin;
-extern FACETS_HP vec2 keepSize;
+extern vec2 keepOrigin;
+extern vec2 keepSize;
 extern float paperDark;
-extern FACETS_HP float cellF;
-extern FACETS_HP vec2 srcPx;
+extern float cellF;
+extern vec2 srcPx;
 extern float bandTop;
 extern float gba;
 // Gold to Crystal: its battle's text band, and the boxes over it (the move's
@@ -176,17 +168,17 @@ vec2 around(int i) {
 // one at sc. A game pixel is seldom a whole number of screen pixels, so
 // the look round goes from game pixel to game pixel, not by a fixed step
 // that drifts off them a few pixels out
-FACETS_HP vec2 nbAt(FACETS_HP vec2 sc, vec2 d) {
-  FACETS_HP vec2 g = floor((sc - uiOrigin) / cellF);
+vec2 nbAt(vec2 sc, vec2 d) {
+  vec2 g = floor((sc - uiOrigin) / cellF);
   return uiOrigin + (g + d + 0.5) * cellF;
 }
-vec3 nbTex(Image tex, FACETS_HP vec2 tc, FACETS_HP vec2 sc, vec2 d) {
+vec3 nbTex(Image tex, vec2 tc, vec2 sc, vec2 d) {
   return Texel(tex, tc + (nbAt(sc, d) - sc) / srcPx).rgb;
 }
 // how much a picture kept this frame covers screen pixel at
-float keptAt(FACETS_HP vec2 at) {
+float keptAt(vec2 at) {
   if (keepOn < 0.5) return 0.0;
-  FACETS_HP vec2 k = (at - keepOrigin) / keepSize;
+  vec2 k = (at - keepOrigin) / keepSize;
   if (k.x < 0.0 || k.y < 0.0 || k.x >= 1.0 || k.y >= 1.0) return 0.0;
   return Texel(keep, k).a;
 }
@@ -200,7 +192,7 @@ float keptAt(FACETS_HP vec2 at) {
 // how dark the row dy game pixels off is round this one: the count in
 // the nine pixels centred on it (y), and whether nine in a row are all
 // dark centred, to the left or to the right (x: a letter by a box's edge)
-vec2 rowDark(Image tex, FACETS_HP vec2 t, FACETS_HP vec2 sc, float dy) {
+vec2 rowDark(Image tex, vec2 t, vec2 sc, float dy) {
   float l = 0.0;
   float m = 0.0;
   float r = 0.0;
@@ -212,7 +204,7 @@ vec2 rowDark(Image tex, FACETS_HP vec2 t, FACETS_HP vec2 sc, float dy) {
   }
   return vec2(step(8.5, max(m, max(l, r))), m);
 }
-float inBar(Image tex, FACETS_HP vec2 t, FACETS_HP vec2 sc) {
+float inBar(Image tex, vec2 t, vec2 sc) {
   float up = 0.0;
   float dn = 0.0;
   float innerUp = 9.0;
@@ -230,14 +222,14 @@ float inBar(Image tex, FACETS_HP vec2 t, FACETS_HP vec2 sc) {
 // whether the pixel d game pixels from this one ends up the dark paper:
 // the menus' white, where DARK paints (the UI layer, its band or boxes),
 // and not a picture's. A letter turns white only with dark round it
-float goesDark(Image tex, FACETS_HP vec2 tc, FACETS_HP vec2 sc, vec2 d) {
+float goesDark(Image tex, vec2 tc, vec2 sc, vec2 d) {
   vec3 c = nbTex(tex, tc, sc, d);
-  FACETS_HP vec2 at = nbAt(sc, d);
-  FACETS_HP vec2 p = (at - uiOrigin) / uiSize;
+  vec2 at = nbAt(sc, d);
+  vec2 p = (at - uiOrigin) / uiSize;
   if (p.x < 0.0 || p.y < 0.0 || p.x >= 1.0 || p.y >= 1.0) return 0.0;
   float inBox = 0.0;
   if (boxesOn > 0.5) {
-    FACETS_HP vec2 b = (at - keepOrigin) / keepSize;
+    vec2 b = (at - keepOrigin) / keepSize;
     if (b.x >= 0.0 && b.y >= 0.0 && b.x < 1.0 && b.y < 1.0) inBox = Texel(boxes, b).a;
   }
   float region = boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : (gba > 0.5 ? inBox : step(bandTop, p.y));
@@ -247,18 +239,18 @@ float goesDark(Image tex, FACETS_HP vec2 tc, FACETS_HP vec2 sc, vec2 d) {
 // battle's scenery, a pale box): a letter beside it stays dark, readable.
 // (On the GBA games only near-white counts: a letter's own shadow is a
 // light grey)
-float staysLight(Image tex, FACETS_HP vec2 tc, FACETS_HP vec2 sc, vec2 d) {
+float staysLight(Image tex, vec2 tc, vec2 sc, vec2 d) {
   vec3 c = nbTex(tex, tc, sc, d);
   float light = step(gba > 0.5 ? 0.9 : 0.6, dot(c, vec3(0.299, 0.587, 0.114)));
   return light * (1.0 - goesDark(tex, tc, sc, d));
 }
-vec4 effect(vec4 color, Image tex, FACETS_HP vec2 tc, FACETS_HP vec2 sc) {
+vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
   vec4 c = Texel(tex, tc);
   vec3 o = c.rgb;
   if (paperOn > 0.5) {
     // the menus' own pixels: where the UI layer is drawn, white or nearly
     // (a palette's paper can be a touch off-white), and not a colour
-    FACETS_HP vec2 p = (sc - uiOrigin) / uiSize;
+    vec2 p = (sc - uiOrigin) / uiSize;
     if (p.x >= 0.0 && p.y >= 0.0 && p.x < 1.0 && p.y < 1.0) {
       float hi = max(o.r, max(o.g, o.b));
       float lo = min(o.r, min(o.g, o.b));
@@ -271,7 +263,7 @@ vec4 effect(vec4 color, Image tex, FACETS_HP vec2 tc, FACETS_HP vec2 sc) {
       // drew them, mapped as the pictures' copy is)
       float inBox = 0.0;
       if (boxesOn > 0.5) {
-        FACETS_HP vec2 b = (sc - keepOrigin) / keepSize;
+        vec2 b = (sc - keepOrigin) / keepSize;
         if (b.x >= 0.0 && b.y >= 0.0 && b.x < 1.0 && b.y < 1.0) inBox = Texel(boxes, b).a;
       }
       // (where the boxes are known, they alone: the text box is one). The
@@ -563,6 +555,11 @@ function filter.init(mod, rows, menu)
   local function run(src, slot, look, dots, steps, paper)
     local sh = getShader()
     if not sh then return nil end
+    -- a phone's driver may drop a value the shader doesn't strictly need,
+    -- and sending to one it dropped is an error: only what's there -Elvie
+    local function send(name, ...)
+      if sh:hasUniform(name) then sh:send(name, ...) end
+    end
     local w, h = src:getDimensions()
     local cv = canvases[slot]
     local dpi = src.getDPIScale and src:getDPIScale() or 1
@@ -574,55 +571,55 @@ function filter.init(mod, rows, menu)
     local pal = filter.SHADES[look] or filter.SHADES.gray
     for i = 1, 4 do
       local c = pal[i]
-      sh:send("s" .. (i - 1), { c[1] / 255, c[2] / 255, c[3] / 255 })
+      send("s" .. (i - 1), { c[1] / 255, c[2] / 255, c[3] / 255 })
     end
-    sh:send("mode", filter.SHADES[look] and 1 or look == "gbc" and 2 or 0)
-    sh:send("cut", filter.CUTS)
-    sh:send("steps", tonumber(steps) or 4)
-    sh:send("levels", filter.GBC_LEVELS)
-    sh:send("sat", filter.GBC_SATURATION)
-    sh:send("dots", dots and 1 or 0)
-    sh:send("dotShade", filter.DOT_SHADE)
-    sh:send("cell", grid.cell)
-    sh:send("origin", grid.origin)
+    send("mode", filter.SHADES[look] and 1 or look == "gbc" and 2 or 0)
+    send("cut", filter.CUTS)
+    send("steps", tonumber(steps) or 4)
+    send("levels", filter.GBC_LEVELS)
+    send("sat", filter.GBC_SATURATION)
+    send("dots", dots and 1 or 0)
+    send("dotShade", filter.DOT_SHADE)
+    send("cell", grid.cell)
+    send("origin", grid.origin)
     local tint = paper and filter.PAPER[paper]
     if tint and layer.canvas then
-      sh:send("paperOn", 1)
-      sh:send("paper", { tint[1] / 255, tint[2] / 255, tint[3] / 255 })
-      sh:send("ui", layer.canvas)
-      sh:send("uiOrigin", layer.origin)
-      sh:send("uiSize", layer.size)
+      send("paperOn", 1)
+      send("paper", { tint[1] / 255, tint[2] / 255, tint[3] / 255 })
+      send("ui", layer.canvas)
+      send("uiOrigin", layer.origin)
+      send("uiSize", layer.size)
     else
-      sh:send("paperOn", 0)
+      send("paperOn", 0)
     end
-    sh:send("paperDark", filter.isDark(paper) and 1 or 0)
-    sh:send("bandTop", filter.isDark(paper) and layer.band or 0)
-    sh:send("gba", layer.gen == 3 and 1 or 0)
-    sh:send("bandToo", layer.gen == 2 and 1 or 0)
+    send("paperDark", filter.isDark(paper) and 1 or 0)
+    send("bandTop", filter.isDark(paper) and layer.band or 0)
+    send("gba", layer.gen == 3 and 1 or 0)
+    send("bandToo", layer.gen == 2 and 1 or 0)
     -- a game pixel, in screen pixels, and the screen's size, so the look
     -- round lands on the middle of each game pixel and not between them,
     -- where black and white would blend -Elvie
     local sw, shh = src:getPixelDimensions()
-    sh:send("cellF", math.max(1, tonumber(layer.cell) or 1))
-    sh:send("srcPx", { math.max(1, sw), math.max(1, shh) })
+    send("cellF", math.max(1, tonumber(layer.cell) or 1))
+    send("srcPx", { math.max(1, sw), math.max(1, shh) })
     if tint and filter.isDark(paper) and (layer.band > 0 or layer.gen == 3) and pics.boxes and pics.boxesDrawn and pics.origin then
-      sh:send("boxesOn", 1)
-      sh:send("boxes", pics.boxes)
+      send("boxesOn", 1)
+      send("boxes", pics.boxes)
     else
-      sh:send("boxesOn", 0)
+      send("boxesOn", 0)
     end
     if pics.origin then
-      sh:send("keepOrigin", pics.origin)
-      sh:send("keepSize", pics.size)
+      send("keepOrigin", pics.origin)
+      send("keepSize", pics.size)
     end
     pics.boxesDrawn, pics.boxesFresh = false, false
     if tint and layer.canvas and pics.keep and pics.drawn and pics.origin then
-      sh:send("keepOn", 1)
-      sh:send("keep", pics.keep)
-      sh:send("keepOrigin", pics.origin)
-      sh:send("keepSize", pics.size)
+      send("keepOn", 1)
+      send("keep", pics.keep)
+      send("keepOrigin", pics.origin)
+      send("keepSize", pics.size)
     else
-      sh:send("keepOn", 0)
+      send("keepOn", 0)
     end
     -- the next frame's pictures start afresh (the game can draw one after
     -- render.compose, so this waits till the pass has used them) -Elvie
