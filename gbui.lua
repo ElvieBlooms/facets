@@ -192,6 +192,22 @@ function gbui.markPaper(x, y, w, h)
   if ok and type(filter.markPaper) == "function" then filter.markPaper(x, y, w, h) end
 end
 
+-- DARK, drawn: owns a window Facets draws (kept as drawn, its letters
+-- inked) and gives the paper's colour, or nil when not dark; and its
+-- frame art with the white inside it in that colour -Elvie
+function gbui.own(x, y, w, h)
+  local ok, filter = pcall(require, "mods.facets.filter")
+  if not (ok and type(filter.paperNow) == "function") then return nil end
+  local pp = filter.paperNow()
+  if pp and filter.own(x, y, w, h) then return pp end
+  return nil
+end
+function gbui.darkArt(img, pp, also)
+  if not pp then return img end
+  local ok, filter = pcall(require, "mods.facets.filter")
+  return ok and type(filter.darkArt) == "function" and filter.darkArt(img, also) or img
+end
+
 -- A Crystal window: (x, y) its top-left pixel, w by h tiles, border
 -- included. Crystal reuses the top edge for the bottom and one side
 -- tile for both sides. -Elvie
@@ -200,11 +216,13 @@ function gbui.box(frame, x, y, w, h)
   local n = (tonumber(frame) or 1) - 1
   if not a or n < 0 or n >= a.frameCount or w < 2 or h < 2 then return false end
   local G = love.graphics
-  G.setColor(PAPER[1] / 255, PAPER[2] / 255, PAPER[3] / 255, 1)
+  gbui.markPaper(x, y, w * T, h * T)
+  -- DARK: drawn dark and owned (filter.lua) -Elvie
+  local pp = gbui.own(x, y, w * T, h * T)
+  if pp then G.setColor(pp[1], pp[2], pp[3], 1) else G.setColor(PAPER[1] / 255, PAPER[2] / 255, PAPER[3] / 255, 1) end
   G.rectangle("fill", x, y, w * T, h * T)
   G.setColor(1, 1, 1, 1)
-  gbui.markPaper(x, y, w * T, h * T)
-  local img, base = a.framesImage, n * a.framesPerRow
+  local img, base = gbui.darkArt(a.framesImage, pp), n * a.framesPerRow
   local function tile(i, cx, cy) G.draw(img, quad(img, base + i), x + cx * T, y + cy * T) end
   tile(0, 0, 0)
   for cx = 1, w - 2 do tile(1, cx, 0) end
@@ -665,11 +683,14 @@ end
 -- Gen 3's 3x3 window frame round a content area (tiles), white inside. -Elvie
 function gbui.nineSlice(img, tx, ty, tw, th)
   local G = love.graphics
-  G.setColor(1, 1, 1, 1)
-  G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
   -- (the frame's cells too: their inside is the window's white) -Elvie
   gbui.markPaper((tx - 1) * T, (ty - 1) * T, (tw + 2) * T, (th + 2) * T)
-  local function cell(i, cx, cy) G.draw(img, quad(img, i), cx * T, cy * T) end
+  local pp = gbui.own((tx - 1) * T, (ty - 1) * T, (tw + 2) * T, (th + 2) * T)
+  if pp then G.setColor(pp[1], pp[2], pp[3], 1) else G.setColor(1, 1, 1, 1) end
+  G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
+  G.setColor(1, 1, 1, 1)
+  local art = gbui.darkArt(img, pp)
+  local function cell(i, cx, cy) G.draw(art, quad(art, i), cx * T, cy * T) end
   cell(0, tx - 1, ty - 1)
   for i = 0, tw - 1 do cell(1, tx + i, ty - 1) end
   cell(2, tx + tw, ty - 1)
@@ -688,13 +709,19 @@ end
 function gbui.dialogueBox(img, fill)
   local G = love.graphics
   local L, Top, W, H = 2, 15, 26, 4
-  G.setColor(fill[1], fill[2], fill[3], 1)
+  gbui.markPaper(L * T, Top * T, W * T, H * T)
+  local pp = nil
+  if fill[1] > 0.85 and fill[2] > 0.85 and fill[3] > 0.85 then
+    pp = gbui.own((L - 2) * T, (Top - 1) * T, (W + 4) * T, (H + 2) * T)
+  end
+  local inside = pp or fill
+  G.setColor(inside[1], inside[2], inside[3], 1)
   G.rectangle("fill", L * T, Top * T, W * T, H * T)
   G.setColor(1, 1, 1, 1)
-  gbui.markPaper(L * T, Top * T, W * T, H * T)
+  local art = gbui.darkArt(img, pp, { fill[1], fill[2], fill[3] })
   local function cell(i, cx, cy, flip)
-    if flip then G.draw(img, quad(img, i), cx * T, cy * T + T, 0, 1, -1)
-    else G.draw(img, quad(img, i), cx * T, cy * T) end
+    if flip then G.draw(art, quad(art, i), cx * T, cy * T + T, 0, 1, -1)
+    else G.draw(art, quad(art, i), cx * T, cy * T) end
   end
   for _, edge in ipairs({ { Top - 1, false }, { Top + H, true } }) do
     local y, f = edge[1], edge[2]

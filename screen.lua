@@ -254,6 +254,15 @@ function screen.new(mod, model)
       love.graphics.setColor(1, 1, 1, 1)
       love.graphics.rectangle("fill", 8, 24, 224, 128)
     end
+    -- DARK: the window's inside drawn in the paper's colour and owned, so
+    -- its letters are inked as they're drawn (filter.lua) -Elvie
+    local okF, filter = pcall(require, "mods.facets.filter")
+    local pp = okF and type(filter.paperNow) == "function" and filter.paperNow() or nil
+    if pp and filter.own(8, 24, 224, 128) then
+      love.graphics.setColor(pp[1], pp[2], pp[3], 1)
+      love.graphics.rectangle("fill", 8, 24, 224, 128)
+      love.graphics.setColor(1, 1, 1, 1)
+    end
   end
 
   local function drawCredits(Window, FrlgFont)

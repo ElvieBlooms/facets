@@ -578,6 +578,21 @@ function windows.init(mod, rows)
           if atRight then hr = h.right end
         end
       end
+      -- DARK: a white inside is the paper's colour, the frame's own white
+      -- inside it too, and the box is owned (kept as drawn, its letters
+      -- inked) -Elvie
+      local okF0, filter0 = pcall(require, "mods.facets.filter")
+      local pp = okF0 and type(filter0.paperNow) == "function" and filter0.paperNow() or nil
+      local dark = false
+      -- (a box Font.drawBox's own wrap has already given the paper's
+      -- colour counts too) -Elvie
+      local white = inside[1] > 0.85 and inside[2] > 0.85 and inside[3] > 0.85
+      local already = pp and math.abs(inside[1] - pp[1]) + math.abs(inside[2] - pp[2]) + math.abs(inside[3] - pp[3]) < 0.02
+      if pp and (white or already)
+          and filter0.own(tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb) then
+        inside, dark = pp, true
+        img = filter0.darkArt(img, kind == "dialogue" and a.fill or nil) or img
+      end
       G.setColor(inside[1], inside[2], inside[3], 1)
       if kind == "dialogue" then
         -- only inside the border: the text box's own tiles carry their
@@ -602,7 +617,8 @@ function windows.init(mod, rows)
       local keep = okF and (filter.keepFrame or filter.keepDraw) or function() end
       -- the box covers whatever was kept under it (another window's frame)
       -- before its own frame is kept -Elvie
-      if okF and type(filter.markPaper) == "function" then filter.markPaper(tx * T, ty * T, tw * T, th * T) end
+      -- (an owned box is already marked, and kept) -Elvie
+      if not dark and okF and type(filter.markPaper) == "function" then filter.markPaper(tx * T, ty * T, tw * T, th * T) end
       if kind == "dialogue" then
         windows.dialogueCells(tx, ty, tw, th, function(i, cx, cy, flip, dx, dy)
           local x, y = cx * T + (dx or 0), cy * T + (dy or 0)
@@ -623,7 +639,10 @@ function windows.init(mod, rows)
       if shader then G.setShader(shader) end
       if kind == "dialogue" then
         local c = a.fill
-        if c[1] < 1 or c[2] < 1 or c[3] < 1 then
+        -- (drawn dark, its letters are inked instead) -Elvie
+        if dark then
+          windows.paper = nil
+        elseif c[1] < 1 or c[2] < 1 or c[3] < 1 then
           local stats = G.getStats and G.getStats()
           windows.paper = { x = tx * T, y = ty * T, w = tw * T, h = th * T,
             fill = { math.floor(c[1] * 255 + 0.5), math.floor(c[2] * 255 + 0.5), math.floor(c[3] * 255 + 0.5) },

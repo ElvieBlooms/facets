@@ -626,6 +626,7 @@ function filter.init(mod, rows, menu)
     -- the next frame's pictures start afresh (the game can draw one after
     -- render.compose, so this waits till the pass has used them) -Elvie
     pics.drawn, pics.fresh = false, false
+    if slot ~= "map" and filter.ownedReset then filter.ownedReset() end
     love.graphics.push("all")
     love.graphics.setCanvas(cv)
     love.graphics.clear(0, 0, 0, 0)
@@ -1127,6 +1128,22 @@ function filter.init(mod, rows, menu)
       local ownDraw = G.draw
       G.draw = function(drawable, x, ...)
         local target = G.getCanvas()
+        -- (filter.inkNow: a letter in a window drawn dark, in its dark
+        -- colours, as they are: no palette shader over it) -Elvie
+        if filter.inkNow and type(drawable) == "userdata" and drawable.typeOf and drawable:typeOf("Texture") then
+          local cr, cg, cb = G.getColor()
+          local inked = filter.inked(drawable, 0.299 * cr + 0.587 * cg + 0.114 * cb < 0.5)
+          if inked then
+            local sh = G.getShader and G.getShader() or nil
+            local r, g, b, a = G.getColor()
+            if sh then G.setShader() end
+            G.setColor(1, 1, 1, a)
+            ownDraw(inked, x, ...)
+            G.setColor(r, g, b, a)
+            if sh then G.setShader(sh) end
+            return
+          end
+        end
         -- (filter.keeping: everything a menu's preview draws is a picture)
         if filter.keepingAll and target and type(drawable) == "userdata" and not images[drawable]
             and drawable.typeOf and drawable:typeOf("Texture") then
@@ -1248,6 +1265,210 @@ function filter.init(mod, rows, menu)
       return filter.keepDraw(frameMask(img) or img, ...)
     end
 
+    -- DARK, drawn rather than worked out. The windows Facets draws, and
+    -- the boxes the game draws through Font.drawBox, are drawn dark to
+    -- begin with: the inside in the paper's colour, the frame's inside
+    -- white too, and the letters white with a grey outline. Each such
+    -- window is "owned" for the frame: kept, so the pass leaves it as
+    -- drawn, and its letters are inked as they're drawn -Elvie
+    local function paperNow()
+      local p = select(5, filter.settings(get))
+      if not filter.isDark(p) then return nil end
+      local t = filter.PAPER[p]
+      return { t[1] / 255, t[2] / 255, t[3] / 255 }, p
+    end
+    filter.paperNow = paperNow
+    function filter.outlineOf(pp)
+      return { pp[1] * 0.78 + 0.93 * 0.22, pp[2] * 0.78 + 0.93 * 0.22, pp[3] * 0.78 + 0.94 * 0.22 }
+    end
+    -- an image's pixels, read once (drawn to a canvas and read back) -Elvie
+    local pixels = setmetatable({}, { __mode = "k" })
+    local function pixelsOf(img)
+      local got = pixels[img]
+      if got ~= nil then return got or nil end
+      pixels[img] = false
+      local ok, data = pcall(function()
+        local G = love.graphics
+        local w, h = img:getPixelDimensions()
+        local c = G.newCanvas(w, h, { dpiscale = 1 })
+        G.push("all")
+        G.setCanvas(c)
+        G.origin()
+        G.setScissor()
+        G.setShader()
+        G.clear(0, 0, 0, 0)
+        G.setBlendMode("replace", "premultiplied")
+        G.setColor(1, 1, 1, 1)
+        G.draw(img, 0, 0, 0, w / img:getWidth(), h / img:getHeight())
+        G.pop()
+        return c:newImageData()
+      end)
+      pixels[img] = ok and data or false
+      return pixels[img] or nil
+    end
+    local function kindOf(data, x, y, w, h)
+      if x < 0 or y < 0 or x >= w or y >= h then return "none" end
+      local r, g, b, a = data:getPixel(x, y)
+      if a < 0.5 then return "none" end
+      local hi, lo = math.max(r, g, b), math.min(r, g, b)
+      local l = 0.299 * r + 0.587 * g + 0.114 * b
+      if l > 0.8 and hi - lo < 0.07 then return "white" end
+      if l < 0.2 and hi - lo < 0.12 then return "black" end
+      return "colour"
+    end
+    -- a variant of an image made once per paper -Elvie
+    local variants = setmetatable({}, { __mode = "k" })
+    local function variant(img, key, make)
+      local per = variants[img]
+      if not per then per = {}; variants[img] = per end
+      if per[key] ~= nil then return per[key] or nil end
+      per[key] = false
+      local data = pixelsOf(img)
+      if not data then return nil end
+      local ok, out = pcall(function()
+        local d = data:clone()
+        make(d, data, d:getWidth(), d:getHeight())
+        local m = love.graphics.newImage(d, { dpiscale = img:getDPIScale() })
+        m:setFilter("nearest", "nearest")
+        return m
+      end)
+      per[key] = ok and out or false
+      return per[key] or nil
+    end
+    -- frame art drawn dark: the white inside it (white not beside one of
+    -- the frame's colours) is the paper's colour -Elvie
+    -- (also: a colour of its own inside, { r, g, b } 0-1, a text box's
+    -- fill, taken as its white) -Elvie
+    function filter.darkArt(img, also)
+      local pp, key = paperNow()
+      if not pp or type(img) ~= "userdata" then return img end
+      local tag = "art:" .. key
+      if type(also) == "table" then tag = tag .. (":%.3f,%.3f,%.3f"):format(also[1], also[2], also[3]) end
+      local function inside(src, x, y, w, h)
+        local k = kindOf(src, x, y, w, h)
+        if k == "white" then return true end
+        if k == "colour" and type(also) == "table" then
+          local r, g, b = src:getPixel(x, y)
+          return math.abs(r - also[1]) + math.abs(g - also[2]) + math.abs(b - also[3]) < 0.06
+        end
+        return false
+      end
+      return variant(img, tag, function(d, src, w, h)
+        for y = 0, h - 1 do
+          for x = 0, w - 1 do
+            if inside(src, x, y, w, h) then
+              local beside = false
+              for dy = -1, 1 do
+                for dx = -1, 1 do
+                  if (dx ~= 0 or dy ~= 0) and kindOf(src, x + dx, y + dy, w, h) == "colour"
+                      and not inside(src, x + dx, y + dy, w, h) then beside = true end
+                end
+              end
+              if not beside then d:setPixel(x, y, pp[1], pp[2], pp[3], 1) end
+            end
+          end
+        end
+      end) or img
+    end
+    -- a letter sheet inked: black is white, white (a letter's own paper,
+    -- on Gold to Crystal) the paper's colour, grey the outline, and the
+    -- see-through beside a letter (in its own 8x8 cell) the outline -Elvie
+    -- (tinted: a sheet of white letters drawn in a dark colour, as Red,
+    -- Blue and Yellow's are, whose white is the ink) -Elvie
+    function filter.inked(img, tinted)
+      local pp, key = paperNow()
+      if not pp then return nil end
+      local ol = filter.outlineOf(pp)
+      local function kindAt(src, x, y, w, h)
+        local k = kindOf(src, x, y, w, h)
+        if tinted and k ~= "none" then return "black" end
+        return k
+      end
+      return variant(img, (tinted and "inkT:" or "ink:") .. key, function(d, src, w, h)
+        for y = 0, h - 1 do
+          for x = 0, w - 1 do
+            local k = kindAt(src, x, y, w, h)
+            if k == "black" then d:setPixel(x, y, 0.93, 0.93, 0.94, 1)
+            elseif k == "white" then d:setPixel(x, y, pp[1], pp[2], pp[3], 1)
+            elseif k == "none" then
+              local cx, cy, near = math.floor(x / 8), math.floor(y / 8), false
+              for dy = -1, 1 do
+                for dx = -1, 1 do
+                  local nx, ny = x + dx, y + dy
+                  if math.floor(nx / 8) == cx and math.floor(ny / 8) == cy and kindAt(src, nx, ny, w, h) == "black" then near = true end
+                end
+              end
+              if near then d:setPixel(x, y, ol[1], ol[2], ol[3], 1) end
+            else
+              local r, g, b = src:getPixel(x, y)
+              local l = 0.299 * r + 0.587 * g + 0.114 * b
+              if math.max(r, g, b) - math.min(r, g, b) < 0.1 then d:setPixel(x, y, ol[1], ol[2], ol[3], 1)
+              elseif l < 0.45 then d:setPixel(x, y, r, g, b, 1) end
+            end
+          end
+        end
+      end)
+    end
+    -- the windows owned this frame: { canvas, x0, y0, x1, y1 } in the
+    -- pixels of what they're drawn on -Elvie
+    local owned = {}
+    filter.ownedReset = function() owned = {} end
+    local function targetOf()
+      local c = love.graphics.getCanvas()
+      if type(c) == "table" then c = c[1] and (c[1].texture or c[1]) end
+      return c
+    end
+    -- Owns a window (x, y, w, h in what's being drawn on, under the current
+    -- transform): kept, and its letters inked. False when not dark -Elvie
+    function filter.own(x, y, w, h)
+      if not paperNow() or not (tonumber(x) and tonumber(w)) then return false end
+      local G = love.graphics
+      local target = targetOf()
+      if not target then return false end
+      local x0, y0 = G.transformPoint(x, y)
+      local x1, y1 = G.transformPoint(x + w, y + h)
+      owned[#owned + 1] = { target, math.min(x0, x1), math.min(y0, y1), math.max(x0, x1), math.max(y0, y1) }
+      if filter.keepRect then filter.keepRect(x, y, w, h) end
+      return true
+    end
+    function filter.ownedAt(x, y)
+      if #owned == 0 then return false end
+      local target = targetOf()
+      local sx, sy = love.graphics.transformPoint(x, y)
+      for i = #owned, 1, -1 do
+        local o = owned[i]
+        if o[1] == target and sx >= o[2] and sy >= o[3] and sx < o[4] and sy < o[5] then return true end
+      end
+      return false
+    end
+    -- the keep, for a whole rectangle -Elvie
+    filter.keepRect = function(x, y, w, h)
+      local G = love.graphics
+      local target = G.getCanvas()
+      if not target then return end
+      local cw, ch = target:getDimensions()
+      local dpi = target:getDPIScale()
+      if not pics.keep or pics.keep:getWidth() ~= cw or pics.keep:getHeight() ~= ch or pics.keep:getDPIScale() ~= dpi then
+        local okK, k = pcall(G.newCanvas, cw, ch, { dpiscale = dpi })
+        pics.keep = okK and k or nil
+        pics.fresh = false
+      end
+      if not pics.keep then return end
+      G.push("all")
+      G.setCanvas(pics.keep)
+      if not pics.fresh then
+        G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
+        pics.fresh = true
+      end
+      G.setShader()
+      G.setScissor()
+      G.setBlendMode("alpha")
+      G.setColor(1, 1, 1, 1)
+      G.rectangle("fill", x, y, w, h)
+      G.pop()
+      pics.drawn = true
+    end
+
     -- DARK in Red, Blue and Yellow's battles: the game's own boxes (the HP
     -- boxes, the text box) go dark with the text box, so where each box is
     -- drawn is kept on a copy the size of what it's drawn on -Elvie
@@ -1299,9 +1520,164 @@ function filter.init(mod, rows, menu)
     if (gen == 1 or gen == 2) and okF and type(Font) == "table" and type(Font.drawBox) == "function" and not Font.facetsPaperBoxes then
       Font.facetsPaperBoxes = true
       local ownBox = Font.drawBox
-      Font.drawBox = function(tx, ty, tw, th, ...)
+      local okPF, PaletteFX = pcall(require, "src.render.PaletteFX")
+      Font.drawBox = function(tx, ty, tw, th, fill, ...)
         if type(tx) == "number" and type(tw) == "number" then filter.markPaper(tx * 8, ty * 8, tw * 8, th * 8) end
-        return ownBox(tx, ty, tw, th, ...)
+        -- DARK: a white box is drawn dark, as it is: its inside the
+        -- paper's colour (no palette shader over it) and owned, so its
+        -- letters and border are inked. A box of another colour (the
+        -- Pokégear's cream) is left to the pass -Elvie
+        local pp = paperNow()
+        local white = fill == nil or (type(fill) == "table" and (tonumber(fill[1]) or 0) >= 200
+          and (tonumber(fill[2]) or 0) >= 200 and (tonumber(fill[3]) or 0) >= 200)
+        if pp and white and type(tx) == "number" and type(tw) == "number"
+            and filter.own(tx * 8, ty * 8, tw * 8, th * 8) then
+          local G = love.graphics
+          local sh = G.getShader and G.getShader() or nil
+          if sh then G.setShader() end
+          local results = { pcall(ownBox, tx, ty, tw, th,
+            { math.floor(pp[1] * 255 + 0.5), math.floor(pp[2] * 255 + 0.5), math.floor(pp[3] * 255 + 0.5) }, ...) }
+          if sh then G.setShader(sh) end
+          -- Red, Blue and Yellow recolour the screen afterwards: the box
+          -- keeps its own colours -Elvie
+          if gen == 1 and okPF and type(PaletteFX) == "table" and type(PaletteFX.markTrueColor) == "function" then
+            pcall(PaletteFX.markTrueColor, tx * 8, ty * 8, tw * 8, th * 8)
+          end
+          if not results[1] then error(results[2], 0) end
+          return unpack(results, 2)
+        end
+        return ownBox(tx, ty, tw, th, fill, ...)
+      end
+    end
+    -- and their letters (and the border, the cursor), inked where a box is
+    -- owned -Elvie
+    if (gen == 1 or gen == 2) and okF and type(Font) == "table" and type(Font.drawCode) == "function" and not Font.facetsInk then
+      Font.facetsInk = true
+      local ownCode = Font.drawCode
+      Font.drawCode = function(code, x, y, ...)
+        if not (type(x) == "number" and type(y) == "number" and paperNow() and filter.ownedAt(x + 4, y + 4)) then
+          return ownCode(code, x, y, ...)
+        end
+        local G = love.graphics
+        local r, g, b, a = G.getColor()
+        if type(code) == "number" and code >= (Font.TTF_BASE or math.huge) then G.setColor(0.93, 0.93, 0.94, a) end
+        filter.inkNow = true
+        local ok, err = pcall(ownCode, code, x, y, ...)
+        filter.inkNow = false
+        G.setColor(r, g, b, a)
+        if not ok then error(err, 0) end
+      end
+    end
+    -- Gold, Silver and Crystal print their letters on a strip of the
+    -- palette's paper: in an owned box that strip is the paper's colour
+    -- (the letters themselves are inked as above) -Elvie
+    local okC2, Chrome2 = false, nil
+    if gen == 2 then okC2, Chrome2 = pcall(require, "src.ui.gen2.Chrome") end
+    if okC2 and type(Chrome2) == "table" and type(Chrome2.throughPalette) == "function" and not Chrome2.facetsInk then
+      Chrome2.facetsInk = true
+      local inking = false
+      local function dark(pal)
+        if not inking or type(pal) ~= "table" then return pal end
+        local pp = paperNow()
+        if not pp then return pal end
+        local out = {}
+        for i, v in ipairs(pal) do out[i] = v end
+        out[1] = { math.floor(pp[1] * 255 + 0.5), math.floor(pp[2] * 255 + 0.5), math.floor(pp[3] * 255 + 0.5) }
+        out[4] = { 237, 237, 240 }
+        return out
+      end
+      for _, name in ipairs({ "throughPalette", "rawPalette" }) do
+        local ownP = Chrome2[name]
+        if type(ownP) == "function" then
+          Chrome2[name] = function(...) return dark(ownP(...)) end
+        end
+      end
+      local function atTile(ownF, textFirst)
+        return function(...)
+          local tx, ty
+          if textFirst then tx, ty = select(2, ...) else tx, ty = ... end
+          if not (type(tx) == "number" and type(ty) == "number" and paperNow() and filter.ownedAt(tx * 8 + 2, ty * 8 + 4)) then
+            return ownF(...)
+          end
+          local was = inking
+          inking = true
+          local results = { pcall(ownF, ...) }
+          inking = was
+          if not results[1] then error(results[2], 0) end
+          return unpack(results, 2)
+        end
+      end
+      if type(Chrome2.printThrough) == "function" then Chrome2.printThrough = atTile(Chrome2.printThrough, true) end
+      if type(Chrome2.printRightThrough) == "function" then
+        local ownR = Chrome2.printRightThrough
+        Chrome2.printRightThrough = function(text, txEnd, ty, ...)
+          if not (type(txEnd) == "number" and type(ty) == "number" and paperNow() and filter.ownedAt(txEnd * 8 - 4, ty * 8 + 4)) then
+            return ownR(text, txEnd, ty, ...)
+          end
+          local was = inking
+          inking = true
+          local results = { pcall(ownR, text, txEnd, ty, ...) }
+          inking = was
+          if not results[1] then error(results[2], 0) end
+          return unpack(results, 2)
+        end
+      end
+      if type(Chrome2.cursorThrough) == "function" then Chrome2.cursorThrough = atTile(Chrome2.cursorThrough, false) end
+      -- and the text box's letters, placed one by one -Elvie
+      if type(Chrome2.paletteGlyphs) == "function" then
+        local ownG = Chrome2.paletteGlyphs
+        Chrome2.paletteGlyphs = function(...)
+          local pal, drawGlyph, finish = ownG(...)
+          if not pal then return pal, drawGlyph, finish end
+          return pal, function(code, x, y, ...)
+            if type(x) == "number" and paperNow() and filter.ownedAt(x + 4, y + 4) then
+              Font.drawCode(code, x, y)
+              return
+            end
+            return drawGlyph(code, x, y, ...)
+          end, finish
+        end
+      end
+    end
+    -- the GBA games: letters in an owned window (Facets' windows) inked,
+    -- dark grey (the game's black) to white with a grey shadow; coloured
+    -- letters stay -Elvie
+    local okFF, FrlgFont = false, nil
+    if gen == 3 then okFF, FrlgFont = pcall(require, "src.ui.game3.frlg_font") end
+    if okFF and type(FrlgFont) == "table" and type(FrlgFont.draw) == "function" and not FrlgFont.facetsInk then
+      FrlgFont.facetsInk = true
+      local ownFD = FrlgFont.draw
+      local function plain(c)
+        if type(c) ~= "table" then return false end
+        local r, g, b = tonumber(c[1]) or 0, tonumber(c[2]) or 0, tonumber(c[3]) or 0
+        if r > 1 or g > 1 or b > 1 then r, g, b = r / 255, g / 255, b / 255 end
+        return 0.299 * r + 0.587 * g + 0.114 * b <= 0.45 and math.max(r, g, b) - math.min(r, g, b) < 0.15
+      end
+      local function inkOpts(x, y, opts)
+        local pp = paperNow()
+        if not (pp and type(x) == "number" and type(y) == "number" and filter.ownedAt(x + 2, y + 2)) then return nil end
+        opts = opts or {}
+        local base = opts.colors
+        if not base and opts.color then base = { fg = opts.color, shadow = opts.shadow, bg = opts.bg } end
+        if not base and not opts.gfxId and not opts.npcColor then
+          base = (opts.small and FrlgFont.COLOR and FrlgFont.COLOR.PARTY) or (FrlgFont.COLOR and FrlgFont.COLOR.NORMAL)
+        end
+        if not (base and plain(base.fg)) then return nil end
+        local o = {}
+        for k, v in pairs(opts) do o[k] = v end
+        local ol = filter.outlineOf(pp)
+        o.colors = { fg = { 0.93, 0.93, 0.94, 1 }, shadow = { ol[1], ol[2], ol[3], 1 }, bg = base.bg }
+        o.color, o.shadow, o.gfxId, o.npcColor = nil, nil, nil, nil
+        return o
+      end
+      FrlgFont.draw = function(text, x, y, opts, ...)
+        return ownFD(text, x, y, inkOpts(x, y, opts) or opts, ...)
+      end
+      if type(FrlgFont.drawGlyph) == "function" then
+        local ownGlyph = FrlgFont.drawGlyph
+        FrlgFont.drawGlyph = function(id, x, y, opts, ...)
+          return ownGlyph(id, x, y, inkOpts(x, y, opts) or opts, ...)
+        end
       end
     end
 
@@ -1345,11 +1721,12 @@ function filter.init(mod, rows, menu)
         local own = Chrome3[name]
         if type(own) == "function" then
           Chrome3[name] = function(...)
-            local results = { own(...) }
+            -- (marked first: a window drawn dark inside it is owned and
+            -- kept, and marking clears what's kept) -Elvie
             local a, b, c, d = ...
             if name == "userFrame" then a, b, c, d = select(2, ...) end
             if tonumber(a) and tonumber(c) then filter.markPaper(a * T, b * T, c * T, d * T) end
-            return unpack(results)
+            return own(...)
           end
         end
       end
@@ -1357,14 +1734,13 @@ function filter.init(mod, rows, menu)
         local own = Chrome3[name]
         if type(own) == "function" then
           Chrome3[name] = function(...)
-            local results = { own(...) }
             local L, Top, W, H = 2, 15, 26, 4
             if type(Chrome3.dialogueWindow) == "function" then
               local ok, l, t, w, h = pcall(Chrome3.dialogueWindow)
               if ok and tonumber(l) then L, Top, W, H = l, t, w, h end
             end
             filter.markPaper(L * T, Top * T, W * T, H * T)
-            return unpack(results)
+            return own(...)
           end
         end
       end
@@ -1372,7 +1748,6 @@ function filter.init(mod, rows, menu)
       if okB and type(BattleChrome) == "table" and type(BattleChrome.drawPanel) == "function" then
         local ownPanel = BattleChrome.drawPanel
         BattleChrome.drawPanel = function(mode, ...)
-          local results = { ownPanel(mode, ...) }
           local hoenn = type(BattleChrome.isHoenn) == "function" and BattleChrome.isHoenn()
           if not hoenn then
             -- FireRed and LeafGreen: the FIGHT box on the right half, the
@@ -1380,7 +1755,7 @@ function filter.init(mod, rows, menu)
             if mode == "menu" then filter.markPaper(120, 112, 120, 48)
             elseif mode == "moves" then filter.markPaper(0, 112, 240, 48) end
           end
-          return unpack(results)
+          return ownPanel(mode, ...)
         end
       end
     end
