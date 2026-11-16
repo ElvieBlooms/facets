@@ -138,8 +138,8 @@ extern Image keep;
 extern vec2 keepOrigin;
 extern vec2 keepSize;
 extern float paperDark;
-extern vec2 texStep;
-extern float cellPx;
+extern float cellF;
+extern vec2 srcPx;
 extern float bandTop;
 extern float gba;
 // whether a pixel is the white or near-white of a menu's paper
@@ -161,6 +161,17 @@ vec2 around(int i) {
   if (i == 6) return vec2(1.0, -1.0);
   return vec2(-1.0, 1.0);
 }
+// the screen spot at the middle of the game pixel d game pixels from the
+// one at sc. A game pixel is seldom a whole number of screen pixels, so
+// the look round goes from game pixel to game pixel, not by a fixed step
+// that drifts off them a few pixels out
+vec2 nbAt(vec2 sc, vec2 d) {
+  vec2 g = floor((sc - uiOrigin) / cellF);
+  return uiOrigin + (g + d + 0.5) * cellF;
+}
+vec3 nbTex(Image tex, vec2 tc, vec2 sc, vec2 d) {
+  return Texel(tex, tc + (nbAt(sc, d) - sc) / srcPx).rgb;
+}
 // how much a picture kept this frame covers screen pixel at
 float keptAt(vec2 at) {
   if (keepOn < 0.5) return 0.0;
@@ -168,19 +179,67 @@ float keptAt(vec2 at) {
   if (k.x < 0.0 || k.y < 0.0 || k.x >= 1.0 || k.y >= 1.0) return 0.0;
   return Texel(keep, k).a;
 }
-// on Red to Crystal, whether the pixel at t sits in a black box (the
-// bag's pocket name, its header bar): black three game pixels off in most
-// directions. A black letter is thin, with paper three pixels off; white
-// letters on a black box are the box's, and stay as they are
-float blackArea(Image tex, vec2 t, vec2 step1) {
-  float n = 0.0;
-  for (int i = 0; i < 8; i++) {
-    vec3 c = Texel(tex, t + step1 * 3.0 * around(i)).rgb;
-    float chi = max(c.r, max(c.g, c.b));
-    float clo = min(c.r, min(c.g, c.b));
-    n += step(dot(c, vec3(0.299, 0.587, 0.114)), 0.2) * (1.0 - step(0.12, chi - clo));
+// on Red to Crystal, whether the pixel at t sits in a black bar or box
+// (the bag's header and its pocket name): white letters on black, which
+// stay as they are. A bar has a solid dark row (nine game pixels across)
+// above and below, within seven rows, each with some dark on its inside.
+// A one-line window's border is solid too, but has paper on its inside,
+// and a black letter is never nine pixels wide. (Dark counts the box's
+// border, red on the bag)
+// how dark the row dy game pixels off is round this one: the count in
+// the nine pixels centred on it (y), and whether nine in a row are all
+// dark centred, to the left or to the right (x: a letter by a box's edge)
+vec2 rowDark(Image tex, vec2 t, vec2 sc, float dy) {
+  float l = 0.0;
+  float m = 0.0;
+  float r = 0.0;
+  for (int x = -8; x <= 8; x++) {
+    float d = step(dot(nbTex(tex, t, sc, vec2(float(x), dy)), vec3(0.299, 0.587, 0.114)), 0.32);
+    if (x <= 0) l += d;
+    if (x >= -4 && x <= 4) m += d;
+    if (x >= 0) r += d;
   }
-  return step(4.5, n);
+  return vec2(step(8.5, max(m, max(l, r))), m);
+}
+float inBar(Image tex, vec2 t, vec2 sc) {
+  float up = 0.0;
+  float dn = 0.0;
+  float innerUp = 9.0;
+  float innerDn = 9.0;
+  for (int k = 1; k <= 7; k++) {
+    vec2 ru = rowDark(tex, t, sc, -float(k));
+    vec2 rd = rowDark(tex, t, sc, float(k));
+    up = max(up, ru.x * step(0.5, innerUp));
+    dn = max(dn, rd.x * step(0.5, innerDn));
+    innerUp = ru.y;
+    innerDn = rd.y;
+  }
+  return up * dn;
+}
+// whether the pixel d game pixels from this one ends up the dark paper:
+// the menus' white, where DARK paints (the UI layer, its band or boxes),
+// and not a picture's. A letter turns white only with dark round it
+float goesDark(Image tex, vec2 tc, vec2 sc, vec2 d) {
+  vec3 c = nbTex(tex, tc, sc, d);
+  vec2 at = nbAt(sc, d);
+  vec2 p = (at - uiOrigin) / uiSize;
+  if (p.x < 0.0 || p.y < 0.0 || p.x >= 1.0 || p.y >= 1.0) return 0.0;
+  float inBox = 0.0;
+  if (boxesOn > 0.5) {
+    vec2 b = (at - keepOrigin) / keepSize;
+    if (b.x >= 0.0 && b.y >= 0.0 && b.x < 1.0 && b.y < 1.0) inBox = Texel(boxes, b).a;
+  }
+  float region = boxesOn > 0.5 ? inBox : (gba > 0.5 ? inBox : step(bandTop, p.y));
+  return paperish(c) * Texel(ui, p).a * region * (1.0 - keptAt(at) * (1.0 - inBox));
+}
+// whether a light pixel near this one stays light (a picture's white, the
+// battle's scenery, a pale box): a letter beside it stays dark, readable.
+// (On the GBA games only near-white counts: a letter's own shadow is a
+// light grey)
+float staysLight(Image tex, vec2 tc, vec2 sc, vec2 d) {
+  vec3 c = nbTex(tex, tc, sc, d);
+  float light = step(gba > 0.5 ? 0.9 : 0.6, dot(c, vec3(0.299, 0.587, 0.114)));
+  return light * (1.0 - goesDark(tex, tc, sc, d));
 }
 vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
   vec4 c = Texel(tex, tc);
@@ -210,7 +269,6 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       // a picture drawn this frame keeps its white, as drawn, unless a box
       // covers it (the move box over your Pokémon)
       w *= 1.0 - keptAt(sc) * (1.0 - inBox);
-      if (paperDark > 0.5 && gba < 0.5 && w > 0.5) w *= 1.0 - blackArea(tex, tc, texStep);
       // DARK on Red to Crystal: a black letter (or a frame's black line) on
       // the paper turns white, and the paper beside it is its outline, a
       // game pixel wide, in a grey a little lighter than the paper, as the
@@ -219,11 +277,16 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       float edge = 0.0;
       if (paperDark > 0.5 && w > 0.5 && gba < 0.5) {
         for (int i = 0; i < 8; i++) {
-          vec3 c = Texel(tex, tc + texStep * around(i)).rgb;
+          vec3 c = nbTex(tex, tc, sc, around(i));
           float chi = max(c.r, max(c.g, c.b));
           float clo = min(c.r, min(c.g, c.b));
           float black = step(dot(c, vec3(0.299, 0.587, 0.114)), 0.2) * (1.0 - smoothstep(0.08, 0.14, chi - clo));
-          edge = max(edge, black * (1.0 - keptAt(sc + around(i) * cellPx) * (1.0 - inBox)));
+          edge = max(edge, black * (1.0 - keptAt(nbAt(sc, around(i))) * (1.0 - inBox)));
+        }
+        // a white letter on a black bar is the bar's: it stays white
+        if (edge > 0.5 && inBar(tex, tc, sc) > 0.5) {
+          w = 0.0;
+          edge = 0.0;
         }
       }
       // the GBA games' letters are dark grey with a light grey shadow, not
@@ -237,13 +300,15 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
         float l = dot(before, vec3(0.299, 0.587, 0.114));
         float region = Texel(ui, p).a * (boxesOn > 0.5 ? inBox : step(bandTop, p.y)) * (1.0 - keptAt(sc) * (1.0 - inBox));
         if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region > 0.5
-            && blackArea(tex, tc, texStep) < 0.5) {
+            && inBar(tex, tc, sc) < 0.5) {
           float onPaper = 0.0;
+          float light = 0.0;
           for (int i = 0; i < 8; i++) {
-            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * around(i)).rgb));
-            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * 2.0 * around(i)).rgb));
+            onPaper = max(onPaper, goesDark(tex, tc, sc, around(i)));
+            onPaper = max(onPaper, goesDark(tex, tc, sc, 2.0 * around(i)));
+            light = max(light, staysLight(tex, tc, sc, around(i)));
           }
-          if (onPaper > 0.5) o = vec3(0.93, 0.93, 0.94);
+          if (onPaper > 0.5 && light < 0.5) o = vec3(0.93, 0.93, 0.94);
         }
       }
       if (gba > 0.5 && paperDark > 0.5 && w < 0.5) {
@@ -254,11 +319,13 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
         if ((text + shade) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * Texel(ui, p).a > 0.5
             && inBox > 0.5 && keptAt(sc) < 0.5) {
           float onPaper = 0.0;
+          float light = 0.0;
           for (int i = 0; i < 8; i++) {
-            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * around(i)).rgb));
-            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * 2.0 * around(i)).rgb));
+            onPaper = max(onPaper, goesDark(tex, tc, sc, around(i)));
+            onPaper = max(onPaper, goesDark(tex, tc, sc, 2.0 * around(i)));
+            light = max(light, staysLight(tex, tc, sc, around(i)));
           }
-          onPaper *= inBox;
+          onPaper *= inBox * (1.0 - light);
           if (onPaper > 0.5) o = text > 0.5 ? vec3(0.93, 0.93, 0.94) : mix(paper, vec3(0.93), 0.22);
         }
       }
@@ -516,13 +583,12 @@ function filter.init(mod, rows, menu)
     sh:send("paperDark", filter.isDark(paper) and 1 or 0)
     sh:send("bandTop", filter.isDark(paper) and layer.band or 0)
     sh:send("gba", layer.gen == 3 and 1 or 0)
-    -- a game pixel, in whole screen pixels, so the look round lands on
-    -- pixels and not between them, where black and white would blend
-    -- -Elvie
-    local cellPx = math.max(1, math.floor((tonumber(layer.cell) or 1) + 0.5))
+    -- a game pixel, in screen pixels, and the screen's size, so the look
+    -- round lands on the middle of each game pixel and not between them,
+    -- where black and white would blend -Elvie
     local sw, shh = src:getPixelDimensions()
-    sh:send("cellPx", cellPx)
-    sh:send("texStep", { cellPx / math.max(1, sw), cellPx / math.max(1, shh) })
+    sh:send("cellF", math.max(1, tonumber(layer.cell) or 1))
+    sh:send("srcPx", { math.max(1, sw), math.max(1, shh) })
     if tint and filter.isDark(paper) and (layer.band > 0 or layer.gen == 3) and pics.boxes and pics.boxesDrawn and pics.origin then
       sh:send("boxesOn", 1)
       sh:send("boxes", pics.boxes)
