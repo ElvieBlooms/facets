@@ -168,6 +168,20 @@ float keptAt(vec2 at) {
   if (k.x < 0.0 || k.y < 0.0 || k.x >= 1.0 || k.y >= 1.0) return 0.0;
   return Texel(keep, k).a;
 }
+// on Red to Crystal, whether the pixel at t sits in a black box (the
+// bag's pocket name, its header bar): black three game pixels off in most
+// directions. A black letter is thin, with paper three pixels off; white
+// letters on a black box are the box's, and stay as they are
+float blackArea(Image tex, vec2 t, vec2 step1) {
+  float n = 0.0;
+  for (int i = 0; i < 8; i++) {
+    vec3 c = Texel(tex, t + step1 * 3.0 * around(i)).rgb;
+    float chi = max(c.r, max(c.g, c.b));
+    float clo = min(c.r, min(c.g, c.b));
+    n += step(dot(c, vec3(0.299, 0.587, 0.114)), 0.2) * (1.0 - step(0.12, chi - clo));
+  }
+  return step(4.5, n);
+}
 vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
   vec4 c = Texel(tex, tc);
   vec3 o = c.rgb;
@@ -196,6 +210,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       // a picture drawn this frame keeps its white, as drawn, unless a box
       // covers it (the move box over your Pokémon)
       w *= 1.0 - keptAt(sc) * (1.0 - inBox);
+      if (paperDark > 0.5 && gba < 0.5 && w > 0.5) w *= 1.0 - blackArea(tex, tc, texStep);
       // DARK on Red to Crystal: a black letter (or a frame's black line) on
       // the paper turns white, and the paper beside it is its outline, a
       // game pixel wide, in a grey a little lighter than the paper, as the
@@ -221,7 +236,8 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       if (gba < 0.5 && paperDark > 0.5 && w < 0.5) {
         float l = dot(before, vec3(0.299, 0.587, 0.114));
         float region = Texel(ui, p).a * (boxesOn > 0.5 ? inBox : step(bandTop, p.y)) * (1.0 - keptAt(sc) * (1.0 - inBox));
-        if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region > 0.5) {
+        if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region > 0.5
+            && blackArea(tex, tc, texStep) < 0.5) {
           float onPaper = 0.0;
           for (int i = 0; i < 8; i++) {
             onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * around(i)).rgb));
@@ -423,6 +439,14 @@ function filter.init(mod, rows, menu)
     local ww, wh = tonumber(ctx.ww) or 0, tonumber(ctx.wh) or 0
     local dpi = tonumber(ctx.dpiX) or 1
     if not ctx.worldActive then
+      -- a full-screen menu: the Game Boy screen only, not what SURROUND
+      -- paints round it (GLOW's dark would take a white edge) -Elvie
+      local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
+      if okC and type(Chrome.fitScale) == "function" and not battleShowing(2, gen2Game) then
+        local sc = Chrome.fitScale(ww, wh)
+        local ox, oy = Chrome.fitOrigin(ww, wh, sc)
+        return wholeImage(), { ox * dpi, oy * dpi }, { 160 * sc * dpi, 144 * sc * dpi }
+      end
       return wholeImage(), { 0, 0 }, { ww * dpi, wh * dpi }
     end
     -- a battle with BATTLE BG: WORLD has the map round it, not under it:
@@ -960,8 +984,14 @@ function filter.init(mod, rows, menu)
         if not (quad or type(x) == "number") then return ownDraw(drawable, x, ...) end
         local img = fill(drawable, quad) or drawable
         ownDraw(img, x, ...)
-        -- and where it went, on a copy the size of what it was drawn on
-        -- -Elvie
+        filter.keepDraw(img, x, ...)
+      end
+      -- Keeps what's drawn (img, and draw's arguments) as it is, on a copy
+      -- the size of what it's drawn on: the pictures, and Facets' own frame
+      -- art (classic_windows), whose white is the frame's, not paper -Elvie
+      filter.keepDraw = function(img, x, ...)
+        local target = G.getCanvas()
+        if not (target and filter.isDark(select(5, filter.settings(get)))) then return end
         local w, h = target:getDimensions()
         local dpi = target:getDPIScale()
         if not pics.keep or pics.keep:getWidth() ~= w or pics.keep:getHeight() ~= h or pics.keep:getDPIScale() ~= dpi then

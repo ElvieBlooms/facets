@@ -596,14 +596,26 @@ function windows.init(mod, rows)
         end
       end
       G.setColor(1, 1, 1, 1)
+      -- the frame's art, kept from dark paper (its white is the frame's)
+      -- -Elvie
+      local okF, filter = pcall(require, "mods.facets.filter")
+      local keep = okF and type(filter.keepDraw) == "function" and filter.keepDraw or function() end
       if kind == "dialogue" then
         windows.dialogueCells(tx, ty, tw, th, function(i, cx, cy, flip, dx, dy)
           local x, y = cx * T + (dx or 0), cy * T + (dy or 0)
-          if flip then G.draw(img, quad(img, i), x, y + T, 0, 1, -1)
-          else G.draw(img, quad(img, i), x, y) end
+          if flip then
+            G.draw(img, quad(img, i), x, y + T, 0, 1, -1)
+            keep(img, quad(img, i), x, y + T, 0, 1, -1)
+          else
+            G.draw(img, quad(img, i), x, y)
+            keep(img, quad(img, i), x, y)
+          end
         end, sl, sr, ht, hb)
       else
-        windows.frameCells(tx, ty, tw, th, function(i, cx, cy, dy, dx) G.draw(img, quad(img, i), cx * T + dx, cy * T + dy) end, ht, hb, hl, hr)
+        windows.frameCells(tx, ty, tw, th, function(i, cx, cy, dy, dx)
+          G.draw(img, quad(img, i), cx * T + dx, cy * T + dy)
+          keep(img, quad(img, i), cx * T + dx, cy * T + dy)
+        end, ht, hb, hl, hr)
       end
       if shader then G.setShader(shader) end
       if kind == "dialogue" then
