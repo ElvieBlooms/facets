@@ -118,13 +118,13 @@ filter.DOT_SHADE = 0.82
 -- mode: 0 none, 1 four shades, 2 GBC. dots needs a game pixel at least 3
 -- screen pixels wide, or the grid would cover the picture. -Elvie
 filter.SHADER = [[
-// phones and tablets work in lower precision by default, too coarse for
-// where a game pixel's middle is on a big screen: letters and boxes came
-// out ragged on iOS. Full precision where it's offered -Elvie
-#ifdef GL_ES
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-precision highp float;
-#endif
+// phones work in lower precision by default, too coarse for where a game
+// pixel's middle is on a big screen. The few values that place things on
+// the screen ask for LOVE's own "highp where offered" -Elvie
+#ifdef LOVE_HIGHP_OR_MEDIUMP
+#define FACETS_HP LOVE_HIGHP_OR_MEDIUMP
+#else
+#define FACETS_HP
 #endif
 extern float mode;
 extern vec3 s0; extern vec3 s1; extern vec3 s2; extern vec3 s3;
@@ -139,15 +139,15 @@ extern vec2 origin;
 extern float paperOn;
 extern vec3 paper;
 extern Image ui;
-extern vec2 uiOrigin;
-extern vec2 uiSize;
+extern FACETS_HP vec2 uiOrigin;
+extern FACETS_HP vec2 uiSize;
 extern float keepOn;
 extern Image keep;
-extern vec2 keepOrigin;
-extern vec2 keepSize;
+extern FACETS_HP vec2 keepOrigin;
+extern FACETS_HP vec2 keepSize;
 extern float paperDark;
-extern float cellF;
-extern vec2 srcPx;
+extern FACETS_HP float cellF;
+extern FACETS_HP vec2 srcPx;
 extern float bandTop;
 extern float gba;
 // Gold to Crystal: its battle's text band, and the boxes over it (the move's
@@ -176,17 +176,17 @@ vec2 around(int i) {
 // one at sc. A game pixel is seldom a whole number of screen pixels, so
 // the look round goes from game pixel to game pixel, not by a fixed step
 // that drifts off them a few pixels out
-vec2 nbAt(vec2 sc, vec2 d) {
-  vec2 g = floor((sc - uiOrigin) / cellF);
+FACETS_HP vec2 nbAt(FACETS_HP vec2 sc, vec2 d) {
+  FACETS_HP vec2 g = floor((sc - uiOrigin) / cellF);
   return uiOrigin + (g + d + 0.5) * cellF;
 }
-vec3 nbTex(Image tex, vec2 tc, vec2 sc, vec2 d) {
+vec3 nbTex(Image tex, FACETS_HP vec2 tc, FACETS_HP vec2 sc, vec2 d) {
   return Texel(tex, tc + (nbAt(sc, d) - sc) / srcPx).rgb;
 }
 // how much a picture kept this frame covers screen pixel at
-float keptAt(vec2 at) {
+float keptAt(FACETS_HP vec2 at) {
   if (keepOn < 0.5) return 0.0;
-  vec2 k = (at - keepOrigin) / keepSize;
+  FACETS_HP vec2 k = (at - keepOrigin) / keepSize;
   if (k.x < 0.0 || k.y < 0.0 || k.x >= 1.0 || k.y >= 1.0) return 0.0;
   return Texel(keep, k).a;
 }
@@ -200,7 +200,7 @@ float keptAt(vec2 at) {
 // how dark the row dy game pixels off is round this one: the count in
 // the nine pixels centred on it (y), and whether nine in a row are all
 // dark centred, to the left or to the right (x: a letter by a box's edge)
-vec2 rowDark(Image tex, vec2 t, vec2 sc, float dy) {
+vec2 rowDark(Image tex, FACETS_HP vec2 t, FACETS_HP vec2 sc, float dy) {
   float l = 0.0;
   float m = 0.0;
   float r = 0.0;
@@ -212,7 +212,7 @@ vec2 rowDark(Image tex, vec2 t, vec2 sc, float dy) {
   }
   return vec2(step(8.5, max(m, max(l, r))), m);
 }
-float inBar(Image tex, vec2 t, vec2 sc) {
+float inBar(Image tex, FACETS_HP vec2 t, FACETS_HP vec2 sc) {
   float up = 0.0;
   float dn = 0.0;
   float innerUp = 9.0;
@@ -230,14 +230,14 @@ float inBar(Image tex, vec2 t, vec2 sc) {
 // whether the pixel d game pixels from this one ends up the dark paper:
 // the menus' white, where DARK paints (the UI layer, its band or boxes),
 // and not a picture's. A letter turns white only with dark round it
-float goesDark(Image tex, vec2 tc, vec2 sc, vec2 d) {
+float goesDark(Image tex, FACETS_HP vec2 tc, FACETS_HP vec2 sc, vec2 d) {
   vec3 c = nbTex(tex, tc, sc, d);
-  vec2 at = nbAt(sc, d);
-  vec2 p = (at - uiOrigin) / uiSize;
+  FACETS_HP vec2 at = nbAt(sc, d);
+  FACETS_HP vec2 p = (at - uiOrigin) / uiSize;
   if (p.x < 0.0 || p.y < 0.0 || p.x >= 1.0 || p.y >= 1.0) return 0.0;
   float inBox = 0.0;
   if (boxesOn > 0.5) {
-    vec2 b = (at - keepOrigin) / keepSize;
+    FACETS_HP vec2 b = (at - keepOrigin) / keepSize;
     if (b.x >= 0.0 && b.y >= 0.0 && b.x < 1.0 && b.y < 1.0) inBox = Texel(boxes, b).a;
   }
   float region = boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : (gba > 0.5 ? inBox : step(bandTop, p.y));
@@ -247,18 +247,18 @@ float goesDark(Image tex, vec2 tc, vec2 sc, vec2 d) {
 // battle's scenery, a pale box): a letter beside it stays dark, readable.
 // (On the GBA games only near-white counts: a letter's own shadow is a
 // light grey)
-float staysLight(Image tex, vec2 tc, vec2 sc, vec2 d) {
+float staysLight(Image tex, FACETS_HP vec2 tc, FACETS_HP vec2 sc, vec2 d) {
   vec3 c = nbTex(tex, tc, sc, d);
   float light = step(gba > 0.5 ? 0.9 : 0.6, dot(c, vec3(0.299, 0.587, 0.114)));
   return light * (1.0 - goesDark(tex, tc, sc, d));
 }
-vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
+vec4 effect(vec4 color, Image tex, FACETS_HP vec2 tc, FACETS_HP vec2 sc) {
   vec4 c = Texel(tex, tc);
   vec3 o = c.rgb;
   if (paperOn > 0.5) {
     // the menus' own pixels: where the UI layer is drawn, white or nearly
     // (a palette's paper can be a touch off-white), and not a colour
-    vec2 p = (sc - uiOrigin) / uiSize;
+    FACETS_HP vec2 p = (sc - uiOrigin) / uiSize;
     if (p.x >= 0.0 && p.y >= 0.0 && p.x < 1.0 && p.y < 1.0) {
       float hi = max(o.r, max(o.g, o.b));
       float lo = min(o.r, min(o.g, o.b));
@@ -271,7 +271,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       // drew them, mapped as the pictures' copy is)
       float inBox = 0.0;
       if (boxesOn > 0.5) {
-        vec2 b = (sc - keepOrigin) / keepSize;
+        FACETS_HP vec2 b = (sc - keepOrigin) / keepSize;
         if (b.x >= 0.0 && b.y >= 0.0 && b.x < 1.0 && b.y < 1.0) inBox = Texel(boxes, b).a;
       }
       // (where the boxes are known, they alone: the text box is one). The
