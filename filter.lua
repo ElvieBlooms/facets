@@ -242,7 +242,9 @@ float goesDark(Image tex, vec2 tc, vec2 sc, vec2 d) {
 float staysLight(Image tex, vec2 tc, vec2 sc, vec2 d) {
   vec3 c = nbTex(tex, tc, sc, d);
   float light = step(gba > 0.5 ? 0.9 : 0.6, dot(c, vec3(0.299, 0.587, 0.114)));
-  return light * (1.0 - goesDark(tex, tc, sc, d));
+  // (not a frame's own kept white, or a picture's: a letter right under a
+  // window's edge would keep its top row dark, cut off)
+  return light * (1.0 - goesDark(tex, tc, sc, d)) * (1.0 - keptAt(nbAt(sc, d)));
 }
 vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
   vec4 c = Texel(tex, tc);
