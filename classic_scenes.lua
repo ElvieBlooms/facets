@@ -563,8 +563,8 @@ function scenes.init(mod, rows)
   for _, g in ipairs(gbaBg.SETS) do
     sets[#sets + 1] = { key = g.key, label = g.label, gba = true, scenes = {} }
   end
-  -- COLOURS: plain colour, BG COLOUR's (filter.bgColour) -Elvie
-  sets[#sets + 1] = { key = "colours", label = "COLOURS", colours = true, scenes = {} }
+  -- COLORS: plain colour, BG COLOR's (filter.bgColour) -Elvie
+  sets[#sets + 1] = { key = "colours", label = "COLORS", colours = true, scenes = {} }
   local byKey = {}
   local choices = { { "GAME", GAME } }
   for _, set in ipairs(sets) do
@@ -574,7 +574,7 @@ function scenes.init(mod, rows)
   rows[#rows + 1] = { key = "classicBattleBg", type = "choice", label = "BATTLE BG", choices = choices, default = GAME }
   rows[#rows + 1] = { key = "classicSceneColours", type = "choice", label = "SCENE COLOURS",
     choices = { { "ORIGINAL", "original" }, { "GBC", "gbc" } }, default = "original" }
-  rows[#rows + 1] = { key = "bgColour", type = "choice", label = "BG COLOUR",
+  rows[#rows + 1] = { key = "bgColour", type = "choice", label = "BG COLOR",
     choices = require("mods.facets.filter").BG_COLOURS, default = "paper" }
   rows[#rows + 1] = { key = "sceneBorders", type = "choice", label = "BORDERS", choices = scenes.BORDERS, default = "blur" }
   scenes.borders = function() return mod.options:get("sceneBorders") or "blur" end

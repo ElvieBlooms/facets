@@ -190,11 +190,11 @@ help.TEXT = {
       gba_frlg = "FireRed's battle backgrounds.",
       gba_emerald = "Emerald's battle backgrounds.",
       gba_rs = "Ruby and Sapphire's battle backgrounds.",
-      colours = "Plain colour: BG COLOUR's.",
+      colours = "Plain colour: BG COLOR's.",
     },
   },
   bgColour = {
-    about = "BATTLE BG: COLOURS's colour.",
+    about = "BATTLE BG: COLORS's colour.",
     choices = { paper = "PAPER's colour (white when PAPER's off), so a battle matches your menus." },
     other = "That colour, as PAPER has it.",
   },
@@ -370,7 +370,7 @@ help.TEXT = {
   gbcBattleBg = {
     about = "What stands behind the battle.",
     choices = { game = "The game's own background.", white = "Plain white, like a Game Boy.",
-      colours = "Plain colour: BG COLOUR's.",
+      colours = "Plain colour: BG COLOR's.",
       scenery = "A painted scene for where you are: caves, forests, gyms, the sea." },
     other = "That game's battle backgrounds.",
   },

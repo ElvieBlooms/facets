@@ -86,7 +86,7 @@ filter.PAPER = {
   dark = { 34, 36, 46 }, cocoa = { 52, 38, 30 }, olive = { 44, 44, 22 }, rust = { 64, 34, 24 },
   wine = { 64, 22, 36 }, plum = { 46, 30, 62 }, navy = { 22, 32, 64 }, forest = { 22, 48, 34 },
 }
--- BATTLE BG: COLOURS, a battle on plain colour, and BG COLOUR, which:
+-- BATTLE BG: COLORS, a battle on plain colour, and BG COLOR, which:
 -- PAPER (whatever PAPER is, white when it's off) or any of PAPER's colours
 -- -Elvie
 filter.BG_COLOURS = { { "PAPER", "paper" } }

@@ -390,7 +390,7 @@ function gbui.loadBgSets(mod)
       credit = { "From your own " .. g.name .. "." } }
     list[#list + 1] = gbui.BG_SETS[g.key]
   end
-  gbui.BG = { { "GAME", "game" }, { "WHITE", "white" }, { "COLOURS", "colours" } }
+  gbui.BG = { { "GAME", "game" }, { "WHITE", "white" }, { "COLORS", "colours" } }
   for _, set in ipairs(list) do gbui.BG[#gbui.BG + 1] = { set.label, set.key } end
   return list
 end
@@ -844,7 +844,7 @@ function gbui.init(mod, rows, menu)
   rows[#rows + 1] = { key = "gbcTextBox", type = "choice", label = "  TEXT BOX", choices = gbui.TEXTBOX, default = "match" }
   rows[#rows + 1] = { key = "gbcHud", type = "choice", label = "  BATTLE UI", choices = gbui.HUD, default = "game" }
   rows[#rows + 1] = { key = "gbcBattleBg", type = "choice", label = "  BATTLE BG", choices = gbui.BG, default = "game" }
-  rows[#rows + 1] = { key = "bgColour", type = "choice", label = "  BG COLOUR",
+  rows[#rows + 1] = { key = "bgColour", type = "choice", label = "  BG COLOR",
     choices = require("mods.facets.filter").BG_COLOURS, default = "paper" }
   rows[#rows + 1] = { key = "sceneTime", type = "choice", label = "  SCENE TIME",
     choices = { { "ON", "on" }, { "OFF", "off" } }, default = "on" }
@@ -870,7 +870,7 @@ function gbui.init(mod, rows, menu)
           { key = "gbcTextBox", label = "TEXT BOX", who = "gbcTextBox", choices = gbui.TEXTBOX, value = text },
           { key = "gbcHud", label = "BATTLE UI", who = "gbcHud", choices = gbui.HUD, value = hud },
           { key = "gbcBattleBg", label = "BATTLE BG", who = "gbcBattleBg", choices = gbui.BG, value = bg },
-          { key = "bgColour", label = "BG COLOUR", who = "bgColour", choices = require("mods.facets.filter").BG_COLOURS,
+          { key = "bgColour", label = "BG COLOR", who = "bgColour", choices = require("mods.facets.filter").BG_COLOURS,
             value = tostring(get("bgColour") or "paper") },
         }
       end,
@@ -930,11 +930,11 @@ function gbui.init(mod, rows, menu)
             if type(credit) == "string" then lines[#lines + 1] = { text = credit } end
           else
             lines[#lines + 1] = { text = bg == "white" and "Plain white, like Gen 2."
-              or bg == "colours" and "Plain colour: BG COLOUR's." or "The game's own scenery." }
+              or bg == "colours" and "Plain colour: BG COLOR's." or "The game's own scenery." }
           end
         elseif who == "bgColour" then
           lines[#lines + 1] = { text = tostring(get("bgColour") or "paper") == "paper"
-            and "PAPER's colour, for COLOURS." or "This colour, for COLOURS." }
+            and "PAPER's colour, for COLORS." or "This colour, for COLORS." }
         else
           return nil
         end
@@ -1346,7 +1346,7 @@ function gbui.init(mod, rows, menu)
       BattleBg.draw = function(...)
         local _, _, bg = gbui.settings(get)
         if bg == "white" or bg == "colours" then
-          -- WHITE, or COLOURS in BG COLOUR's -Elvie
+          -- WHITE, or COLORS in BG COLOR's -Elvie
           local c = bg == "colours" and require("mods.facets.filter").bgColour(get) or { 255, 255, 255 }
           love.graphics.setColor(c[1] / 255, c[2] / 255, c[3] / 255, 1)
           love.graphics.rectangle("fill", 0, 0, 240, 160)

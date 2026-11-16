@@ -1793,7 +1793,7 @@ do
   G.loadBgSets(wmod)
   local bset = G.BG_SETS.scenery
   check(bset, "gbc ui: the SCENERY battle backgrounds are found")
-  eq(G.BG[3] and (G.BG[3][1] .. "," .. G.BG[3][2]), "COLOURS,colours", "gbc ui: COLOURS after WHITE")
+  eq(G.BG[3] and (G.BG[3][1] .. "," .. G.BG[3][2]), "COLORS,colours", "gbc ui: COLORS after WHITE")
   eq(G.BG[4] and (G.BG[4][1] .. "," .. G.BG[4][2]), "SCENERY,scenery", "gbc ui: ...as a BATTLE BG choice")
   eq(bset and (bset.keys.cave .. "," .. bset.keys.champion .. "," .. bset.keys.leader), "cave,space,gym", "gbc ui: the games' backgrounds map to scenes")
   local n = 0
