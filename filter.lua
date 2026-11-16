@@ -119,6 +119,13 @@ extern float paperDark;
 extern vec2 texStep;
 extern float cellPx;
 extern float bandTop;
+extern float gba;
+// whether a pixel is the white or near-white of a menu's paper
+float paperish(vec3 c) {
+  float hi = max(c.r, max(c.g, c.b));
+  float lo = min(c.r, min(c.g, c.b));
+  return smoothstep(0.84, 0.92, lo) * (1.0 - smoothstep(0.066, 0.072, hi - lo));
+}
 extern float boxesOn;
 extern Image boxes;
 // the eight pixels round one, as steps
@@ -178,7 +185,26 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
           edge = max(edge, black * (1.0 - keptAt(sc + around(i) * cellPx) * (1.0 - inBox)));
         }
       }
+      // the GBA games' letters are dark grey with a light grey shadow, not
+      // black: on paper going dark, the letter turns white and its shadow
+      // darker than the paper, as the games' own dark boxes have them. A
+      // colour (the red of a choice) stays
+      vec3 before = o;
       o = edge > 0.5 ? vec3(1.0) : mix(o, paper * hi, w);
+      if (gba > 0.5 && paperDark > 0.5 && w < 0.5) {
+        float l = dot(before, vec3(0.299, 0.587, 0.114));
+        float text = step(0.22, l) * step(l, 0.45);
+        float shade = step(0.70, l) * step(l, 0.88);
+        if ((text + shade) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * Texel(ui, p).a > 0.5
+            && step(bandTop, p.y) > 0.5 && keptAt(sc) < 0.5) {
+          float onPaper = 0.0;
+          for (int i = 0; i < 8; i++) {
+            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * around(i)).rgb));
+            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * 2.0 * around(i)).rgb));
+          }
+          if (onPaper > 0.5) o = text > 0.5 ? vec3(0.93, 0.93, 0.94) : paper * 0.55;
+        }
+      }
     }
   }
   if (mode > 0.5 && mode < 1.5) {
@@ -337,6 +363,8 @@ function filter.init(mod, rows, menu)
   -- so PAPER keeps its own copy of the menus drawn over the map (gen2Mask,
   -- from start below); with no map, the whole picture is menus -Elvie
   local gen2Mask, gen2Drawn, gen2Game, whole = nil, false, nil, nil
+  -- the GBA game, from its own update (start, below) -Elvie
+  local game3 = nil
   local function wholeImage()
     if whole == nil then
       local ok, img = pcall(function()
@@ -422,6 +450,7 @@ function filter.init(mod, rows, menu)
     end
     sh:send("paperDark", paper == "dark" and 1 or 0)
     sh:send("bandTop", paper == "dark" and layer.band or 0)
+    sh:send("gba", layer.gen == 3 and 1 or 0)
     -- a game pixel, in whole screen pixels, so the look round lands on
     -- pixels and not between them, where black and white would blend
     -- -Elvie
@@ -502,6 +531,11 @@ function filter.init(mod, rows, menu)
           origin, size = filter.uiRectFor(ctx)
           canvas = origin and ctx.uiCanvas or nil
         end
+        -- the GBA games' title and opening, and the recap, aren't menus:
+        -- PAPER leaves them be -Elvie
+        if ctx.generation == 3 and game3 and (rawget(game3, "phase") == "boot" or rawget(game3, "phase") == "quest_log") then
+          canvas = nil
+        end
         layer.canvas = canvas
         if canvas then layer.origin, layer.size = origin, size end
         -- screen pixels to a game pixel -Elvie
@@ -513,6 +547,7 @@ function filter.init(mod, rows, menu)
         elseif canvas and tonumber(ctx.uiw) and ctx.uiw > 0 then
           layer.cell = size[1] / ctx.uiw
         end
+        layer.gen = ctx.generation
         -- DARK in a battle: only from its text box down -Elvie
         layer.band = 0
         local gen = ctx.generation
@@ -925,6 +960,18 @@ function filter.init(mod, rows, menu)
           end)
         end
         return unpack(results)
+      end
+    end
+
+    -- the GBA game itself, for its phase (title or play) -Elvie
+    local okG3, Game3 = false, nil
+    if gen == 3 then okG3, Game3 = pcall(require, "src.core.Game3") end
+    if okG3 and type(Game3) == "table" and type(Game3.update) == "function" and not Game3.facetsPaper then
+      Game3.facetsPaper = true
+      local ownUpdate = Game3.update
+      Game3.update = function(self, ...)
+        game3 = self
+        return ownUpdate(self, ...)
       end
     end
 
