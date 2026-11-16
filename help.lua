@@ -306,7 +306,7 @@ help.TEXT = {
       off = "Plain white, as the game draws it.",
       cream = "Warm cream.", lemon = "Pale lemon.", peach = "Soft peach.", rose = "Pale rose.",
       lilac = "Pale lilac.", sky = "Pale sky blue.", mint = "Pale mint.", grey = "Light grey, the dimmest.",
-      dark = "Dark paper, with a white edge round the letters. Pictures keep their white; in a battle, only its boxes go dark.",
+      dark = "Dark paper, with white letters. Pictures keep their white; in a battle, only its boxes go dark.",
       cocoa = "Dark cocoa, as DARK.", olive = "Dark olive, as DARK.", rust = "Dark rust, as DARK.",
       wine = "Rich wine, as DARK.", plum = "Dark plum, as DARK.", navy = "Navy blue, as DARK.",
       forest = "Dark forest green, as DARK.",

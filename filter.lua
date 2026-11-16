@@ -196,9 +196,11 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       // a picture drawn this frame keeps its white, as drawn, unless a box
       // covers it (the move box over your Pokémon)
       w *= 1.0 - keptAt(sc) * (1.0 - inBox);
-      // DARK: paper beside a black letter (or a frame's black line) is its
-      // outline, a game pixel wide, in white, so the letters needn't be
-      // recoloured. A picture's own black (kept) gets none
+      // DARK on Red to Crystal: a black letter (or a frame's black line) on
+      // the paper turns white, and the paper beside it is its outline, a
+      // game pixel wide, in a grey a little lighter than the paper, as the
+      // GBA games' letters have their shadow. A picture's own black (kept)
+      // stays as it is
       float edge = 0.0;
       if (paperDark > 0.5 && w > 0.5 && gba < 0.5) {
         for (int i = 0; i < 8; i++) {
@@ -214,7 +216,20 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       // grey a little lighter than the paper. A colour (the red of a
       // choice) stays
       vec3 before = o;
-      o = edge > 0.5 ? vec3(1.0) : mix(o, paper * hi, w);
+      vec3 outline = mix(paper, vec3(0.93), 0.22);
+      o = edge > 0.5 ? outline : mix(o, paper * hi, w);
+      if (gba < 0.5 && paperDark > 0.5 && w < 0.5) {
+        float l = dot(before, vec3(0.299, 0.587, 0.114));
+        float region = Texel(ui, p).a * (boxesOn > 0.5 ? inBox : step(bandTop, p.y)) * (1.0 - keptAt(sc) * (1.0 - inBox));
+        if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region > 0.5) {
+          float onPaper = 0.0;
+          for (int i = 0; i < 8; i++) {
+            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * around(i)).rgb));
+            onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * 2.0 * around(i)).rgb));
+          }
+          if (onPaper > 0.5) o = vec3(0.93, 0.93, 0.94);
+        }
+      }
       if (gba > 0.5 && paperDark > 0.5 && w < 0.5) {
         float l = dot(before, vec3(0.299, 0.587, 0.114));
         // (black too: FireRed's PP numbers)
