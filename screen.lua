@@ -335,7 +335,13 @@ function screen.new(mod, model)
 
     local selected = list[state.index]
     love.graphics.setColor(1, 1, 1, 1)
-    model.draw(state.clock, selected and selected.who or nil)
+    -- (its pictures are kept as they are on dark paper) -Elvie
+    local okF, filter = pcall(require, "mods.facets.filter")
+    if okF and type(filter.keeping) == "function" then
+      filter.keeping(model.draw, state.clock, selected and selected.who or nil)
+    else
+      model.draw(state.clock, selected and selected.who or nil)
+    end
     love.graphics.setColor(1, 1, 1, 1)
 
     local preview = model.preview(selected and selected.who or "npcs")

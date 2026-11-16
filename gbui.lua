@@ -203,7 +203,7 @@ function gbui.box(frame, x, y, w, h)
   G.setColor(PAPER[1] / 255, PAPER[2] / 255, PAPER[3] / 255, 1)
   G.rectangle("fill", x, y, w * T, h * T)
   G.setColor(1, 1, 1, 1)
-  gbui.markPaper(x + T, y + T, (w - 2) * T, (h - 2) * T)
+  gbui.markPaper(x, y, w * T, h * T)
   local img, base = a.framesImage, n * a.framesPerRow
   local function tile(i, cx, cy) G.draw(img, quad(img, base + i), x + cx * T, y + cy * T) end
   tile(0, 0, 0)
@@ -667,7 +667,8 @@ function gbui.nineSlice(img, tx, ty, tw, th)
   local G = love.graphics
   G.setColor(1, 1, 1, 1)
   G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
-  gbui.markPaper(tx * T, ty * T, tw * T, th * T)
+  -- (the frame's cells too: their inside is the window's white) -Elvie
+  gbui.markPaper((tx - 1) * T, (ty - 1) * T, (tw + 2) * T, (th + 2) * T)
   local function cell(i, cx, cy) G.draw(img, quad(img, i), cx * T, cy * T) end
   cell(0, tx - 1, ty - 1)
   for i = 0, tw - 1 do cell(1, tx + i, ty - 1) end

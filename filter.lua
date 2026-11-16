@@ -118,6 +118,14 @@ filter.DOT_SHADE = 0.82
 -- mode: 0 none, 1 four shades, 2 GBC. dots needs a game pixel at least 3
 -- screen pixels wide, or the grid would cover the picture. -Elvie
 filter.SHADER = [[
+// phones and tablets work in lower precision by default, too coarse for
+// where a game pixel's middle is on a big screen: letters and boxes came
+// out ragged on iOS. Full precision where it's offered -Elvie
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#endif
+#endif
 extern float mode;
 extern vec3 s0; extern vec3 s1; extern vec3 s2; extern vec3 s3;
 extern vec3 cut;
@@ -233,7 +241,7 @@ float goesDark(Image tex, vec2 tc, vec2 sc, vec2 d) {
     if (b.x >= 0.0 && b.y >= 0.0 && b.x < 1.0 && b.y < 1.0) inBox = Texel(boxes, b).a;
   }
   float region = boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : (gba > 0.5 ? inBox : step(bandTop, p.y));
-  return paperish(c) * Texel(ui, p).a * region * (1.0 - keptAt(at) * (1.0 - inBox));
+  return paperish(c) * Texel(ui, p).a * region * (1.0 - keptAt(at));
 }
 // whether a light pixel near this one stays light (a picture's white, the
 // battle's scenery, a pale box): a letter beside it stays dark, readable.
@@ -271,7 +279,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       w *= boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : (gba > 0.5 && paperDark > 0.5 ? 0.0 : step(bandTop, p.y));
       // a picture drawn this frame keeps its white, as drawn, unless a box
       // covers it (the move box over your Pokémon)
-      w *= 1.0 - keptAt(sc) * (1.0 - inBox);
+      w *= 1.0 - keptAt(sc);
       // DARK on Red to Crystal: a black letter (or a frame's black line) on
       // the paper turns white, and the paper beside it is its outline, a
       // game pixel wide, in a grey a little lighter than the paper, as the
@@ -286,7 +294,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
           float black = step(dot(c, vec3(0.299, 0.587, 0.114)), 0.2) * (1.0 - smoothstep(0.08, 0.14, chi - clo));
           // (not the paper's own colour: COLORS' field, behind the HUDs)
           black *= step(0.1, distance(c, paper));
-          edge = max(edge, black * (1.0 - keptAt(nbAt(sc, around(i))) * (1.0 - inBox)));
+          edge = max(edge, black * (1.0 - keptAt(nbAt(sc, around(i)))));
         }
         // a white letter on a black bar is the bar's: it stays white. (Not
         // in a battle, whose boxes are known: there a scene's dark round
@@ -305,7 +313,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       o = edge > 0.5 ? outline : mix(o, paper * hi, w);
       if (gba < 0.5 && paperDark > 0.5 && w < 0.5) {
         float l = dot(before, vec3(0.299, 0.587, 0.114));
-        float region = Texel(ui, p).a * (boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : step(bandTop, p.y)) * (1.0 - keptAt(sc) * (1.0 - inBox));
+        float region = Texel(ui, p).a * (boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : step(bandTop, p.y)) * (1.0 - keptAt(sc));
         if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region * step(0.1, distance(before, paper)) > 0.5
             && (boxesOn > 0.5 || inBar(tex, tc, sc) < 0.5)) {
           float onPaper = 0.0;
@@ -925,8 +933,8 @@ function filter.init(mod, rows, menu)
     -- -Elvie
     local gen = require("mods.facets.classic").generation()
     local okSp, Sprites = pcall(require, "src.pokemon.Sprites")
-    if gen <= 2 and okSp and type(Sprites) == "table" and not Sprites.facetsPaper then
-      Sprites.facetsPaper = true
+    if not filter.picturesWrapped then
+      filter.picturesWrapped = true
       local G = love.graphics
       local okA, Assets = pcall(require, "src.render.Assets")
       local resolve = okA and type(Assets) == "table" and type(Assets.resolve) == "function" and Assets.resolve or nil
@@ -943,7 +951,7 @@ function filter.init(mod, rows, menu)
       -- and the gym leaders' faces on Red, Blue and Yellow's trainer card
       -- (one sheet, drawn a face at a time) -Elvie
       note("assets/generated/trainer_card/badges.png", false)
-      for name, fn in pairs(Sprites) do
+      for name, fn in pairs(gen <= 2 and okSp and type(Sprites) == "table" and not Sprites.facetsPaper and Sprites or {}) do
         if type(fn) == "function" and name ~= "facetsPaper" then
           Sprites[name] = function(...)
             local results = { fn(...) }
@@ -959,10 +967,28 @@ function filter.init(mod, rows, menu)
           end
         end
       end
+      if gen <= 2 and okSp and type(Sprites) == "table" then Sprites.facetsPaper = true end
       -- each picture image, as it's made from one of those files -Elvie
       local images = setmetatable({}, { __mode = "k" })
+      -- also the openings' pictures (Oak and you in Crystal's, and you on
+      -- Red, Blue and Yellow's title) and other mods' pictures (Emerald
+      -- Lens's), which don't come from the sprite module -Elvie
+      local function picturePath(path)
+        if paths[path] then return paths[path] end
+        local p = path:gsub("\\", "/")
+        if p:match("/intro/oak%.png$") or p:match("/intro/kris%.png$") or p:match("/intro/chris%.png$")
+            or p:match("/intro/cal%.png$") or p:match("/title/player%.png$") then
+          return { back = false }
+        end
+        if (p:match("^mods/") or p:match("/mods/")) and not p:match("mods/facets/") and not p:lower():match("font")
+            and p:lower():match("%.png$") then
+          return { back = false }
+        end
+        return nil
+      end
       local function tag(img, path)
-        if img and type(path) == "string" and paths[path] then images[img] = { path = path, back = paths[path].back } end
+        local info = img and type(path) == "string" and picturePath(path)
+        if info then images[img] = { path = path, back = info.back } end
         return img
       end
       local ownNew = G.newImage
@@ -977,6 +1003,17 @@ function filter.init(mod, rows, menu)
         Assets.imageData = function(path, ...)
           local d = ownData(path, ...)
           if d and type(path) == "string" and paths[path] then datas[d] = { path = path, back = paths[path].back } end
+          return d
+        end
+      end
+      -- another mod's picture read as pixels first (Emerald Lens's) -Elvie
+      if love.image and type(love.image.newImageData) == "function" and not love.image.facetsPaper then
+        love.image.facetsPaper = true
+        local ownImageData = love.image.newImageData
+        love.image.newImageData = function(src, ...)
+          local d = ownImageData(src, ...)
+          local info = d and type(src) == "string" and picturePath(src)
+          if info then datas[d] = { path = src, back = info.back } end
           return d
         end
       end
@@ -1039,11 +1076,51 @@ function filter.init(mod, rows, menu)
           local key = ("%d,%d,%d,%d"):format(x0, y0, qw, qh)
           if not got.parts[key] then
             got.parts[key] = true
-            floodFill(got.data, x0, y0, math.min(qw, w - x0), math.min(qh, h - y0), images[img].back)
+            local pw, ph = math.min(qw, w - x0), math.min(qh, h - y0)
+            -- a picture with no see-through at all has a white background
+            -- (you and Kris in the openings): that background is the
+            -- paper's. It's drawn as it is, and only what the white
+            -- reaching in from the edges doesn't touch is kept -Elvie
+            local opaque = true
+            for yy = 0, ph - 1 do
+              for xx = 0, pw - 1 do
+                local _, _, _, a = got.data:getPixel(x0 + xx, y0 + yy)
+                if a < 0.5 then opaque = false; break end
+              end
+              if not opaque then break end
+            end
+            if opaque then
+              got.keepData = got.keepData or got.data:clone()
+              local seen, queue = {}, {}
+              local function white(xx, yy)
+                local r, g, b = got.keepData:getPixel(x0 + xx, y0 + yy)
+                return 0.299 * r + 0.587 * g + 0.114 * b > 0.85
+              end
+              local function push(xx, yy)
+                if xx < 0 or yy < 0 or xx >= pw or yy >= ph or seen[yy * pw + xx] or not white(xx, yy) then return end
+                seen[yy * pw + xx] = true
+                queue[#queue + 1] = yy * pw + xx
+              end
+              for xx = 0, pw - 1 do push(xx, 0); push(xx, ph - 1) end
+              for yy = 0, ph - 1 do push(0, yy); push(pw - 1, yy) end
+              local i = 1
+              while queue[i] do
+                local xx, yy = queue[i] % pw, math.floor(queue[i] / pw)
+                push(xx + 1, yy); push(xx - 1, yy); push(xx, yy + 1); push(xx, yy - 1)
+                i = i + 1
+              end
+              for k in pairs(seen) do got.keepData:setPixel(x0 + k % pw, y0 + math.floor(k / pw), 0, 0, 0, 0) end
+              got.keepImage = ownNew(got.keepData)
+              got.keepImage:setFilter(img:getFilter())
+              got.opaque = true
+            else
+              floodFill(got.data, x0, y0, pw, ph, images[img].back)
+            end
             got.image = ownNew(got.data)
             got.image:setFilter(img:getFilter())
           end
-          return got.image
+          if got.opaque then return img, got.keepImage end
+          return got.image, got.image
         end)
         if not ok then filled[img] = false; return nil end
         return out
@@ -1051,14 +1128,22 @@ function filter.init(mod, rows, menu)
       local ownDraw = G.draw
       G.draw = function(drawable, x, ...)
         local target = G.getCanvas()
+        -- (filter.keeping: everything a menu's preview draws is a picture)
+        if filter.keepingAll and target and type(drawable) == "userdata" and not images[drawable]
+            and drawable.typeOf and drawable:typeOf("Texture") then
+          ownDraw(drawable, x, ...)
+          filter.keepDraw(drawable, x, ...)
+          return
+        end
         if not (images[drawable] and target and filter.isDark(select(5, filter.settings(get)))) then
           return ownDraw(drawable, x, ...)
         end
         local quad = type(x) == "userdata" and x:typeOf("Quad") and x or nil
         if not (quad or type(x) == "number") then return ownDraw(drawable, x, ...) end
-        local img = fill(drawable, quad) or drawable
+        local img, keepImg = fill(drawable, quad)
+        img = img or drawable
         ownDraw(img, x, ...)
-        filter.keepDraw(img, x, ...)
+        filter.keepDraw(keepImg or img, x, ...)
       end
       -- Keeps what's drawn (img, and draw's arguments) as it is, on a copy
       -- the size of what it's drawn on: the pictures, and Facets' own frame
@@ -1088,6 +1173,80 @@ function filter.init(mod, rows, menu)
           pics.drawn = true
         end
       end
+    end
+
+    -- Runs fn with every picture it draws kept as it is: Facets' own
+    -- menus' previews (a Pokémon, a trainer), whose outlines would
+    -- otherwise turn white like letters -Elvie
+    filter.keeping = function(fn, ...)
+      if not filter.isDark(select(5, filter.settings(get))) or not filter.keepDraw then return fn(...) end
+      filter.keepingAll = true
+      local results = { pcall(fn, ...) }
+      filter.keepingAll = false
+      if not results[1] then error(results[2], 0) end
+      return unpack(results, 2)
+    end
+
+    -- Facets' frame art keeps its own white (a Liberty frame's inner
+    -- line), but not the white inside it, which is the window's paper: a
+    -- frame cell's white is kept only beside a colour of the frame (not
+    -- beside black, or more white). Worked out once for each frame sheet
+    -- -Elvie
+    local frameMasks = setmetatable({}, { __mode = "k" })
+    local function frameMask(img)
+      local got = frameMasks[img]
+      if got ~= nil then return got or nil end
+      frameMasks[img] = false
+      local ok, out = pcall(function()
+        local G = love.graphics
+        local w, h = img:getPixelDimensions()
+        local c = G.newCanvas(w, h, { dpiscale = 1 })
+        G.push("all")
+        G.setCanvas(c)
+        G.origin()
+        G.setScissor()
+        G.setShader()
+        G.clear(0, 0, 0, 0)
+        G.setBlendMode("replace", "premultiplied")
+        G.setColor(1, 1, 1, 1)
+        G.draw(img, 0, 0, 0, w / img:getWidth(), h / img:getHeight())
+        G.pop()
+        local data = c:newImageData()
+        local function kind(x, y)
+          if x < 0 or y < 0 or x >= w or y >= h then return "none" end
+          local r, g, b, a = data:getPixel(x, y)
+          if a < 0.5 then return "none" end
+          local hi, lo = math.max(r, g, b), math.min(r, g, b)
+          local l = 0.299 * r + 0.587 * g + 0.114 * b
+          if l > 0.8 and hi - lo < 0.07 then return "white" end
+          if l < 0.2 and hi - lo < 0.12 then return "black" end
+          return "colour"
+        end
+        local cut = {}
+        for y = 0, h - 1 do
+          for x = 0, w - 1 do
+            if kind(x, y) == "white" then
+              local beside = false
+              for dy = -1, 1 do
+                for dx = -1, 1 do
+                  if (dx ~= 0 or dy ~= 0) and kind(x + dx, y + dy) == "colour" then beside = true end
+                end
+              end
+              if not beside then cut[#cut + 1] = { x, y } end
+            end
+          end
+        end
+        for _, p in ipairs(cut) do data:setPixel(p[1], p[2], 0, 0, 0, 0) end
+        local m = G.newImage(data, { dpiscale = img:getDPIScale() })
+        m:setFilter("nearest", "nearest")
+        return m
+      end)
+      frameMasks[img] = ok and out or false
+      return frameMasks[img] or nil
+    end
+    filter.keepFrame = function(img, ...)
+      if not filter.isDark(select(5, filter.settings(get))) then return end
+      return filter.keepDraw(frameMask(img) or img, ...)
     end
 
     -- DARK in Red, Blue and Yellow's battles: the game's own boxes (the HP
