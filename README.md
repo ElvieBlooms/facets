@@ -97,6 +97,7 @@ Under **SCREEN**, four options give the game a Game Boy look (and three more giv
 * **FILTER ON**: **SCREEN** (the default) filters everything: the map, sprites, menus and battles. **MAP** filters only the map and everyone on it, so menus, text boxes and battles keep their colours.
 * **DOTS**: a dot-matrix grid between the game's pixels, like an old handheld's screen. It works with any filter or none, over the whole screen.
 * **PAPER**: the white of menus, text boxes and battles in a softer colour, for eyes the bright white tires: **CREAM**, **LEMON**, **PEACH**, **ROSE**, **LILAC**, **SKY**, **MINT** or **GREY**. Only the white changes, and only where the menus are drawn, so the map, the letters and the pictures keep their colours. **WHITE** (the default) leaves it alone.
+  * **DARK** turns the paper dark, with its mirrors of the light colours: **COCOA**, **OLIVE**, **RUST**, **WINE**, **PLUM**, **NAVY** and **FOREST**. On Red to Crystal the black letters get a white edge; on the GBA games the letters turn white with a light grey shadow. Pictures keep their white (Red to Crystal's see-through pictures are filled, as Emerald Lens fills its trainers). In a battle only the boxes go dark, so the scene and the Pokémon stay as they are; on the GBA games only their windows go dark, so their coloured screens (the Pokédex, the party) stay too.
 
 They go well with the GBC NPCs and the GBC-ISH Pokémon, for a Gen 3 game that looks like it came out in 1998. All three change straight away.
 

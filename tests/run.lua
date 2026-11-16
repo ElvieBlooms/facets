@@ -1563,6 +1563,10 @@ do
   end
   eq(select(5, filter.settings(function(k) return k == "paper" and "lilac" or nil end)), "lilac", "filter: PAPER setting read")
   eq(select(5, filter.settings(function(k) return k == "paper" and "plaid" or nil end)), "off", "filter: unknown PAPER is white")
+  for _, v in ipairs({ "dark", "wine", "navy", "forest", "plum", "cocoa", "olive", "rust" }) do
+    check(filter.isDark(v) and filter.PAPER[v] ~= nil, "filter: PAPER " .. v .. " is a dark paper")
+  end
+  check(not filter.isDark("mint") and not filter.isDark("off"), "filter: the light papers aren't dark")
   local look, where, dots = filter.settings(function(k) return ({ filter = "bogus", filterOn = "map", dots = "on" })[k] end)
   eq(look .. where .. dots, "offmapon", "filter: an unknown value is OFF")
   local _, _, _, steps = filter.settings(function(k) return ({ shades = "16" })[k] end)

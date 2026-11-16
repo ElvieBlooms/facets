@@ -74,15 +74,24 @@ filter.GBC_SATURATION = 1.15
 -- rest -Elvie
 filter.PAPERS = { { "WHITE", "off" }, { "CREAM", "cream" }, { "LEMON", "lemon" }, { "PEACH", "peach" },
   { "ROSE", "rose" }, { "LILAC", "lilac" }, { "SKY", "sky" }, { "MINT", "mint" }, { "GREY", "grey" },
-  { "DARK", "dark" } }
+  { "DARK", "dark" }, { "COCOA", "cocoa" }, { "OLIVE", "olive" }, { "RUST", "rust" }, { "WINE", "wine" },
+  { "PLUM", "plum" }, { "NAVY", "navy" }, { "FOREST", "forest" } }
 filter.PAPER = {
   cream = { 248, 240, 216 }, lemon = { 248, 244, 204 }, peach = { 250, 228, 210 },
   rose = { 248, 224, 230 }, lilac = { 234, 226, 248 }, sky = { 218, 234, 250 },
   mint = { 222, 246, 228 }, grey = { 214, 214, 214 },
-  -- DARK: dark paper. Pictures on it keep their white (see pics below)
-  -- -Elvie
-  dark = { 34, 36, 46 },
+  -- DARK and the dark colours, each the light one's mirror (GREY's,
+  -- CREAM's, LEMON's, PEACH's, ROSE's, LILAC's, SKY's, MINT's): dark paper.
+  -- Pictures on it keep their white (see pics below) -Elvie
+  dark = { 34, 36, 46 }, cocoa = { 52, 38, 30 }, olive = { 44, 44, 22 }, rust = { 64, 34, 24 },
+  wine = { 64, 22, 36 }, plum = { 46, 30, 62 }, navy = { 22, 32, 64 }, forest = { 22, 48, 34 },
 }
+-- the dark papers, which turn the letters round (white edges, white GBA
+-- letters) and keep pictures' white -Elvie
+filter.DARKS = { dark = true, cocoa = true, olive = true, rust = true, wine = true, plum = true, navy = true, forest = true }
+function filter.isDark(paper)
+  return filter.DARKS[paper] == true
+end
 
 -- DARK in a battle: only its text box goes dark, so the scene behind, the
 -- Pokémon and their animations stay as they are. Where it starts, as a
@@ -206,7 +215,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
             onPaper = max(onPaper, paperish(Texel(tex, tc + texStep * 2.0 * around(i)).rgb));
           }
           onPaper *= inBox;
-          if (onPaper > 0.5) o = text > 0.5 ? vec3(0.93, 0.93, 0.94) : vec3(0.36, 0.37, 0.42);
+          if (onPaper > 0.5) o = text > 0.5 ? vec3(0.93, 0.93, 0.94) : mix(paper, vec3(0.93), 0.22);
         }
       }
     }
@@ -452,8 +461,8 @@ function filter.init(mod, rows, menu)
     else
       sh:send("paperOn", 0)
     end
-    sh:send("paperDark", paper == "dark" and 1 or 0)
-    sh:send("bandTop", paper == "dark" and layer.band or 0)
+    sh:send("paperDark", filter.isDark(paper) and 1 or 0)
+    sh:send("bandTop", filter.isDark(paper) and layer.band or 0)
     sh:send("gba", layer.gen == 3 and 1 or 0)
     -- a game pixel, in whole screen pixels, so the look round lands on
     -- pixels and not between them, where black and white would blend
@@ -462,7 +471,7 @@ function filter.init(mod, rows, menu)
     local sw, shh = src:getPixelDimensions()
     sh:send("cellPx", cellPx)
     sh:send("texStep", { cellPx / math.max(1, sw), cellPx / math.max(1, shh) })
-    if tint and paper == "dark" and (layer.band > 0 or layer.gen == 3) and pics.boxes and pics.boxesDrawn and pics.origin then
+    if tint and filter.isDark(paper) and (layer.band > 0 or layer.gen == 3) and pics.boxes and pics.boxesDrawn and pics.origin then
       sh:send("boxesOn", 1)
       sh:send("boxes", pics.boxes)
     else
@@ -555,7 +564,7 @@ function filter.init(mod, rows, menu)
         -- DARK in a battle: only from its text box down -Elvie
         layer.band = 0
         local gen = ctx.generation
-        if canvas and select(5, filter.settings(get)) == "dark" and filter.BATTLE_BOX[gen] then
+        if canvas and filter.isDark(select(5, filter.settings(get))) and filter.BATTLE_BOX[gen] then
           local game = gen == 1 and package.loaded["src.core.Game"] or renderer
           if battleShowing(gen, game) then
             layer.band = filter.BATTLE_BOX[gen]
@@ -889,7 +898,7 @@ function filter.init(mod, rows, menu)
       local ownDraw = G.draw
       G.draw = function(drawable, x, ...)
         local target = G.getCanvas()
-        if not (images[drawable] and target and select(5, filter.settings(get)) == "dark") then
+        if not (images[drawable] and target and filter.isDark(select(5, filter.settings(get)))) then
           return ownDraw(drawable, x, ...)
         end
         local quad = type(x) == "userdata" and x:typeOf("Quad") and x or nil
@@ -930,7 +939,7 @@ function filter.init(mod, rows, menu)
     filter.markPaper = function(x, y, w, h)
       local G = love.graphics
       local target = G.getCanvas()
-      if not (target and tonumber(x) and tonumber(w) and select(5, filter.settings(get)) == "dark") then return end
+      if not (target and tonumber(x) and tonumber(w) and filter.isDark(select(5, filter.settings(get)))) then return end
       pcall(function()
         local cw, ch = target:getDimensions()
         local dpi = target:getDPIScale()
