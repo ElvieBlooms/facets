@@ -157,13 +157,16 @@ function windows.dialogueCells(tx, ty, tw, th, put, shiftL, shiftR, hugT, hugB)
   local ht, hb = hugT or 0, hugB or 0
   -- hugging (hugT / hugB, pixels): the top edge moves up and the bottom
   -- one down, and the sides run on to meet them -Elvie
+  -- (the corners move whole, both their rows, and the sides' middle
+  -- fills in where they were, under them: moving only the top row left
+  -- the corners' lower halves behind, broken in two) -Elvie
   if ht > 0 then
-    put(10, L - 2, Top, false, -sl, -ht); put(11, L - 1, Top, false, -sl, -ht)
-    put(12, L + W, Top, false, sr, -ht); put(13, L + W + 1, Top, false, sr, -ht)
+    put(10, L - 2, Top, false, -sl, 0); put(11, L - 1, Top, false, -sl, 0)
+    put(12, L + W, Top, false, sr, 0); put(13, L + W + 1, Top, false, sr, 0)
   end
   if hb > 0 then
-    put(10, L - 2, Top + H - 1, true, -sl, hb); put(11, L - 1, Top + H - 1, true, -sl, hb)
-    put(12, L + W, Top + H - 1, true, sr, hb); put(13, L + W + 1, Top + H - 1, true, sr, hb)
+    put(10, L - 2, Top + H - 1, true, -sl, 0); put(11, L - 1, Top + H - 1, true, -sl, 0)
+    put(12, L + W, Top + H - 1, true, sr, 0); put(13, L + W + 1, Top + H - 1, true, sr, 0)
   end
   for _, edge in ipairs({ { Top - 1, false, -ht }, { Top + H, true, hb } }) do
     local y, f, dy = edge[1], edge[2], edge[3]
@@ -178,8 +181,9 @@ function windows.dialogueCells(tx, ty, tw, th, put, shiftL, shiftR, hugT, hugB)
     -- rows past the fourth repeat the middle ones -Elvie
     local c = rows[r == H and 4 or (r == 1 and 1 or (r <= H / 2 and 2 or 3))]
     local y = Top + r - 1
-    put(c[1], L - 2, y, c[5], -sl); put(c[2], L - 1, y, c[5], -sl)
-    put(c[3], L + W, y, c[5], sr); put(c[4], L + W + 1, y, c[5], sr)
+    local dy = (r == 1 and -ht or 0) + (r == H and hb or 0)
+    put(c[1], L - 2, y, c[5], -sl, dy); put(c[2], L - 1, y, c[5], -sl, dy)
+    put(c[3], L + W, y, c[5], sr, dy); put(c[4], L + W + 1, y, c[5], sr, dy)
   end
 end
 
