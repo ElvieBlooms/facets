@@ -763,6 +763,38 @@ function windows.init(mod, rows)
       G.setColor(r, g, b, al)
     end
 
+    -- Red, Blue and Yellow's move menu: the TYPE/PP box (0,8 11x5) is
+    -- drawn first and the move box over it, then the game patches two
+    -- border cells where they meet. With a set's frames the boxes don't
+    -- meet as the game's do, so the TYPE/PP box is drawn again on top,
+    -- after the patches (the second, at 80,96, is the last): it wins the
+    -- overlap, and the patches go under it -Elvie
+    do
+      local typeBox = false
+      local ownBox, ownCode = Font.drawBox, Font.drawCode
+      Font.drawBox = function(tx, ty, tw, th, ...)
+        if tx == 0 and ty == 8 and tw == 11 and th == 5 then
+          typeBox = windows.styled() and { ... } or false
+        elseif not (tx == 4 and ty == 12 and tw == 16 and th == 6) then
+          typeBox = false
+        end
+        return ownBox(tx, ty, tw, th, ...)
+      end
+      if type(ownCode) == "function" and type(Font.BORDER) == "table" then
+        Font.drawCode = function(code, x, y, ...)
+          local results = { ownCode(code, x, y, ...) }
+          if typeBox and x == 80 and y == 96 and code == Font.BORDER.br then
+            local again = typeBox
+            typeBox = false
+            local r, g, b, al = love.graphics.getColor()
+            Font.drawBox(0, 8, 11, 5, unpack(again))
+            love.graphics.setColor(r, g, b, al)
+          end
+          return unpack(results)
+        end
+      end
+    end
+
     -- Gold/Silver/Crystal's letters (and the cursor and the more arrow)
     -- carry their own white paper; in a coloured text box it's the box's
     -- colour instead -Elvie
