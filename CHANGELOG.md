@@ -40,6 +40,7 @@
 - **SCENE COLOURS** is now **SCENE COLORS**, to match the other rows.
 - **BATTLE BG: COLORS**, on every game: the battle on a plain colour, **BG COLOR**'s, under it. **PAPER** (the default) follows PAPER, light or dark, so a battle matches your menus; or pick any of PAPER's colours. The GBA games' pages scroll, with arrows, when they have more rows than fit.
 - **Checked against gen1recomp 0.4.6.** PAPER also colours Gold, Silver and Crystal's menus over the map with the new UI LAYOUT: DYNAMIC. Facets no longer asks for Red, Blue and Yellow's Game on the other games, which only put a warning in their logs.
+- **Fixed: BORDERS: FILL tearing on smaller screens** (a 720p laptop, a 480p handheld): where the window isn't a whole number of game screens across, the scene inside the battle didn't line up with the one round it, and tore into stripes. The big scene now sits on the game's own pixel grid, each of its pixels a whole number of the game's, and goes where the battle screen really is, so the two meet seamlessly at any size.
 - **Fixed: white lines round the battle on handhelds like the AYN Thor** (Red to Crystal, BORDERS: BLUR or FILL). Where the screen's pixels aren't square to LÖVE's units, the borders missed the game screen by a couple of pixels and stopped short of the window's right and bottom edges. They now line up on every screen.
 
 ## 1.2.5

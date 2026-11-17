@@ -745,6 +745,14 @@ function filter.init(mod, rows, menu)
     mod.hooks:wrap("render.compose", function(nextFn, renderer, ctx)
       if type(ctx) == "table" then
         grid.cell, grid.origin = filter.gridFor(ctx)
+        -- where the menus' layer goes in the window, in its units, for
+        -- BORDERS: FILL to line its scene up with (classic_scenes) -Elvie
+        do
+          local o, sz = filter.uiRectFor(ctx)
+          local dx, dy = tonumber(ctx.dpiX) or 1, tonumber(ctx.dpiY) or tonumber(ctx.dpiX) or 1
+          filter.uiPlace = o and ctx.uiCanvas and { canvas = ctx.uiCanvas, x = o[1] / dx, y = o[2] / dy,
+            w = sz[1] / dx, h = sz[2] / dy, at = love.timer and love.timer.getTime() or 0 } or nil
+        end
         local canvas, origin, size
         if ctx.generation == 2 then
           gen2Game = renderer

@@ -210,10 +210,27 @@ local fillAt = nil
 -- The big scene's place in the window for a picture: its quad's source
 -- rectangle (the scene inside it, gba_bg.core), the window spot of its
 -- corner and its scale -Elvie
-function scenes.fillPlace(iw, ih, ww, wh)
+-- (g, ox, oy: a game pixel's size in the window and the game screen's
+-- corner, when the screen is drawn at the game's own size and scaled up.
+-- The scene then lands on the game's pixel grid, each of its pixels a
+-- whole number of game pixels, so the screen's part, drawn at the game's
+-- size, lines up with the borders round it. Without that, at a scale
+-- that isn't a whole number (720p, 480p), the two missed each other and
+-- the screen's part tore into stripes) -Elvie
+function scenes.fillPlace(iw, ih, ww, wh, g, ox, oy)
   local cx, cy, cw, ch = require("mods.facets.gba_bg").core(iw, ih)
-  local k = scenes.coverScale(cw, ch, ww, wh)
-  return cx, cy, cw, ch, (ww - cw * k) / 2, (wh - ch * k) / 2, k
+  g = tonumber(g)
+  if not (g and g > 0) then
+    local k = scenes.coverScale(cw, ch, ww, wh)
+    return cx, cy, cw, ch, (ww - cw * k) / 2, (wh - ch * k) / 2, k
+  end
+  -- (covering a game pixel past each edge, for the snap) -Elvie
+  local k = math.max(1, math.ceil(scenes.coverScale(cw, ch, ww + 2 * g, wh + 2 * g) / g)) * g
+  local x0, y0 = (ww - cw * k) / 2, (wh - ch * k) / 2
+  ox, oy = tonumber(ox) or 0, tonumber(oy) or 0
+  x0 = ox + math.floor((x0 - ox) / g + 0.5) * g
+  y0 = oy + math.floor((y0 - oy) / g + 0.5) * g
+  return cx, cy, cw, ch, x0, y0, k
 end
 
 -- FILL inside the game screen: the part of the big scene the screen
@@ -224,8 +241,10 @@ function scenes.fillDraw(image, gx0, gy0, gameW)
   local m = fillAt
   if not (m and scenes.borders() == "fill" and m.sw and m.sw > 0) then return false end
   local iw, ih = image:getDimensions()
-  local cx, cy, cw, ch, x0, y0, k = scenes.fillPlace(iw, ih, m.ww, m.wh)
   local f = m.sw / gameW
+  -- (the borders go by this game's pixel from the next frame on) -Elvie
+  scenes.fillGameW = gameW
+  local cx, cy, cw, ch, x0, y0, k = scenes.fillPlace(iw, ih, m.ww, m.wh, m.g and f, m.ox, m.oy)
   local q = scenes._fillQuad
   if not q then
     q = love.graphics.newQuad(cx, cy, cw, ch, iw, ih)
@@ -319,6 +338,16 @@ function scenes.edges(info)
   if not (s and s.stamp == frame - 1 and type(info) == "table") or info.worldActive then return end
   local cw, ch = s.canvas:getDimensions()
   local vpw, vph = tonumber(info.vpw), tonumber(info.vph)
+  -- (a scene on the menus' layer, Red, Blue and Yellow's normal battle and
+  -- the GBA games', is where that layer really went, which a window not a
+  -- whole number of screens across (720p, 480p) puts somewhere other than
+  -- the letterbox's ox, oy and vpw) -Elvie
+  local fm = package.loaded["mods.facets.filter"]
+  local up = type(fm) == "table" and fm.uiPlace or nil
+  local uox, uoy
+  if up and up.canvas == s.canvas and up.at and love.timer and love.timer.getTime() - up.at < 0.2 then
+    vpw, vph, uox, uoy = up.w, up.h, up.x, up.y
+  end
   if not (cw and ch and cw > 0 and ch > 0 and vpw and vph) then return end
   local ww, wh = tonumber(info.ww), tonumber(info.wh)
   if not (ww and wh and ww > 0 and wh > 0) then return end
@@ -337,7 +366,7 @@ function scenes.edges(info)
   local dw, dh = iw * k, ih * k
   -- only the borders: whatever order the engine puts the game screen down
   -- in, the screen itself is never drawn over -Elvie
-  local ox, oy = tonumber(info.ox) or 0, tonumber(info.oy) or 0
+  local ox, oy = uox or tonumber(info.ox) or 0, uoy or tonumber(info.oy) or 0
   local sw, sh = vpw, vph
   -- the screen as it was really drawn, when that's known and on the same
   -- canvas (BATTLE SIZE: FILL draws it bigger than the letterbox) -Elvie
@@ -352,8 +381,9 @@ function scenes.edges(info)
     -- the scene, sharp, zoomed until it covers the whole window and
     -- centred on it (some of it goes past the edges, never mirrored);
     -- the borders only, so the screen stays in front -Elvie
-    local cx, cy, cw2, ch2, fx, fy, kc = scenes.fillPlace(iw, ih, ww, wh)
-    fillAt = { ox = ox, oy = oy, sw = sw, ww = ww, wh = wh }
+    local g = scenes.fillGameW and sw / scenes.fillGameW or nil
+    local cx, cy, cw2, ch2, fx, fy, kc = scenes.fillPlace(iw, ih, ww, wh, g, ox, oy)
+    fillAt = { ox = ox, oy = oy, sw = sw, ww = ww, wh = wh, g = g }
     local q = scenes._borderQuad
     if not q then
       q = love.graphics.newQuad(cx, cy, cw2, ch2, iw, ih)
