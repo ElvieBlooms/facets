@@ -664,6 +664,14 @@ function windows.init(mod, rows)
         -- inked on its own colour, whatever PAPER is -Elvie
         dark = true
       end
+      -- a battle under the box (its scene, or its own field): what's round
+      -- the art's corners is the battle's, not the paper's -Elvie
+      local battleUnder = false
+      if dark then
+        local okS, sur = pcall(require, "mods.facets.classic_surround")
+        battleUnder = okS and type(sur.inBattle) == "function" and type(sur.game) == "function"
+          and sur.inBattle(sur.game()) or false
+      end
       G.setColor(inside[1], inside[2], inside[3], 1)
       local filled = {} -- what's filled, kept after when papered -Elvie
       if kind == "dialogue" then
@@ -672,15 +680,25 @@ function windows.init(mod, rows)
         local L, Top, W, H = tx + 2, ty + 1, tw - 4, th - 2
         -- (dark: all of what it owns, as a frame, so the white under its
         -- corners and edges, kept with it, is the paper too) -Elvie
-        if dark then G.rectangle("fill", tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb) end
+        if dark and not battleUnder then G.rectangle("fill", tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb) end
         G.rectangle("fill", L * T - sl, Top * T - ht, W * T + sl + sr, H * T + ht + hb)
         filled[#filled + 1] = { L * T - sl, Top * T - ht, W * T + sl + sr, H * T + ht + hb }
+        if dark and battleUnder then
+          -- (and in from its border on every side, so nothing under the
+          -- art's own inside shows through it; its rounded corners are
+          -- left to the battle) -Elvie
+          local h2 = T / 2
+          G.rectangle("fill", L * T - sl, ty * T + h2 - ht, W * T + sl + sr, th * T - 2 * h2 + ht + hb)
+          G.rectangle("fill", (tx + 1) * T - sl, Top * T - ht, (tw - 2) * T + sl + sr, H * T + ht + hb)
+        end
       else
         -- the middle, then only the frame's own inside under its border
         -- tiles, so its corners show the map -Elvie
         -- (dark: the whole of it, so whatever white is under its corners,
         -- kept with it, is the paper too) -Elvie
-        local mask = not dark and maskFor(art0) or nil
+        -- (in a battle, only its shape: round its corners the battle shows,
+        -- kept as it is) -Elvie
+        local mask = (not dark or battleUnder) and maskFor(art0) or nil
         if mask then
           G.rectangle("fill", (tx + 1) * T - hl, (ty + 1) * T - ht, (tw - 2) * T + hl + hr, (th - 2) * T + ht + hb)
           filled[#filled + 1] = { (tx + 1) * T - hl, (ty + 1) * T - ht, (tw - 2) * T + hl + hr, (th - 2) * T + ht + hb }
@@ -780,7 +798,7 @@ function windows.init(mod, rows)
       -- move list's box inside it, as all of them do the FIGHT menu's: with
       -- a set's text box the two drew two borders, one over the other, so
       -- what's inside keeps to the text box's) -Elvie
-      local textBox, textAt = false, 0
+      local textBox, textAt, textArgs = false, 0, nil
       Font.drawBox = function(tx, ty, tw, th, ...)
         if tx == 0 and ty == 8 and tw == 11 and th == 5 then
           typeBox = windows.styled() and { ... } or false
@@ -798,6 +816,7 @@ function windows.init(mod, rows)
         -- and Yellow draw the TYPE/PP box between the two) -Elvie
         if ty == 12 then
           textBox = th == 6 and tx == 0 and type(tw) == "number" and tw >= 20 and tw or false
+          textArgs = textBox and { tx, ty, tw, th, ... } or nil
           -- (this frame's: the draw call count starts again each frame) -Elvie
           textAt = love.graphics.getStats().drawcalls
         end
@@ -805,6 +824,26 @@ function windows.init(mod, rows)
       end
       if type(ownCode) == "function" and type(Font.BORDER) == "table" then
         Font.drawCode = function(code, x, y, ...)
+          -- (the game's other patch, the move box's top line where it meets
+          -- the TYPE/PP box: with a set's frames there's no tile line to
+          -- join, and on dark paper it showed as a white dash) -Elvie
+          -- (the game wipes both cells white first: the text box is drawn
+          -- again over them, so no white shows round the TYPE/PP box's
+          -- corners) -Elvie
+          if x == 32 and y == 96 and code == Font.BORDER.h and windows.styled() then
+            if typeBox and textArgs and windows.textStyled() then
+              local r, g, b, al = love.graphics.getColor()
+              local okI, filterI = pcall(require, "mods.facets.filter")
+              local ink = okI and filterI.inkNow or nil
+              if okI then filterI.inkNow = nil end
+              local keepType = typeBox
+              pcall(Font.drawBox, unpack(textArgs))
+              typeBox = keepType
+              if okI then filterI.inkNow = ink end
+              love.graphics.setColor(r, g, b, al)
+            end
+            return
+          end
           local results = { ownCode(code, x, y, ...) }
           if typeBox and x == 80 and y == 96 and code == Font.BORDER.br then
             local again = typeBox
