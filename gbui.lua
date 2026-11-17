@@ -352,7 +352,8 @@ function gbui.setChoices(set)
   seen = {}
   for n, st in ipairs(set.styles) do
     if type(st) == "table" then
-      local name = set.label .. " " .. tostring(st.name or n)
+      -- (short: the style's name alone, PAPER WOOD's colours) -Elvie
+      local name = set.short and tostring(st.name or n) or set.label .. " " .. tostring(st.name or n)
       if type(st.frame) == "string" then frames[#frames + 1] = { name, set.key .. ":" .. n } end
       if type(st.dialogue) == "string" and not seen[st.dialogue] then
         seen[st.dialogue] = true
@@ -375,7 +376,7 @@ function gbui.loadSets(mod)
       local okM, meta = pcall(function() return require("mods.facets.npcs").decodeJson(mod:read(rel)) end)
       if okM and type(meta) == "table" and type(meta.styles) == "table" and #meta.styles > 0 then
         local label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper()
-        gbui.SETS[key] = { key = key, label = label, credit = meta.credit, styles = meta.styles }
+        gbui.SETS[key] = { key = key, label = label, credit = meta.credit, styles = meta.styles, short = meta.short == true }
         list[#list + 1] = gbui.SETS[key]
       else
         mod.log:warn("windows/%s/meta.json couldn't be read", key)
@@ -702,14 +703,28 @@ function gbui.styleArt(mod, value)
 end
 
 -- Gen 3's 3x3 window frame round a content area (tiles), white inside. -Elvie
-function gbui.nineSlice(img, tx, ty, tw, th)
+-- (own: the frame's inside colour when it has one of its own, PAPER
+-- WOOD's; kept as it is on any paper, as its text box is) -Elvie
+function gbui.nineSlice(img, tx, ty, tw, th, own)
   local G = love.graphics
+  local X, Y, W, H = (tx - 1) * T, (ty - 1) * T, (tw + 2) * T, (th + 2) * T
   -- (the frame's cells too: their inside is the window's white) -Elvie
-  gbui.markPaper((tx - 1) * T, (ty - 1) * T, (tw + 2) * T, (th + 2) * T)
-  local pp = gbui.own((tx - 1) * T, (ty - 1) * T, (tw + 2) * T, (th + 2) * T)
-  local lp, lit = nil, nil
-  if not pp then lp, lit = gbui.lit(img, (tx - 1) * T, (ty - 1) * T, (tw + 2) * T, (th + 2) * T) end
-  local fill = pp or lp
+  gbui.markPaper(X, Y, W, H)
+  local white = type(own) ~= "table" or (math.min(own[1], own[2], own[3]) > 0.9
+    and math.max(own[1], own[2], own[3]) - math.min(own[1], own[2], own[3]) < 0.04)
+  local pp, lp, lit = nil, nil, nil
+  if white then
+    pp = gbui.own(X, Y, W, H)
+    if not pp then lp, lit = gbui.lit(img, X, Y, W, H) end
+  else
+    local ok, filter = pcall(require, "mods.facets.filter")
+    if ok and 0.299 * own[1] + 0.587 * own[2] + 0.114 * own[3] < 0.35 and type(filter.own) == "function" then
+      filter.own(X, Y, W, H, { own[1], own[2], own[3] })
+    elseif ok and type(filter.paperNow) == "function" and filter.paperNow() and type(filter.keepRect) == "function" then
+      filter.keepRect(X, Y, W, H)
+    end
+  end
+  local fill = pp or lp or (not white and own) or nil
   if fill then G.setColor(fill[1], fill[2], fill[3], 1) else G.setColor(1, 1, 1, 1) end
   G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
   G.setColor(1, 1, 1, 1)
@@ -1207,7 +1222,7 @@ function gbui.init(mod, rows, menu)
             local tx, ty, tw, th = tonumber(a), tonumber(b), tonumber(c), tonumber(d)
             if tx and ty and tw and th then
               if frame and gbui.box(frame, (tx - 1) * T, (ty - 1) * T, tw + 2, th + 2) then return end
-              if st and st.frame then gbui.nineSlice(st.frame, tx, ty, tw, th); return end
+              if st and st.frame then gbui.nineSlice(st.frame, tx, ty, tw, th, st.fill); return end
             end
           end
           return orig(...)

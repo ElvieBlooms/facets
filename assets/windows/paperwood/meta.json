@@ -1,11 +1,13 @@
 {
   "label": "PAPER WOOD",
+  "short": true,
   "credit": [
-    "Text boxes recoloured by ElvieBlooms in PAPER's colours, after Tito Seich / Sage's Woody, used with credit"
+    "Text boxes and frames recoloured by ElvieBlooms in PAPER's colours, after Tito Seich / Sage's Woody, used with credit"
   ],
   "styles": [
     {
       "name": "CREAM",
+      "frame": "frame_cream.png",
       "dialogue": "dialogue_cream.png",
       "fill": [
         248,
@@ -15,6 +17,7 @@
     },
     {
       "name": "LEMON",
+      "frame": "frame_lemon.png",
       "dialogue": "dialogue_lemon.png",
       "fill": [
         248,
@@ -24,6 +27,7 @@
     },
     {
       "name": "PEACH",
+      "frame": "frame_peach.png",
       "dialogue": "dialogue_peach.png",
       "fill": [
         250,
@@ -33,6 +37,7 @@
     },
     {
       "name": "ROSE",
+      "frame": "frame_rose.png",
       "dialogue": "dialogue_rose.png",
       "fill": [
         248,
@@ -42,6 +47,7 @@
     },
     {
       "name": "LILAC",
+      "frame": "frame_lilac.png",
       "dialogue": "dialogue_lilac.png",
       "fill": [
         234,
@@ -51,6 +57,7 @@
     },
     {
       "name": "SKY",
+      "frame": "frame_sky.png",
       "dialogue": "dialogue_sky.png",
       "fill": [
         218,
@@ -60,6 +67,7 @@
     },
     {
       "name": "MINT",
+      "frame": "frame_mint.png",
       "dialogue": "dialogue_mint.png",
       "fill": [
         222,
@@ -69,6 +77,7 @@
     },
     {
       "name": "GREY",
+      "frame": "frame_grey.png",
       "dialogue": "dialogue_grey.png",
       "fill": [
         214,
@@ -78,6 +87,7 @@
     },
     {
       "name": "DARK",
+      "frame": "frame_dark.png",
       "dialogue": "dialogue_dark.png",
       "fill": [
         34,
@@ -87,6 +97,7 @@
     },
     {
       "name": "COCOA",
+      "frame": "frame_cocoa.png",
       "dialogue": "dialogue_cocoa.png",
       "fill": [
         52,
@@ -96,6 +107,7 @@
     },
     {
       "name": "OLIVE",
+      "frame": "frame_olive.png",
       "dialogue": "dialogue_olive.png",
       "fill": [
         44,
@@ -105,6 +117,7 @@
     },
     {
       "name": "RUST",
+      "frame": "frame_rust.png",
       "dialogue": "dialogue_rust.png",
       "fill": [
         64,
@@ -114,6 +127,7 @@
     },
     {
       "name": "WINE",
+      "frame": "frame_wine.png",
       "dialogue": "dialogue_wine.png",
       "fill": [
         64,
@@ -123,6 +137,7 @@
     },
     {
       "name": "PLUM",
+      "frame": "frame_plum.png",
       "dialogue": "dialogue_plum.png",
       "fill": [
         46,
@@ -132,6 +147,7 @@
     },
     {
       "name": "NAVY",
+      "frame": "frame_navy.png",
       "dialogue": "dialogue_navy.png",
       "fill": [
         22,
@@ -141,6 +157,7 @@
     },
     {
       "name": "FOREST",
+      "frame": "frame_forest.png",
       "dialogue": "dialogue_forest.png",
       "fill": [
         22,

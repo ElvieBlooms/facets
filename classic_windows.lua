@@ -118,7 +118,8 @@ function windows.setChoices(set)
   seen = {}
   for n, st in ipairs(set.styles) do
     if type(st) == "table" then
-      local name = set.label .. " " .. tostring(st.name or n)
+      -- (short: the style's name alone, PAPER WOOD's colours) -Elvie
+      local name = set.short and tostring(st.name or n) or set.label .. " " .. tostring(st.name or n)
       if type(st.frame) == "string" then frames[#frames + 1] = { name, set.key .. ":" .. n } end
       if type(st.dialogue) == "string" and not seen[st.dialogue] then
         seen[st.dialogue] = true
@@ -321,7 +322,7 @@ local function findSets(mod)
     if key:match("^[%w_%-]+$") and key ~= "fr" and okD and mod.assets:info(rel) then
       local ok, meta = pcall(decode, mod:read(rel))
       if ok and type(meta) == "table" and type(meta.styles) == "table" then
-        sets[#sets + 1] = { key = key, styles = meta.styles,
+        sets[#sets + 1] = { key = key, styles = meta.styles, short = meta.short == true,
           label = type(meta.label) == "string" and meta.label ~= "" and meta.label or key:upper() }
       end
     end
@@ -511,6 +512,11 @@ function windows.init(mod, rows)
         out.frame = fromGame("chrome/user_frame_" .. (n - 1) .. ".rgba", 24, 24, FROM[key])
       elseif kind == "set" then
         out.frame = fromSet(key, styleOf(key, n).frame)
+        -- (the frame's own style's colour, for a frame with one of its own) -Elvie
+        local fc = styleOf(key, n).fill
+        if type(fc) == "table" then
+          out.frameFill = { (tonumber(fc[1]) or 255) / 255, (tonumber(fc[2]) or 255) / 255, (tonumber(fc[3]) or 255) / 255 }
+        end
       end
       local tkind, tkey, tn = windows.textParse(mod.options:get("classicTextBox"), value)
       -- (FireRed's text box goes with its frames; Emerald's and Ruby and
@@ -590,7 +596,12 @@ function windows.init(mod, rows)
       -- is in its own colours -Elvie
       local shader = G.getShader and G.getShader() or nil
       if shader then G.setShader() end
-      local inside = kind == "dialogue" and a.fill
+      -- (a frame whose style has a colour of its own, PAPER WOOD's, is
+      -- filled with it) -Elvie
+      local f0 = kind == "dialogue" and a.fill or a.frameFill
+      local ownFill = type(f0) == "table" and f0[1] and not (math.min(f0[1], f0[2], f0[3]) > 0.9
+        and math.max(f0[1], f0[2], f0[3]) - math.min(f0[1], f0[2], f0[3]) < 0.04) and f0 or nil
+      local inside = kind == "dialogue" and a.fill or ownFill
         or (type(fill) == "table" and fill[1] and { fill[1] / 255, fill[2] / 255, fill[3] / 255 }) or { 1, 1, 1 }
       local sl, sr = 0, 0
       if kind == "dialogue" then sl, sr = shift(img, a) end
@@ -636,6 +647,12 @@ function windows.init(mod, rows)
         -- (kept where it's drawn, its inside and its art, so what shows
         -- round the art is papered as before) -Elvie
         inside, papered, img = filter0.paperLight(), true, lightArt
+      -- a frame light in a colour of its own (PAPER WOOD's): owned as a
+      -- light paper's is, so Gold, Silver and Crystal's letters sit on its
+      -- colour, black, and what's round its art is papered -Elvie
+      elseif ownFill and 0.299 * ownFill[1] + 0.587 * ownFill[2] + 0.114 * ownFill[3] >= 0.35
+          and okF0 and filter0.own(tx * T, ty * T, tw * T, th * T, { ownFill[1], ownFill[2], ownFill[3] }, true, true) then
+        papered = true
       elseif okF0 and type(filter0.own) == "function"
           and 0.299 * inside[1] + 0.587 * inside[2] + 0.114 * inside[3] < 0.35
           and filter0.own(tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb, { inside[1], inside[2], inside[3] }) then
