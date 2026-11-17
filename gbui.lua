@@ -944,6 +944,8 @@ function gbui.init(mod, rows, menu)
             value = tostring(get("bgColour") or "paper") },
           { key = "sceneBorders", label = "BORDERS", who = "sceneBorders", choices = require("mods.facets.classic_scenes").BORDERS,
             value = tostring(get("sceneBorders") or "blur") },
+          { key = "sceneTime", label = "SCENE TIME", who = "sceneTime", choices = { { "ON", "on" }, { "OFF", "off" } },
+            value = tostring(get("sceneTime") or "on") },
         }
       end,
       preview = function(who)
@@ -1011,6 +1013,9 @@ function gbui.init(mod, rows, menu)
             or b == "off" and "The game's own borders."
             or "SURROUND's fill round it." }
           if b == "blur" or b == "fill" then lines[#lines + 1] = { text = "round the battle." } end
+        elseif who == "sceneTime" then
+          lines[#lines + 1] = { text = tostring(get("sceneTime") or "on") == "off" and "Scenes as drawn, all day."
+            or "Outdoor scenes in the hour's light." }
         elseif who == "bgColour" then
           lines[#lines + 1] = { text = tostring(get("bgColour") or "paper") == "paper"
             and "PAPER's colour, for COLORS." or "This colour, for COLORS." }
