@@ -461,6 +461,7 @@ function gbui.sceneName(setKey, bgKey)
   return type(name) == "string" and set.scenes[name] and name or nil
 end
 
+gbui.sceneData = setmetatable({}, { __mode = "k" })
 function gbui.scene(mod, setKey, bgKey)
   local set = gbui.BG_SETS[setKey]
   if not set then return nil end
@@ -485,6 +486,8 @@ function gbui.scene(mod, setKey, bgKey)
   local okI, data = pcall(love.image.newImageData, mod.assets:path(gbui.BG_DIR .. "/" .. id))
   if okI and data then
     scenes[id] = image(data)
+    -- (its picture kept, for its sky at each hour) -Elvie
+    if scenes[id] then gbui.sceneData[scenes[id]] = { data = data, dir = gbui.BG_DIR .. "/" .. setKey, file = file } end
     -- past its edges it carries on mirrored, for the window's borders -Elvie
     pcall(scenes[id].setWrap, scenes[id], "mirroredrepeat", "mirroredrepeat")
   end
@@ -1490,6 +1493,13 @@ function gbui.init(mod, rows, menu)
               love.graphics.setColor(0, 0, 0, 1)
               love.graphics.rectangle("fill", 0, 112, 240, 48)
               local light = lightFor(bg, key)
+              -- a scene with a sky map: its sky painted for the hour, the
+              -- ground in the hour's light, drawn as it is -Elvie
+              local sd = light and gbui.sceneData[img]
+              if sd and type(Edges.skyImage) == "function" then
+                local skied = Edges.skyImage(mod, sd.dir, sd.file, sd.data, Edges.daytime(hour()))
+                if skied then img, light = skied, nil end
+              end
               if light then Edges.setLight(light) else love.graphics.setColor(1, 1, 1, 1) end
               -- a GBA background has its surroundings round it, for the
               -- borders: the scene is the 240x112 at pad, pad -Elvie

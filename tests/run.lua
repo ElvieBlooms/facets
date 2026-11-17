@@ -1809,6 +1809,9 @@ do
     check(lfs.attributes(ROOT .. "/assets/battlebg/scenery/" .. file), "gbc ui: SCENERY ships " .. file)
   end
   eq(n, 20, "gbc ui: ...all twenty scenes")
+  for _, name in ipairs({ "grass", "sea", "beach", "desert" }) do
+    check(lfs.attributes(ROOT .. "/assets/battlebg/scenery/" .. name .. ".sky.png"), "scene time: " .. name .. " has a sky map")
+  end
   for key, scene in pairs(bset and bset.keys or {}) do check(bset.scenes[scene], "gbc ui: " .. key .. " has a scene") end
   eq(select(3, G.settings(function(k) return k == "gbcBattleBg" and "scenery" or nil end)), "scenery", "gbc ui: a set is a BATTLE BG value")
 

@@ -84,6 +84,101 @@ function scenes.setLight(light, dim)
   love.graphics.setColor(l[1] * dim, l[2] * dim, l[3] * dim, 1)
 end
 
+-- The skies: a scene with a sky map (<scene>.sky.png beside it, white
+-- where the sky is, painted by hand) has its sky painted for the hour,
+-- not only tinted: morning's a soft blue going to peach at the horizon,
+-- evening's violet to a sunset orange, night's a navy wash. Each pixel
+-- keeps how light it was, so the clouds stay clouds, in the hour's own
+-- cloud colour. The ground takes the hour's light as before -Elvie
+scenes.SKY = {
+  MORN = { top = { 112, 150, 214 }, horizon = { 252, 204, 168 }, cloud = { 255, 232, 222 } },
+  EVE = { top = { 84, 72, 150 }, horizon = { 248, 146, 96 }, cloud = { 255, 186, 156 } },
+  NITE = { top = { 12, 18, 50 }, horizon = { 40, 58, 112 }, cloud = { 74, 88, 134 } },
+}
+local function smooth(e0, e1, x)
+  local t = math.max(0, math.min(1, (x - e0) / (e1 - e0)))
+  return t * t * (3 - 2 * t)
+end
+-- data (ImageData) with its sky (mask, ImageData the same size) painted
+-- for daytime and the rest in ground ({ r, g, b } 0-1): a new ImageData,
+-- or nil when there's no sky to paint -Elvie
+function scenes.skyBake(data, mask, daytime, ground)
+  local sky = scenes.SKY[daytime]
+  if not (sky and data and mask) then return nil end
+  local w, h = data:getDimensions()
+  local mw, mh = mask:getDimensions()
+  if mw ~= w or mh ~= h then return nil end
+  local lo, hi, bottom = math.huge, -math.huge, -1
+  for y = 0, h - 1 do
+    for x = 0, w - 1 do
+      local _, _, _, a = mask:getPixel(x, y)
+      if a > 0.5 then
+        local r, g, b = data:getPixel(x, y)
+        local l = 0.299 * r + 0.587 * g + 0.114 * b
+        if l < lo then lo = l end
+        if l > hi then hi = l end
+        if y > bottom then bottom = y end
+      end
+    end
+  end
+  if bottom < 0 then return nil end
+  local span = math.max(1 / 255, hi - lo)
+  local gr, gg, gb = ground and ground[1] or 1, ground and ground[2] or 1, ground and ground[3] or 1
+  local top, hor, cloud = sky.top, sky.horizon, sky.cloud
+  local out = data:clone()
+  out:mapPixel(function(x, y, r, g, b, a)
+    local _, _, _, m = mask:getPixel(x, y)
+    if m <= 0.5 then return r * gr, g * gg, b * gb, a end
+    local ln = (0.299 * r + 0.587 * g + 0.114 * b - lo) / span
+    local t = smooth(0, 1, y / math.max(1, bottom))
+    local c = smooth(0.45, 0.95, ln)
+    local k = (0.88 + 0.24 * ln) / 255
+    local function ch(i)
+      local v = top[i] + (hor[i] - top[i]) * t
+      v = v + (cloud[i] - v) * c
+      return math.max(0, math.min(1, v * k))
+    end
+    return ch(1), ch(2), ch(3), a
+  end)
+  return out
+end
+-- The sky map for a scene file in dir (mod.assets), as ImageData, or
+-- false -Elvie
+local skyMaps = {}
+function scenes.skyMap(mod, dir, file)
+  local path = tostring(dir) .. "/" .. tostring(file):gsub("%.png$", "") .. ".sky.png"
+  if skyMaps[path] ~= nil then return skyMaps[path] end
+  skyMaps[path] = false
+  local ok, data = pcall(function()
+    if mod.assets.info and not mod.assets:info(path) then return nil end
+    return love.image.newImageData(mod.assets:path(path))
+  end)
+  if ok and data then skyMaps[path] = data end
+  return skyMaps[path]
+end
+-- The scene (data, from dir/file) as an Image with the hour's sky, or nil
+-- when it has no sky map. Kept per scene and hour -Elvie
+local skyImages = setmetatable({}, { __mode = "k" })
+function scenes.skyImage(mod, dir, file, data, daytime)
+  if not (data and scenes.SKY[daytime]) then return nil end
+  local per = skyImages[data]
+  if not per then per = {}; skyImages[data] = per end
+  if per[daytime] ~= nil then return per[daytime] or nil end
+  per[daytime] = false
+  local mask = scenes.skyMap(mod, dir, file)
+  if not mask then return nil end
+  local ok, img = pcall(function()
+    local baked = scenes.skyBake(data, mask, daytime, scenes.LIGHT[daytime])
+    if not baked then return nil end
+    local i = love.graphics.newImage(baked)
+    i:setFilter("nearest", "nearest")
+    i:setWrap("mirroredrepeat", "mirroredrepeat")
+    return i
+  end)
+  per[daytime] = ok and img or false
+  return per[daytime] or nil
+end
+
 -- The borders show the scene zoomed in and blurred, a little darker, so
 -- the sharp battle sits in front of a soft backdrop of itself -Elvie
 scenes.ZOOM, scenes.DIM = 1.15, 0.8
@@ -648,7 +743,7 @@ function scenes.init(mod, rows)
       local hit = images[id]
       if hit ~= nil then return hit or nil end
       images[id] = false
-      local ok, image = pcall(function()
+      local ok, image, data = pcall(function()
         local data = gbaData and gbaData:clone() or love.image.newImageData(mod.assets:path(DIR .. "/" .. path))
         if gbc then
           data:mapPixel(function(_, _, r, g, b, a)
@@ -656,7 +751,7 @@ function scenes.init(mod, rows)
             return r, g, b, a
           end)
         end
-        return love.graphics.newImage(data)
+        return love.graphics.newImage(data), data
       end)
       if not ok then
         mod.log:warn("battlebg/%s couldn't be read", path)
@@ -684,7 +779,9 @@ function scenes.init(mod, rows)
       local down = scenes.SCREEN_H - ch
       images[id] = { image = image, quad = love.graphics.newQuad(x, y, cw, ch + down, w, h),
         wide = love.graphics.newQuad(wx, wy, ww, wh + down, w, h), wideX = math.floor((scenes.W - ww) / 2),
-        x = x, y = y, wx = wx, wy = wy, coreBottom = h - pad }
+        x = x, y = y, wx = wx, wy = wy, coreBottom = h - pad,
+        -- (a set's own picture, kept for its sky at each hour) -Elvie
+        data = not gbaData and data or nil, dir = DIR .. "/" .. setKey, file = file }
       return images[id]
     end
 
@@ -714,7 +811,7 @@ function scenes.init(mod, rows)
 
     -- the light outdoor scenes are in now: Gold, Silver and Crystal's own
     -- clock (the one their maps follow), read once a second -Elvie
-    local light, lightAt, lightName = nil, -1, nil
+    local light, lightAt, lightName, lightTime = nil, -1, nil, nil
     local function lightOf(self, name)
       if gen ~= 2 or mod.options:get("sceneTime") == "off" then return nil end
       local now = os.time()
@@ -725,10 +822,28 @@ function scenes.init(mod, rows)
         local world = self.game and self.game.world
         if world and type(world.hour) == "function" then hour = world:hour() end
       end)
-      light = scenes.lightFor(name, hour or tonumber(os.date("%H")))
+      hour = hour or tonumber(os.date("%H"))
+      light = scenes.lightFor(name, hour)
+      lightTime = light and scenes.daytime(hour) or nil
       return light
     end
     local lit = nil
+    -- the scene with the hour's sky painted, when it has a sky map: the
+    -- same entry, its picture swapped, kept per hour -Elvie
+    local skied = setmetatable({}, { __mode = "k" })
+    local function withSky(entry, daytime)
+      if not (entry and entry.data and daytime) then return nil end
+      local per = skied[entry]
+      if not per then per = {}; skied[entry] = per end
+      if per[daytime] ~= nil then return per[daytime] or nil end
+      local img = scenes.skyImage(mod, entry.dir, entry.file, entry.data, daytime)
+      if not img then per[daytime] = false; return nil end
+      local copy = {}
+      for k, v in pairs(entry) do copy[k] = v end
+      copy.image = img
+      per[daytime] = copy
+      return copy
+    end
 
     -- this battle's scene, or nil for the game's own -Elvie
     local function sceneFor(self)
@@ -754,6 +869,13 @@ function scenes.init(mod, rows)
       if lit and byKey[setKey].colours then
         local okF, F = pcall(require, "mods.facets.filter")
         if okF and type(F.paperNow) == "function" and F.paperNow() then lit = nil end
+      end
+      if lit and self._facetsScene then
+        local sky = withSky(self._facetsScene, lightTime)
+        if sky then
+          lit = nil
+          return sky
+        end
       end
       return self._facetsScene or nil
     end
