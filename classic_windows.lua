@@ -787,7 +787,13 @@ function windows.init(mod, rows)
             local again = typeBox
             typeBox = false
             local r, g, b, al = love.graphics.getColor()
-            Font.drawBox(0, 8, 11, 5, unpack(again))
+            -- (not as a letter: the glyph's inking, on dark paper, would
+            -- take the frame's art for a letter's) -Elvie
+            local okI, filterI = pcall(require, "mods.facets.filter")
+            local ink = okI and filterI.inkNow or nil
+            if okI then filterI.inkNow = nil end
+            pcall(Font.drawBox, 0, 8, 11, 5, unpack(again))
+            if okI then filterI.inkNow = ink end
             love.graphics.setColor(r, g, b, al)
           end
           return unpack(results)
