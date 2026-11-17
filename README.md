@@ -6,7 +6,7 @@ New looks for everyone but you, in all eleven of gen1recomp's games: FireRed, Le
 
 Facets leaves the player and the rival alone: [Emerald Lens](https://github.com/ElvieBlooms/emerald_lens) draws them in the Gen 3 games and [Crystal Lens](https://github.com/dburton95/crystal) in the Game Boy games. They never touch the same sprites, so they work together in either load order, and share one **PRISM** item on the START and OPTION menus.
 
-**Status: 1.2.1.** Needs gen1recomp 0.3.98 or newer. What's new is in [CHANGELOG.md](CHANGELOG.md).
+**Status: 1.3.0.** Needs gen1recomp 0.3.98 or newer. What's new is in [CHANGELOG.md](CHANGELOG.md).
 
 | | Gen 3 (FireRed, LeafGreen, Ruby, Sapphire, Emerald) | Game Boy (Red, Blue, Yellow, Gold, Silver, Crystal) |
 | --- | --- | --- |
@@ -15,9 +15,9 @@ Facets leaves the player and the rival alone: [Emerald Lens](https://github.com/
 | Pokémon pictures | DS, GBC-ISH, GBC ANIM, GB EMERALD; DPPT, HGSS, B2W2 (your own DS games, through Prism Importer); BW ANIM (BW Animated Sprites, or Facets' own); FR/LG ANIMS; ANIMATION: LOOP, INTRO or OFF | DS; DPPT, HGSS, B2W2 (your own DS games, animated); FIRERED and EMERALD (with Crystal's animations); CRYSTAL on Red, Blue, Yellow, Gold and Silver; ANIMATION: LOOP, INTRO or OFF |
 | Your side | YOUR SIDE: your Pokémon by their front | The same |
 | Party icons | GBC-ISH's Game Boy icons | MINIDEX; CRYSTAL on Red, Blue and Yellow |
-| Battle | SCENERY and WHITE scenes, lit by the time of day, battle box sets, GBC boxes | SCENERY, lit by the time of day in Gold, Silver and Crystal, and battle box sets (box sets in wide battles) |
-| Windows | GBC frames, TITO, LIBERTY, PINK and other window sets | FireRed's frames, TITO, LIBERTY, PINK |
-| Screen | The GB filter | The GB filter; COLORS keeps the game in full colour |
+| Battle | SCENERY (its skies painted for the time of day), WHITE and COLORS scenes, battle box sets, GBC boxes | SCENERY (its skies painted for the time of day) and COLORS, and battle box sets (box sets in wide battles) |
+| Windows | GBC frames, TITO, LIBERTY, PINK, PAPER WOOD and other window sets | FireRed's, Emerald's and Ruby and Sapphire's frames, TITO, LIBERTY, PINK, PAPER WOOD |
+| Screen | The GB filter; PAPER, light or dark; SURROUND | The GB filter; PAPER, light or dark; SURROUND; MAP TIME; COLORS keeps the game in full colour |
 | Yellow's Pikachu | | Seven looks, in battle too |
 
 **Contents:** [The Gen 3 games](#the-gen-3-games) · [Options](#options) · [The GB filter](#the-gb-filter) · [Trainer battle pictures](#trainer-battle-pictures) · [Pokémon pictures](#pokémon-pictures) · [Sprite sets](#sprite-sets) · [Converting a sprite pack](#converting-a-sprite-pack) · [Gen 1 and 2](#gen-1-and-2) · [Achievements](#achievements) · [Tools](#tools) · [Testing](#testing) · [Credits](#credits)
