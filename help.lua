@@ -218,6 +218,14 @@ help.TEXT = {
       dots = "SURROUND's DOTS, as round your menus.",
       checks = "SURROUND's CHECKS, as round your menus.",
       stripes = "SURROUND's STRIPES, as round your menus.",
+      world = "The map you were on, dimmed, as SURROUND's WORLD shows it round your menus (FireRed to Emerald).",
+    },
+  },
+  battleTextBox = {
+    about = "FireRed to Emerald's battle boxes, the message and the menu beside it: the game's own, or in WINDOWS' frame, as the action menu is. A BATTLE UI with a box of its own (TEX BOX, XY, PLAIN) keeps it.",
+    choices = {
+      game = "The game's own battle box.",
+      windows = "The battle's boxes in WINDOWS' frame.",
     },
   },
   sceneTime = {

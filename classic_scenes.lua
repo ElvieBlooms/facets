@@ -96,7 +96,7 @@ scenes.ZOOM, scenes.DIM = 1.15, 0.8
 -- running -Elvie
 scenes.BORDERS = { { "BLUR", "blur" }, { "FILL", "fill" }, { "OFF", "off" },
   { "GLOW", "glow" }, { "WINDOWS", "windows" }, { "DOTS", "dots" }, { "CHECKS", "checks" }, { "STRIPES", "stripes" } }
-scenes.SURROUNDS = { glow = true, windows = true, dots = true, checks = true, stripes = true }
+scenes.SURROUNDS = { glow = true, windows = true, dots = true, checks = true, stripes = true, world = true }
 scenes.borders = function() return "blur" end
 
 -- FILL: where the big scene lies in the window, from the last frame's

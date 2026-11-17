@@ -745,9 +745,11 @@ end
 -- FR/LG's dialogue box from its 18-tile atlas (the sign's 19 tiles use
 -- the same cells), content (2, 15) 26x4, inside filled with colour 1
 -- (pokefirered/src/menu.c, as chrome.lua draws it). -Elvie
-function gbui.dialogueBox(img, fill)
+-- (L, W: where its inside runs, in tiles, when not the whole width: a
+-- battle's message box beside its menu) -Elvie
+function gbui.dialogueBox(img, fill, L0, W0)
   local G = love.graphics
-  local L, Top, W, H = 2, 15, 26, 4
+  local L, Top, W, H = L0 or 2, 15, W0 or 26, 4
   gbui.markPaper(L * T, Top * T, W * T, H * T)
   local pp, lp, lit = nil, nil, nil
   -- (white, not a pale colour of the box's own: PINK WOOD's pinks and
@@ -823,6 +825,9 @@ function gbui.panelBoxes(mode, rects)
 end
 
 local recentPanel = -1
+-- the battle's message box is a set's light one: its white text drawn
+-- dark -Elvie
+local battleBoxLight = false
 -- your side's bar ends at the bracket, not an end cap: set by the box, used
 -- by the bar drawn right after it -Elvie
 local nextBarCapless = false
@@ -913,6 +918,15 @@ function gbui.drawSample(who, bg)
   G.draw(sampleCanvas, sampleQuads[key], s.x, s.y)
 end
 
+-- BORDERS on the GBA games: Red to Crystal's, and WORLD, the map you were
+-- on, as SURROUND's WORLD shows it round your menus -Elvie
+function gbui.BORDERS()
+  local out = {}
+  for _, c in ipairs(require("mods.facets.classic_scenes").BORDERS) do out[#out + 1] = c end
+  table.insert(out, 4, { "WORLD", "world" })
+  return out
+end
+
 function gbui.init(mod, rows, menu)
   local get = getter(mod)
   gbui.get = get
@@ -933,11 +947,13 @@ function gbui.init(mod, rows, menu)
     choices = require("mods.facets.filter").BG_COLOURS, default = "paper" }
   rows[#rows + 1] = { key = "sceneTime", type = "choice", label = "  SCENE TIME",
     choices = { { "ON", "on" }, { "OFF", "off" } }, default = "on" }
+  rows[#rows + 1] = { key = "battleTextBox", type = "choice", label = "  BATTLE TEXT",
+    choices = { { "GAME", "game" }, { "WINDOWS", "windows" } }, default = "game" }
   -- the window's borders round a battle scene: blurred, the scene
   -- itself, or the engine's own (classic_scenes) -Elvie
   do
     local Sc = require("mods.facets.classic_scenes")
-    rows[#rows + 1] = { key = "sceneBorders", type = "choice", label = "  BORDERS", choices = Sc.BORDERS, default = "blur" }
+    rows[#rows + 1] = { key = "sceneBorders", type = "choice", label = "  BORDERS", choices = gbui.BORDERS(), default = "blur" }
     Sc.borders = function() return mod.options:get("sceneBorders") or "blur" end
   end
 
@@ -957,10 +973,12 @@ function gbui.init(mod, rows, menu)
           { key = "gbcBattleBg", label = "BATTLE BG", who = "gbcBattleBg", choices = gbui.BG, value = bg },
           { key = "bgColour", label = "BG COLOR", who = "bgColour", choices = require("mods.facets.filter").BG_COLOURS,
             value = tostring(get("bgColour") or "paper") },
-          { key = "sceneBorders", label = "BORDERS", who = "sceneBorders", choices = require("mods.facets.classic_scenes").BORDERS,
+          { key = "sceneBorders", label = "BORDERS", who = "sceneBorders", choices = gbui.BORDERS(),
             value = tostring(get("sceneBorders") or "blur") },
           { key = "sceneTime", label = "SCENE TIME", who = "sceneTime", choices = { { "ON", "on" }, { "OFF", "off" } },
             value = tostring(get("sceneTime") or "on") },
+          { key = "battleTextBox", label = "BATTLE TEXT", who = "battleTextBox", choices = { { "GAME", "game" }, { "WINDOWS", "windows" } },
+            value = tostring(get("battleTextBox") or "game") },
         }
       end,
       preview = function(who)
@@ -1028,6 +1046,9 @@ function gbui.init(mod, rows, menu)
             or b == "off" and "The game's own borders."
             or "SURROUND's fill round it." }
           if b == "blur" or b == "fill" then lines[#lines + 1] = { text = "round the battle." } end
+        elseif who == "battleTextBox" then
+          lines[#lines + 1] = { text = tostring(get("battleTextBox") or "game") == "windows" and "The battle's boxes in WINDOWS' frame."
+            or "The game's own battle box." }
         elseif who == "sceneTime" then
           lines[#lines + 1] = { text = tostring(get("sceneTime") or "on") == "off" and "Scenes as drawn, all day."
             or "Outdoor scenes in the hour's light." }
@@ -1266,6 +1287,30 @@ function gbui.init(mod, rows, menu)
             recentPanel = now()
             return
           end
+          -- BATTLE TEXT: WINDOWS: the battle's boxes (its message and the
+          -- menu beside it) in WINDOWS' frame, as the game's other menus
+          -- are, unless BATTLE UI brings a box of its own (TEX BOX, XY,
+          -- PLAIN) -Elvie
+          local frameSt = get("battleTextBox") == "windows" and styleOn() or nil
+          local crystal = get("battleTextBox") == "windows" and not frameSt and gbui.settings(get):match("^[1-8]$") and gbui.art() and gbui.settings(get) or nil
+          local _, hud = gbui.settings(get)
+          local uiSet = gbui.UI_SETS[hud]
+          if ((frameSt and frameSt.frame) or crystal) and hud ~= "plain" and not (uiSet and uiSet.images and uiSet.images.textbox) then
+            local rects
+            if type(BattleChrome.menuFrameRects) == "function" and type(BattleChrome.layout) == "function" then
+              local okR, got = pcall(BattleChrome.menuFrameRects, mode, BattleChrome.layout())
+              rects = okR and got or nil
+            end
+            for _, b in ipairs(gbui.panelBoxes(mode, rects)) do
+              if crystal then gbui.box(crystal, b[1] * T, 112, b[2], 6)
+              else gbui.nineSlice(frameSt.frame, b[1] + 1, 15, b[2] - 2, 4, frameSt.fill) end
+            end
+            recentPanel = now()
+            local f = frameSt and frameSt.fill or { 1, 1, 1 }
+            battleBoxLight = math.min(f[1], f[2], f[3]) > 0.5
+            return
+          end
+          battleBoxLight = false
           return origPanel(mode, ...)
         end
       end
@@ -1515,7 +1560,7 @@ function gbui.init(mod, rows, menu)
       local origText = FrlgFont.draw
       FrlgFont.draw = function(text, x, y, opts, ...)
         if type(opts) == "table" and (tonumber(y) or 0) >= 112 and now() - recentPanel < 0.25
-            and gbui.lightText(opts.colors) and textFrameOn() then
+            and gbui.lightText(opts.colors) and (textFrameOn() or battleBoxLight) then
           local o = {}
           for k, v in pairs(opts) do o[k] = v end
           o.colors = FrlgFont.COLOR and FrlgFont.COLOR.NORMAL or opts.colors

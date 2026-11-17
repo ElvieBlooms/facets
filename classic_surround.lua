@@ -98,9 +98,15 @@ function surround.init(m, rows, gen)
           local okT, top = pcall(function() return renderer.stack:top() end)
           if okT and top == nil then src = ctx.sceneCanvas end
         elseif gen == 3 and ctx.worldActive and ctx.worldCanvas then
-          src = ctx.worldCanvas
+          -- (not while a battle's transition plays over the map: the last
+          -- picture before a battle is the map itself, not the wipe) -Elvie
+          local BT = package.loaded["src.core.game3.battle_transition"]
+          if not (type(BT) == "table" and BT._phase and BT._phase ~= "idle") then src = ctx.worldCanvas end
         end
-        if src and surround.mode() == "world" then
+        -- (kept too for BORDERS: WORLD round a GBA battle) -Elvie
+        local okS, Sc = pcall(require, "mods.facets.classic_scenes")
+        local borders = okS and type(Sc.borders) == "function" and Sc.borders() or nil
+        if src and (surround.mode() == "world" or (gen == 3 and borders == "world")) then
           snapAt = snapAt + 1
           if snapAt % 6 == 1 then
             pcall(function()
@@ -417,10 +423,14 @@ function surround.draw(info, battle, real)
     each(function(r)
       G.setColor(k, k, k, 1)
       if snapScale then
-        -- the GBA map, centred in the window at the game's own scale -Elvie
-        local x0 = math.floor((pw - sw * snapScale) / 2) / dx
-        local y0 = math.floor((ph - sh * snapScale) / 2) / dy
-        scenes.drawPart(snapshot, sw, sh, 0, 0, x0, y0, snapScale / dx, snapScale / dy, r)
+        -- the GBA map, centred in the window at the game's own scale; round
+        -- a battle (BORDERS: WORLD), at least big enough to reach the
+        -- window's edges, as the battle may be wider than the map was -Elvie
+        local k = snapScale
+        if battle then k = math.max(k, math.ceil(math.max(pw / sw, ph / sh))) end
+        local x0 = math.floor((pw - sw * k) / 2) / dx
+        local y0 = math.floor((ph - sh * k) / 2) / dy
+        scenes.drawPart(snapshot, sw, sh, 0, 0, x0, y0, k / dx, k / dy, r)
       else
         -- the picture is the window in pixels: one unit is pw / ww of them -Elvie
         scenes.drawPart(snapshot, sw, sh, 0, 0, 0, 0, ww / pw, wh / ph, r)

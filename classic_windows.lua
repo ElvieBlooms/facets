@@ -794,9 +794,13 @@ function windows.init(mod, rows)
             and love.graphics.getStats().drawcalls >= textAt then
           return
         end
-        textBox = ty == 12 and th == 6 and tx == 0 and type(tw) == "number" and tw >= 20 and tw or false
-        -- (this frame's: the draw call count starts again each frame) -Elvie
-        textAt = love.graphics.getStats().drawcalls
+        -- (only another box on the text box's rows changes it: Red, Blue
+        -- and Yellow draw the TYPE/PP box between the two) -Elvie
+        if ty == 12 then
+          textBox = th == 6 and tx == 0 and type(tw) == "number" and tw >= 20 and tw or false
+          -- (this frame's: the draw call count starts again each frame) -Elvie
+          textAt = love.graphics.getStats().drawcalls
+        end
         return ownBox(tx, ty, tw, th, ...)
       end
       if type(ownCode) == "function" and type(Font.BORDER) == "table" then

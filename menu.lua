@@ -265,7 +265,7 @@ menu.TOPICS3 = {
   { id = "pokemon", short = "Pokémon, and how they move.", label = "POKéMON", about = "Pokémon pictures, how they move, and your side.",
     keys = { "setMons", "animMons", "animMode", "backMons", "sizeMons" } },
   { id = "battle", short = "Battle scenes and boxes.", label = "BATTLE", about = "What stands behind each battle, and the battle boxes.",
-    keys = { "gbcBattleBg", "sceneBorders", "bgColour", "sceneTime", "gbcHud" } },
+    keys = { "gbcBattleBg", "sceneBorders", "bgColour", "sceneTime", "gbcHud", "battleTextBox" } },
   { id = "menus", short = "Frames, text box and PAPER.", label = "MENUS", about = "Window frames, the text box, PAPER, and what fills the space round the game.",
     keys = { "gbcFrame", "gbcTextBox", "surround", "paper" } },
   { id = "effects", short = "The filter and its dots.", label = "EFFECTS", about = "Old-handheld looks: the filter and its dots.",
