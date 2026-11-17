@@ -947,7 +947,7 @@ function gbui.init(mod, rows, menu)
     choices = require("mods.facets.filter").BG_COLOURS, default = "paper" }
   rows[#rows + 1] = { key = "sceneTime", type = "choice", label = "  SCENE TIME",
     choices = { { "ON", "on" }, { "OFF", "off" } }, default = "on" }
-  rows[#rows + 1] = { key = "battleTextBox", type = "choice", label = "  BATTLE TEXT",
+  rows[#rows + 1] = { key = "battleTextBox", type = "choice", label = "  TEXT BOX",
     choices = { { "GAME", "game" }, { "WINDOWS", "windows" } }, default = "game" }
   -- the window's borders round a battle scene: blurred, the scene
   -- itself, or the engine's own (classic_scenes) -Elvie
@@ -977,7 +977,7 @@ function gbui.init(mod, rows, menu)
             value = tostring(get("sceneBorders") or "blur") },
           { key = "sceneTime", label = "SCENE TIME", who = "sceneTime", choices = { { "ON", "on" }, { "OFF", "off" } },
             value = tostring(get("sceneTime") or "on") },
-          { key = "battleTextBox", label = "BATTLE TEXT", who = "battleTextBox", choices = { { "GAME", "game" }, { "WINDOWS", "windows" } },
+          { key = "battleTextBox", label = "TEXT BOX", who = "battleTextBox", choices = { { "GAME", "game" }, { "WINDOWS", "windows" } },
             value = tostring(get("battleTextBox") or "game") },
         }
       end,
@@ -1287,7 +1287,7 @@ function gbui.init(mod, rows, menu)
             recentPanel = now()
             return
           end
-          -- BATTLE TEXT: WINDOWS: the battle's boxes (its message and the
+          -- TEXT BOX (battle): WINDOWS: the battle's boxes (its message and the
           -- menu beside it) in WINDOWS' frame, as the game's other menus
           -- are, unless BATTLE UI brings a box of its own (TEX BOX, XY,
           -- PLAIN) -Elvie

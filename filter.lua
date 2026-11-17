@@ -1869,11 +1869,42 @@ function filter.init(mod, rows, menu)
         if not base and not opts.gfxId and not opts.npcColor then
           base = (opts.small and FrlgFont.COLOR and FrlgFont.COLOR.PARTY) or (FrlgFont.COLOR and FrlgFont.COLOR.NORMAL)
         end
-        if not (base and plain(base.fg)) then return nil end
+        if not (base and type(base.fg) == "table") then return nil end
+        -- (a white behind the letters, FireRed's title menu's, would sit
+        -- on the dark as a box round each word: left out) -Elvie
+        local bg = base.bg
+        if type(bg) == "table" and (tonumber(bg[4]) or 1) > 0 then bg = { 0, 0, 0, 0 } end
+        local ol = filter.outlineOf(pp)
+        local fg, shadow = nil, { ol[1], ol[2], ol[3], 1 }
+        if plain(base.fg) then
+          fg = { 0.93, 0.93, 0.94, 1 }
+        else
+          -- a coloured letter keeps its colour; a blue one, which sinks
+          -- into the dark (the party menu's HM moves, the title menu's
+          -- PLAYER and TIME), lightened. Its shadow stays its own, unless
+          -- it's the game's light grey -Elvie
+          local r, g, b = tonumber(base.fg[1]) or 0, tonumber(base.fg[2]) or 0, tonumber(base.fg[3]) or 0
+          if r > 1 or g > 1 or b > 1 then r, g, b = r / 255, g / 255, b / 255 end
+          local l = 0.299 * r + 0.587 * g + 0.114 * b
+          local blue = b > r and b > g and l < 0.45
+          local sh = base.shadow
+          local greyShadow = false
+          if type(sh) == "table" then
+            local sr, sg, sb = tonumber(sh[1]) or 0, tonumber(sh[2]) or 0, tonumber(sh[3]) or 0
+            if sr > 1 or sg > 1 or sb > 1 then sr, sg, sb = sr / 255, sg / 255, sb / 255 end
+            greyShadow = plain({ 1 - sr, 1 - sg, 1 - sb })
+          end
+          if not blue and not greyShadow and bg == base.bg then return nil end
+          fg = { r, g, b, 1 }
+          if blue then
+            local t = 0.45
+            fg = { r + (1 - r) * t, g + (1 - g) * t, b + (1 - b) * t, 1 }
+          end
+          if not greyShadow then shadow = sh end
+        end
         local o = {}
         for k, v in pairs(opts) do o[k] = v end
-        local ol = filter.outlineOf(pp)
-        o.colors = { fg = { 0.93, 0.93, 0.94, 1 }, shadow = { ol[1], ol[2], ol[3], 1 }, bg = base.bg }
+        o.colors = { fg = fg, shadow = shadow, bg = bg }
         o.color, o.shadow, o.gfxId, o.npcColor = nil, nil, nil, nil
         return o
       end

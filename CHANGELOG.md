@@ -13,7 +13,7 @@
 - **ABOUT** now says when a choice needs a game or dump you haven't imported yet (in red on the GBA games). It always said "Uses" before, imported or not.
 - **WINDOWS** saved as a TITO frame (from before TEXT BOX had its own row; TITO has no frames now) goes back to the game's own frame, and shows as GAME. On the GBA games the row showed nothing, and on the Game Boy games it quietly used FireRed's frame 1.
 - **BORDERS: WORLD** on FireRed to Emerald: the map you were on, dimmed, round the battle, as SURROUND's WORLD shows it round your menus.
-- **BATTLE TEXT** on FireRed to Emerald (BATTLE): **WINDOWS** draws the battle's boxes, its message and the menu beside it, in your WINDOWS frame, as the game's other menus are. A BATTLE UI with a box of its own (TEX BOX, XY, PLAIN) keeps its own.
+- **TEXT BOX** on FireRed to Emerald (BATTLE): **WINDOWS** draws the battle's boxes, its message and the menu beside it, in your WINDOWS frame, as the game's other menus are. A BATTLE UI with a box of its own (TEX BOX, XY, PLAIN) keeps its own.
 - **The FIGHT menu and the move list with a set's text box**: drawn inside the battle's text box, they keep to its border, rather than a second text box drawn over the first.
 - **Red, Blue and Yellow's wide battles on dark paper**: the HP bar's outline and its HP: are white on the dark, its colour (green, yellow, red) at full brightness, and the part lost a lighter grey, so it reads as it drops.
 - **Red, Blue and Yellow's move menu with a set's frames**: the TYPE/PP box sits on top of the move box where they meet, with none of the game's border patches poking out.
@@ -25,6 +25,8 @@
 - **Fixed: window frames and text boxes in battle on dark paper** filled the whole square they sit in, so round art (FireRed's text box) had dark corners over the battle's scene, and the wide battles' frames a dark edge round them. In a battle, only the art's own shape is filled now; round its corners the battle shows. The white dash the game's border patch left above the move list is gone too.
 - **Fixed: the text box's corners with a BATTLE BG** on Red to Crystal: stretched to meet the screen's edges, its top and bottom moved out but the lower half of each round corner stayed put, so the corners came apart (plainest on FireRed's round box). The corners move whole now.
 - **Fixed: a white strip along the FACETS page's foot** on Red, Blue and Yellow with dark paper and SURROUND: WORLD, opened through PRISM: the PRISM list under it kept that strip white.
+- **FireRed and LeafGreen's title menu on dark paper**: CONTINUE, PLAYER, TIME and the rest sat in white boxes on the dark. The white behind the letters is left out now, as it is in the windows Facets draws.
+- **Blue letters on dark paper** in the GBA games' windows (the party menu's HM moves, the title menu's PLAYER and TIME) are a lighter blue, so they read on the dark; their light grey shadow is the paper's outline, as the white letters' is.
 - **Fixed: Yellow's letters on dark paper** outside a window (the FACETS page's foot, the POKéDEX) stayed dark: Yellow's black is a touch lighter than the others', close enough to DARK to pass for the paper.
 - **Fixed: a white edge round a dark text box** (TITO's, on the FACETS page): it fills to its edges now, as the frames do.
 - **Fixed: Gold, Silver and Crystal's POKéDEX on dark paper**: its letters went hollow and its edges white. The dex is white on black already, so dark paper now leaves it as the game draws it, every page of it.
