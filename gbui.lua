@@ -949,7 +949,7 @@ function gbui.init(mod, rows, menu)
   rows[#rows + 1] = { key = "bgColour", type = "choice", label = "  BG COLOR",
     choices = require("mods.facets.filter").BG_COLOURS, default = "paper" }
   rows[#rows + 1] = { key = "sceneTime", type = "choice", label = "  SCENE TIME",
-    choices = { { "ON", "on" }, { "OFF", "off" } }, default = "on" }
+    choices = { { "ON", "on" }, { "SYSTEM", "system" }, { "OFF", "off" } }, default = "on" }
   rows[#rows + 1] = { key = "battleTextBox", type = "choice", label = "  TEXT BOX",
     choices = { { "GAME", "game" }, { "WINDOWS", "windows" } }, default = "game" }
   -- the window's borders round a battle scene: blurred, the scene
@@ -978,7 +978,7 @@ function gbui.init(mod, rows, menu)
             value = tostring(get("bgColour") or "paper") },
           { key = "sceneBorders", label = "BORDERS", who = "sceneBorders", choices = gbui.BORDERS(),
             value = tostring(get("sceneBorders") or "blur") },
-          { key = "sceneTime", label = "SCENE TIME", who = "sceneTime", choices = { { "ON", "on" }, { "OFF", "off" } },
+          { key = "sceneTime", label = "SCENE TIME", who = "sceneTime", choices = { { "ON", "on" }, { "SYSTEM", "system" }, { "OFF", "off" } },
             value = tostring(get("sceneTime") or "on") },
           { key = "battleTextBox", label = "TEXT BOX", who = "battleTextBox", choices = { { "GAME", "game" }, { "WINDOWS", "windows" } },
             value = tostring(get("battleTextBox") or "game") },
@@ -1053,8 +1053,9 @@ function gbui.init(mod, rows, menu)
           lines[#lines + 1] = { text = tostring(get("battleTextBox") or "game") == "windows" and "The battle's boxes in WINDOWS' frame."
             or "The game's own battle box." }
         elseif who == "sceneTime" then
-          lines[#lines + 1] = { text = tostring(get("sceneTime") or "on") == "off" and "Scenes as drawn, all day."
-            or "Outdoor scenes in the hour's light." }
+          local st = tostring(get("sceneTime") or "on")
+          lines[#lines + 1] = { text = st == "off" and "Scenes as drawn, all day."
+            or st == "system" and "The hour on your own clock." or "Outdoor scenes in the hour's light." }
         elseif who == "bgColour" then
           lines[#lines + 1] = { text = tostring(get("bgColour") or "paper") == "paper"
             and "PAPER's colour, for COLORS." or "This colour, for COLORS." }
@@ -1429,6 +1430,8 @@ function gbui.init(mod, rows, menu)
     local CLOCKED = { ruby = true, sapphire = true, emerald = true }
     local hourNow, hourAt = nil, -1
     local function hour()
+      -- (SYSTEM: your own clock, whatever the game's says) -Elvie
+      if get("sceneTime") == "system" then return tonumber(os.date("%H")) end
       local now = os.time()
       if now == hourAt then return hourNow end
       hourAt, hourNow = now, tonumber(os.date("%H"))

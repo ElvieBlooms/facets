@@ -570,11 +570,13 @@ local function startGen1(mod, sceneFor)
         q = love.graphics.newQuad(math.floor((iw - W) / 2), (s.coreBottom or ih) - BOTTOM, W, H, iw, ih)
         quads[s.image] = q
       end
-      G.setColor(1, 1, 1, 1)
+      -- (in the hour's light, SCENE TIME on your own clock) -Elvie
+      scenes.setLight(scenes.litNow)
       -- FILL: the field's part of the one big scene -Elvie
       if not scenes.fillDraw(s.image, 0, 0, W) then G.draw(s.image, q, 0, 0) end
+      G.setColor(1, 1, 1, 1)
       local qx, qy = q:getViewport()
-      note(s.image, qx, qy, 0, 0)
+      note(s.image, qx, qy, 0, 0, scenes.litNow)
       -- the game's own fill then goes down see-through -Elvie
       return r, g, b, 0
     end
@@ -657,9 +659,10 @@ local function startGen1(mod, sceneFor)
     G.pop()
     if not ok then error(err, 0) end
     G.push("all")
-    G.setColor(1, 1, 1, 1)
+    scenes.setLight(scenes.litNow)
     if not scenes.fillDraw(s.image, sx or 0, sy or 0, scenes.W) then G.draw(s.image, s.quad, sx or 0, sy or 0) end
-    note(s.image, s.x, s.y, sx or 0, sy or 0)
+    G.setColor(1, 1, 1, 1)
+    note(s.image, s.x, s.y, sx or 0, sy or 0, scenes.litNow)
     shader:send("paper", src)
     shader:send("offset", { sx or 0, sy or 0 })
     shader:send("size", { sw, sh })
@@ -695,10 +698,11 @@ function scenes.init(mod, rows)
     choices = require("mods.facets.filter").BG_COLOURS, default = "paper" }
   rows[#rows + 1] = { key = "sceneBorders", type = "choice", label = "BORDERS", choices = scenes.BORDERS, default = "blur" }
   scenes.borders = function() return mod.options:get("sceneBorders") or "blur" end
-  if gen == 2 then
-    rows[#rows + 1] = { key = "sceneTime", type = "choice", label = "SCENE TIME",
-      choices = { { "ON", "on" }, { "OFF", "off" } }, default = "on" }
-  end
+  -- (Red, Blue and Yellow have no clock: theirs is your own. Gold, Silver
+  -- and Crystal go by theirs, or by yours on SYSTEM) -Elvie
+  rows[#rows + 1] = { key = "sceneTime", type = "choice", label = "SCENE TIME",
+    choices = gen == 2 and { { "ON", "on" }, { "SYSTEM", "system" }, { "OFF", "off" } } or { { "ON", "on" }, { "OFF", "off" } },
+    default = "on" }
 
   return function()
     local okB, BattleState, okC, Chrome = false, nil, false, nil
@@ -815,15 +819,18 @@ function scenes.init(mod, rows)
     -- clock (the one their maps follow), read once a second -Elvie
     local light, lightAt, lightName, lightTime = nil, -1, nil, nil
     local function lightOf(self, name)
-      if gen ~= 2 or mod.options:get("sceneTime") == "off" then return nil end
+      local st = mod.options:get("sceneTime")
+      if st == "off" then return nil end
       local now = os.time()
       if now == lightAt and name == lightName then return light end
       lightAt, lightName = now, name
       local hour
-      pcall(function()
-        local world = self.game and self.game.world
-        if world and type(world.hour) == "function" then hour = world:hour() end
-      end)
+      if gen == 2 and st ~= "system" then
+        pcall(function()
+          local world = self.game and self.game.world
+          if world and type(world.hour) == "function" then hour = world:hour() end
+        end)
+      end
       hour = hour or tonumber(os.date("%H"))
       light = scenes.lightFor(name, hour)
       lightTime = light and scenes.daytime(hour) or nil
@@ -876,9 +883,12 @@ function scenes.init(mod, rows)
         local sky = withSky(self._facetsScene, lightTime)
         if sky then
           lit = nil
+          scenes.litNow = nil
           return sky
         end
       end
+      -- (for Red, Blue and Yellow's drawing, which is apart from this) -Elvie
+      scenes.litNow = lit
       return self._facetsScene or nil
     end
     -- Gold, Silver and Crystal's wide battle with BATTLE HUD: EXTENDED

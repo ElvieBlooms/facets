@@ -229,9 +229,10 @@ help.TEXT = {
     },
   },
   sceneTime = {
-    about = "Outdoor battle scenes follow the game's clock.",
+    about = "Outdoor battle scenes follow the hour: SCENERY's skies go peach in the morning, a sunset in the evening and navy at night. The game's clock where it has one, yours on Red, Blue, Yellow, FireRed and LeafGreen.",
     choices = {
-      on = "Morning gold, evening rose, night blue.",
+      on = "The game's clock, or yours where it has none.",
+      system = "Your own clock, whatever the game's says.",
       off = "Always as drawn, by day.",
     },
   },
