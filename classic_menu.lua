@@ -306,6 +306,12 @@ function cmenu.start(mod, rows)
       for slot = 1, 4 do
         if boxed(rows[(p.scroll or 0) + slot]) then w.textBoxAt = (slot - 1) * 4 end
       end
+      -- (the screen under it, PRISM's list, owned the whole screen as a
+      -- dark window: let it go, so the white round this page's boxes, its
+      -- foot, is paper again and not kept white) -Elvie
+      local okF, filter = pcall(require, "mods.facets.filter")
+      if okF and type(filter.disown) == "function" then filter.disown(0, 0, 160, 144) end
+      if okF and type(filter.markPaper) == "function" then filter.markPaper(0, 0, 160, 144) end
       local ok, err = pcall(ownDraw, p, ...)
       if w then w.textBoxAt = nil end
       if not ok then error(err, 0) end
