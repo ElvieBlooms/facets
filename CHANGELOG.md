@@ -27,6 +27,7 @@
 - **Fixed: a white strip along the FACETS page's foot** on Red, Blue and Yellow with dark paper and SURROUND: WORLD, opened through PRISM: the PRISM list under it kept that strip white.
 - **FireRed and LeafGreen's title menu on dark paper**: CONTINUE, PLAYER, TIME and the rest sat in white boxes on the dark. The white behind the letters is left out now, as it is in the windows Facets draws.
 - **Blue letters on dark paper** in the GBA games' windows (the party menu's HM moves, the title menu's PLAYER and TIME) are a lighter blue, so they read on the dark; their light grey shadow is the paper's outline, as the white letters' is.
+- **Fixed: PRISM's cursor on Red to Crystal on dark paper** stayed black, drawn in the white the gems left behind; it's white on the dark now, as the letters are.
 - **Fixed: Yellow's letters on dark paper** outside a window (the FACETS page's foot, the POKéDEX) stayed dark: Yellow's black is a touch lighter than the others', close enough to DARK to pass for the paper.
 - **Fixed: a white edge round a dark text box** (TITO's, on the FACETS page): it fills to its edges now, as the frames do.
 - **Fixed: Gold, Silver and Crystal's POKéDEX on dark paper**: its letters went hollow and its edges white. The dex is white on black already, so dark paper now leaves it as the game draws it, every page of it.

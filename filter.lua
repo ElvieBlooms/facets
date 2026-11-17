@@ -1743,7 +1743,13 @@ function filter.init(mod, rows, menu)
         if tiles then filter.keepRect(x, y, 8, 8) end
         local G = love.graphics
         local r, g, b, a = G.getColor()
-        if type(code) == "number" and code >= (Font.TTF_BASE or math.huge) then G.setColor(0.93, 0.93, 0.94, a) end
+        if type(code) == "number" and code >= (Font.TTF_BASE or math.huge) then G.setColor(0.93, 0.93, 0.94, a)
+        elseif 0.299 * r + 0.587 * g + 0.114 * b >= 0.5 then
+          -- (a tile drawn in a light colour is still black, its tiles being
+          -- black: PRISM's cursor, drawn in the white the gems left. Inked
+          -- as the black it is) -Elvie
+          G.setColor(0, 0, 0, a)
+        end
         filter.inkNow = pp
         local ok, err = pcall(ownCode, code, x, y, ...)
         filter.inkNow = nil
