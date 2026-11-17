@@ -649,6 +649,9 @@ function windows.init(mod, rows)
         -- only inside the border: the text box's own tiles carry their
         -- inside, and round its corners the map shows, as in Gen 3 -Elvie
         local L, Top, W, H = tx + 2, ty + 1, tw - 4, th - 2
+        -- (dark: all of what it owns, as a frame, so the white under its
+        -- corners and edges, kept with it, is the paper too) -Elvie
+        if dark then G.rectangle("fill", tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb) end
         G.rectangle("fill", L * T - sl, Top * T - ht, W * T + sl + sr, H * T + ht + hb)
         filled[#filled + 1] = { L * T - sl, Top * T - ht, W * T + sl + sr, H * T + ht + hb }
       else

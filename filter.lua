@@ -286,8 +286,9 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
           float chi = max(c.r, max(c.g, c.b));
           float clo = min(c.r, min(c.g, c.b));
           float black = step(dot(c, vec3(0.299, 0.587, 0.114)), 0.2) * (1.0 - smoothstep(0.08, 0.14, chi - clo));
-          // (not the paper's own colour: COLORS' field, behind the HUDs)
-          black *= step(0.1, distance(c, paper));
+          // (not the paper's own colour: COLORS' field, behind the HUDs. Only
+          // near it: Yellow's black, 25, 25, 25, is close to DARK) -Elvie
+          black *= step(0.03, distance(c, paper));
           edge = max(edge, black * (1.0 - keptAt(nbAt(sc, around(i)))));
         }
         // a white letter on a black bar is the bar's: it stays white. (Not
@@ -308,7 +309,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       if (gba < 0.5 && paperDark > 0.5 && w < 0.5) {
         float l = dot(before, vec3(0.299, 0.587, 0.114));
         float region = Texel(ui, p).a * (boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : step(bandTop, p.y)) * (1.0 - keptAt(sc));
-        if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region * step(0.1, distance(before, paper)) > 0.5
+        if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region * step(0.03, distance(before, paper)) > 0.5
             && (boxesOn > 0.5 || inBar(tex, tc, sc) < 0.5)) {
           float onPaper = 0.0;
           float light = 0.0;
@@ -497,6 +498,7 @@ function filter.init(mod, rows, menu)
       introKinds = {}
       for _, name in ipairs({ "src.ui.IntroMovie", "src.ui.YellowIntro", "src.ui.TitleState", "src.ui.OakSpeech",
           "src.ui.gen2.CrystalIntro", "src.ui.gen2.GoldSilverIntro", "src.ui.gen2.IntroFade",
+          "src.ui.gen2.CopyrightSplash", "src.ui.gen2.GameFreakPresents", "src.ui.gen2.CrystalSplash",
           "src.ui.gen2.TitleState", "src.ui.gen2.OakSpeech" }) do
         local ok, m = pcall(require, name)
         if ok and type(m) == "table" then introKinds[m] = true end
