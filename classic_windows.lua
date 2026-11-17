@@ -367,6 +367,10 @@ function windows.init(mod, rows)
       img:setFilter("nearest", "nearest")
       images[id] = img
       datas[img] = data
+      -- its paper map, if it has one (filter.darkArt) -Elvie
+      local okM, mask = pcall(love.image.newImageData, mod.assets:path(DIR .. "/" .. key .. "/" .. file:gsub("%.png$", ".paper.png")))
+      local okF, filter = pcall(require, "mods.facets.filter")
+      if okM and mask and okF and type(filter.setArtMask) == "function" then filter.setArtMask(img, mask) end
       return img
     end
     local function quad(img, i)
@@ -586,12 +590,21 @@ function windows.init(mod, rows)
       local dark = false
       -- (a box Font.drawBox's own wrap has already given the paper's
       -- colour counts too) -Elvie
-      local white = inside[1] > 0.85 and inside[2] > 0.85 and inside[3] > 0.85
+      -- (white, not a pale colour of the box's own: PINK WOOD's pinks and
+      -- PAPER WOOD's light colours keep theirs) -Elvie
+      local white = math.min(inside[1], inside[2], inside[3]) > 0.9
+        and math.max(inside[1], inside[2], inside[3]) - math.min(inside[1], inside[2], inside[3]) < 0.04
       local already = pp and math.abs(inside[1] - pp[1]) + math.abs(inside[2] - pp[2]) + math.abs(inside[3] - pp[3]) < 0.02
       if pp and (white or already)
           and filter0.own(tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb) then
         inside, dark = pp, true
         img = filter0.darkArt(img, kind == "dialogue" and a.fill or nil) or img
+      elseif okF0 and type(filter0.own) == "function"
+          and 0.299 * inside[1] + 0.587 * inside[2] + 0.114 * inside[3] < 0.35
+          and filter0.own(tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb, { inside[1], inside[2], inside[3] }) then
+        -- a dark window of its own (PAPER WOOD's dark ones): its letters
+        -- inked on its own colour, whatever PAPER is -Elvie
+        dark = true
       end
       G.setColor(inside[1], inside[2], inside[3], 1)
       if kind == "dialogue" then
@@ -617,8 +630,13 @@ function windows.init(mod, rows)
       local keep = okF and (filter.keepFrame or filter.keepDraw) or function() end
       -- the box covers whatever was kept under it (another window's frame)
       -- before its own frame is kept -Elvie
-      -- (an owned box is already marked, and kept) -Elvie
-      if not dark and okF and type(filter.markPaper) == "function" then filter.markPaper(tx * T, ty * T, tw * T, th * T) end
+      -- (an owned box is already marked, and kept. One that isn't, in a
+      -- colour of its own, isn't Font.drawBox's either: marking it clears
+      -- what that kept) -Elvie
+      if not dark then
+        if okF0 and type(filter0.disown) == "function" then filter0.disown(tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb) end
+        if okF and type(filter.markPaper) == "function" then filter.markPaper(tx * T, ty * T, tw * T, th * T) end
+      end
       if kind == "dialogue" then
         windows.dialogueCells(tx, ty, tw, th, function(i, cx, cy, flip, dx, dy)
           local x, y = cx * T + (dx or 0), cy * T + (dy or 0)

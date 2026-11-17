@@ -668,7 +668,13 @@ function gbui.styleArt(mod, value)
     if type(file) == "string" and file:match("^[%w_%-%.]+%.png$") then
       local rel = gbui.WINDOWS_DIR .. "/" .. set.key .. "/" .. file
       local okI, data = pcall(love.image.newImageData, mod.assets:path(rel))
-      if okI and data then out[kind] = image(data) end
+      if okI and data then
+        out[kind] = image(data)
+        -- its paper map, if it has one (filter.darkArt) -Elvie
+        local okM, mask = pcall(love.image.newImageData, mod.assets:path((rel:gsub("%.png$", ".paper.png"))))
+        local okF, filter = pcall(require, "mods.facets.filter")
+        if okM and mask and okF and type(filter.setArtMask) == "function" then filter.setArtMask(out[kind], mask) end
+      end
     end
   end
   local function colour(c)
@@ -711,8 +717,18 @@ function gbui.dialogueBox(img, fill)
   local L, Top, W, H = 2, 15, 26, 4
   gbui.markPaper(L * T, Top * T, W * T, H * T)
   local pp = nil
-  if fill[1] > 0.85 and fill[2] > 0.85 and fill[3] > 0.85 then
+  -- (white, not a pale colour of the box's own: PINK WOOD's pinks and
+  -- PAPER WOOD's light colours keep theirs) -Elvie
+  if math.min(fill[1], fill[2], fill[3]) > 0.9 and math.max(fill[1], fill[2], fill[3]) - math.min(fill[1], fill[2], fill[3]) < 0.04 then
     pp = gbui.own((L - 2) * T, (Top - 1) * T, (W + 4) * T, (H + 2) * T)
+  end
+  -- a dark text box of its own (PAPER WOOD's dark ones): its letters inked
+  -- on its own colour, whatever PAPER is -Elvie
+  if not pp and 0.299 * fill[1] + 0.587 * fill[2] + 0.114 * fill[3] < 0.35 then
+    local ok, filter = pcall(require, "mods.facets.filter")
+    if ok and type(filter.own) == "function" then
+      filter.own((L - 2) * T, (Top - 1) * T, (W + 4) * T, (H + 2) * T, { fill[1], fill[2], fill[3] })
+    end
   end
   local inside = pp or fill
   G.setColor(inside[1], inside[2], inside[3], 1)

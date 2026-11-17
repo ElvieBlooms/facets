@@ -1132,7 +1132,7 @@ function filter.init(mod, rows, menu)
         -- colours, as they are: no palette shader over it) -Elvie
         if filter.inkNow and type(drawable) == "userdata" and drawable.typeOf and drawable:typeOf("Texture") then
           local cr, cg, cb = G.getColor()
-          local inked = filter.inked(drawable, 0.299 * cr + 0.587 * cg + 0.114 * cb < 0.5)
+          local inked = filter.inked(drawable, 0.299 * cr + 0.587 * cg + 0.114 * cb < 0.5, filter.inkNow)
           if inked then
             local sh = G.getShader and G.getShader() or nil
             local r, g, b, a = G.getColor()
@@ -1339,9 +1339,28 @@ function filter.init(mod, rows, menu)
     -- the frame's colours) is the paper's colour -Elvie
     -- (also: a colour of its own inside, { r, g, b } 0-1, a text box's
     -- fill, taken as its white) -Elvie
+    -- an art file's own paper map (<art>.paper.png, painted by hand: white
+    -- where the paper's colour goes), registered as the art is loaded.
+    -- Where there's a map it alone says what's paper -Elvie
+    local artMasks = setmetatable({}, { __mode = "k" })
+    function filter.setArtMask(img, data)
+      if type(img) == "userdata" and type(data) == "userdata" then artMasks[img] = data end
+    end
     function filter.darkArt(img, also)
       local pp, key = paperNow()
       if not pp or type(img) ~= "userdata" then return img end
+      local mask = artMasks[img]
+      if mask then
+        return variant(img, "mask:" .. key, function(d, src, w, h)
+          local mw, mh = mask:getWidth(), mask:getHeight()
+          for y = 0, math.min(h, mh) - 1 do
+            for x = 0, math.min(w, mw) - 1 do
+              local _, _, _, a = mask:getPixel(x, y)
+              if a > 0.5 then d:setPixel(x, y, pp[1], pp[2], pp[3], 1) end
+            end
+          end
+        end) or img
+      end
       local tag = "art:" .. key
       if type(also) == "table" then tag = tag .. (":%.3f,%.3f,%.3f"):format(also[1], also[2], also[3]) end
       local function inside(src, x, y, w, h)
@@ -1375,9 +1394,10 @@ function filter.init(mod, rows, menu)
     -- see-through beside a letter (in its own 8x8 cell) the outline -Elvie
     -- (tinted: a sheet of white letters drawn in a dark colour, as Red,
     -- Blue and Yellow's are, whose white is the ink) -Elvie
-    function filter.inked(img, tinted)
-      local pp, key = paperNow()
+    function filter.inked(img, tinted, pp)
+      if type(pp) ~= "table" then pp = paperNow() end
       if not pp then return nil end
+      local key = ("%.3f,%.3f,%.3f"):format(pp[1], pp[2], pp[3])
       local ol = filter.outlineOf(pp)
       local function kindAt(src, x, y, w, h)
         local k = kindOf(src, x, y, w, h)
@@ -1420,26 +1440,45 @@ function filter.init(mod, rows, menu)
     end
     -- Owns a window (x, y, w, h in what's being drawn on, under the current
     -- transform): kept, and its letters inked. False when not dark -Elvie
-    function filter.own(x, y, w, h)
-      if not paperNow() or not (tonumber(x) and tonumber(w)) then return false end
+    -- (colour: the window's own inside, { r, g, b } 0-1, for a dark
+    -- window of its own whatever PAPER is; the paper's when not given)
+    function filter.own(x, y, w, h, colour)
+      local pp = type(colour) == "table" and colour or paperNow()
+      if not pp or not (tonumber(x) and tonumber(w)) then return false end
       local G = love.graphics
       local target = targetOf()
       if not target then return false end
       local x0, y0 = G.transformPoint(x, y)
       local x1, y1 = G.transformPoint(x + w, y + h)
-      owned[#owned + 1] = { target, math.min(x0, x1), math.min(y0, y1), math.max(x0, x1), math.max(y0, y1) }
+      owned[#owned + 1] = { target, math.min(x0, x1), math.min(y0, y1), math.max(x0, x1), math.max(y0, y1), pp }
       if filter.keepRect then filter.keepRect(x, y, w, h) end
       return true
     end
+    -- Lets go of what was owned inside x, y, w, h (a box Font.drawBox's wrap
+    -- owned that a window set then draws in its own colour) -Elvie
+    function filter.disown(x, y, w, h)
+      if #owned == 0 or not (tonumber(x) and tonumber(w)) then return end
+      local G = love.graphics
+      local target = targetOf()
+      local x0, y0 = G.transformPoint(x, y)
+      local x1, y1 = G.transformPoint(x + w, y + h)
+      x0, x1 = math.min(x0, x1) - 1, math.max(x0, x1) + 1
+      y0, y1 = math.min(y0, y1) - 1, math.max(y0, y1) + 1
+      for i = #owned, 1, -1 do
+        local o = owned[i]
+        if o[1] == target and o[2] >= x0 and o[3] >= y0 and o[4] <= x1 and o[5] <= y1 then table.remove(owned, i) end
+      end
+    end
+    -- the owned window's colour at x, y, or nil -Elvie
     function filter.ownedAt(x, y)
-      if #owned == 0 then return false end
+      if #owned == 0 then return nil end
       local target = targetOf()
       local sx, sy = love.graphics.transformPoint(x, y)
       for i = #owned, 1, -1 do
         local o = owned[i]
-        if o[1] == target and sx >= o[2] and sy >= o[3] and sx < o[4] and sy < o[5] then return true end
+        if o[1] == target and sx >= o[2] and sy >= o[3] and sx < o[4] and sy < o[5] then return o[6] end
       end
-      return false
+      return nil
     end
     -- the keep, for a whole rectangle -Elvie
     filter.keepRect = function(x, y, w, h)
@@ -1555,15 +1594,16 @@ function filter.init(mod, rows, menu)
       Font.facetsInk = true
       local ownCode = Font.drawCode
       Font.drawCode = function(code, x, y, ...)
-        if not (type(x) == "number" and type(y) == "number" and paperNow() and filter.ownedAt(x + 4, y + 4)) then
+        local pp = type(x) == "number" and type(y) == "number" and filter.ownedAt(x + 4, y + 4) or nil
+        if not pp then
           return ownCode(code, x, y, ...)
         end
         local G = love.graphics
         local r, g, b, a = G.getColor()
         if type(code) == "number" and code >= (Font.TTF_BASE or math.huge) then G.setColor(0.93, 0.93, 0.94, a) end
-        filter.inkNow = true
+        filter.inkNow = pp
         local ok, err = pcall(ownCode, code, x, y, ...)
-        filter.inkNow = false
+        filter.inkNow = nil
         G.setColor(r, g, b, a)
         if not ok then error(err, 0) end
       end
@@ -1578,8 +1618,7 @@ function filter.init(mod, rows, menu)
       local inking = false
       local function dark(pal)
         if not inking or type(pal) ~= "table" then return pal end
-        local pp = paperNow()
-        if not pp then return pal end
+        local pp = inking
         local out = {}
         for i, v in ipairs(pal) do out[i] = v end
         out[1] = { math.floor(pp[1] * 255 + 0.5), math.floor(pp[2] * 255 + 0.5), math.floor(pp[3] * 255 + 0.5) }
@@ -1596,11 +1635,12 @@ function filter.init(mod, rows, menu)
         return function(...)
           local tx, ty
           if textFirst then tx, ty = select(2, ...) else tx, ty = ... end
-          if not (type(tx) == "number" and type(ty) == "number" and paperNow() and filter.ownedAt(tx * 8 + 2, ty * 8 + 4)) then
+          local pp = type(tx) == "number" and type(ty) == "number" and filter.ownedAt(tx * 8 + 2, ty * 8 + 4) or nil
+          if not pp then
             return ownF(...)
           end
           local was = inking
-          inking = true
+          inking = pp
           local results = { pcall(ownF, ...) }
           inking = was
           if not results[1] then error(results[2], 0) end
@@ -1611,11 +1651,12 @@ function filter.init(mod, rows, menu)
       if type(Chrome2.printRightThrough) == "function" then
         local ownR = Chrome2.printRightThrough
         Chrome2.printRightThrough = function(text, txEnd, ty, ...)
-          if not (type(txEnd) == "number" and type(ty) == "number" and paperNow() and filter.ownedAt(txEnd * 8 - 4, ty * 8 + 4)) then
+          local pp = type(txEnd) == "number" and type(ty) == "number" and filter.ownedAt(txEnd * 8 - 4, ty * 8 + 4) or nil
+          if not pp then
             return ownR(text, txEnd, ty, ...)
           end
           local was = inking
-          inking = true
+          inking = pp
           local results = { pcall(ownR, text, txEnd, ty, ...) }
           inking = was
           if not results[1] then error(results[2], 0) end
@@ -1630,7 +1671,7 @@ function filter.init(mod, rows, menu)
           local pal, drawGlyph, finish = ownG(...)
           if not pal then return pal, drawGlyph, finish end
           return pal, function(code, x, y, ...)
-            if type(x) == "number" and paperNow() and filter.ownedAt(x + 4, y + 4) then
+            if type(x) == "number" and type(y) == "number" and filter.ownedAt(x + 4, y + 4) then
               Font.drawCode(code, x, y)
               return
             end
@@ -1654,8 +1695,8 @@ function filter.init(mod, rows, menu)
         return 0.299 * r + 0.587 * g + 0.114 * b <= 0.45 and math.max(r, g, b) - math.min(r, g, b) < 0.15
       end
       local function inkOpts(x, y, opts)
-        local pp = paperNow()
-        if not (pp and type(x) == "number" and type(y) == "number" and filter.ownedAt(x + 2, y + 2)) then return nil end
+        local pp = type(x) == "number" and type(y) == "number" and filter.ownedAt(x + 2, y + 2) or nil
+        if not pp then return nil end
         opts = opts or {}
         local base = opts.colors
         if not base and opts.color then base = { fg = opts.color, shadow = opts.shadow, bg = opts.bg } end

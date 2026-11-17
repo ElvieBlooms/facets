@@ -252,6 +252,7 @@ help.TEXT = {
       ["libertytwins:"] = "LibertyTwins' text box.",
       ["pink:"] = "A PINK text box.",
       ["pinkwood:"] = "Tito's Woody box, in PINK's colours.",
+      ["paperwood:"] = "Tito's Woody box, in PAPER's colours, light and dark.",
       ["tito:"] = "One of Tito's text boxes.",
     },
   },

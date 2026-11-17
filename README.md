@@ -140,6 +140,9 @@ A window set is a folder in `assets/windows/` with Gen 3-format window art: menu
 * **LIBERTY** (included): ten DS-inspired window frames by **LibertyTwins** (Custom Text Boxes FR), with their dialogue and sign boxes, used with credit. Their [thread](https://www.pokecommunity.com/threads/custom-text-boxes-patch-for-fire-red.528772/) calls them "our own custom frames, inspired by the DS games".
 * **PINK** (included): five window frames by **ElvieBlooms**, each with its own text and sign box, drawn to match Pokémon Pink's border: **BORDER**, **PASTEL**, **BLUSH**, **SKY** and **BERRY**.
 * **PINK WOOD** (included): TITO's **Woody** text box by **Tito Seich / Sage**, recoloured in PINK's colours (used with credit): **ROSE**, **MAGENTA**, **SKY**, **BERRY** and **PEACH**. Text boxes only, so they go with any WINDOWS; PINK's frames are the ones they're made for. Built with `python3 tools/make_pink_wood.py assets/windows/tito/dialogue_woody.png assets/windows/pinkwood`.
+* **PAPER WOOD** (included): the same **Woody** box by **Tito Seich / Sage**, recoloured in each of PAPER's colours (used with credit): **CREAM**, **LEMON**, **PEACH**, **ROSE**, **LILAC**, **SKY**, **MINT**, **GREY**, and the dark ones, **DARK**, **COCOA**, **OLIVE**, **RUST**, **WINE**, **PLUM**, **NAVY** and **FOREST**, whose letters are white with a grey outline whatever PAPER is. Built with `python3 tools/make_paper_wood.py assets/windows`.
+
+A window set's art can carry a paper map beside it, `<art>.paper.png`: white where PAPER's colour goes inside the frame's own pixels (a frame's cut-ins, a text box's inside edge). With a map, dark paper fills exactly those pixels and leaves the rest of the art as drawn. The maps are painted by hand on an assembled sheet: `python3 tools/paper_maps/make.py`, `assembled_mask.py` and `slice_masks.py` make the sheet and cut an edited one back into maps.
 
 Sets are built from a pack's own images with:
 

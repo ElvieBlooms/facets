@@ -1,0 +1,296 @@
+[
+ {
+  "file": "libertytwins/frame_1.png",
+  "x": 8,
+  "y": 36,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "libertytwins/frame_2.png",
+  "x": 54,
+  "y": 36,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "libertytwins/frame_3.png",
+  "x": 100,
+  "y": 36,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "libertytwins/frame_4.png",
+  "x": 146,
+  "y": 36,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "libertytwins/frame_5.png",
+  "x": 192,
+  "y": 36,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "libertytwins/frame_6.png",
+  "x": 238,
+  "y": 36,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "libertytwins/frame_7.png",
+  "x": 284,
+  "y": 36,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "libertytwins/frame_8.png",
+  "x": 330,
+  "y": 36,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "libertytwins/frame_9.png",
+  "x": 376,
+  "y": 36,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "libertytwins/frame_10.png",
+  "x": 422,
+  "y": 36,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "libertytwins/dialogue.png",
+  "x": 474,
+  "y": 36,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "libertytwins/sign.png",
+  "x": 8,
+  "y": 80,
+  "w": 40,
+  "h": 32
+ },
+ {
+  "file": "pink/frame_berry.png",
+  "x": 8,
+  "y": 156,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "pink/frame_blush.png",
+  "x": 73,
+  "y": 156,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "pink/frame_border.png",
+  "x": 140,
+  "y": 156,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "pink/frame_pastel.png",
+  "x": 211,
+  "y": 156,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "pink/frame_sky.png",
+  "x": 278,
+  "y": 156,
+  "w": 24,
+  "h": 24
+ },
+ {
+  "file": "pink/dialogue_berry.png",
+  "x": 333,
+  "y": 156,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "pink/dialogue_blush.png",
+  "x": 412,
+  "y": 156,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "pink/dialogue_border.png",
+  "x": 8,
+  "y": 200,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "pink/dialogue_pastel.png",
+  "x": 93,
+  "y": 200,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "pink/dialogue_sky.png",
+  "x": 174,
+  "y": 200,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "pink/sign_berry.png",
+  "x": 243,
+  "y": 200,
+  "w": 40,
+  "h": 32
+ },
+ {
+  "file": "pink/sign_blush.png",
+  "x": 301,
+  "y": 200,
+  "w": 40,
+  "h": 32
+ },
+ {
+  "file": "pink/sign_border.png",
+  "x": 361,
+  "y": 200,
+  "w": 40,
+  "h": 32
+ },
+ {
+  "file": "pink/sign_pastel.png",
+  "x": 425,
+  "y": 200,
+  "w": 40,
+  "h": 32
+ },
+ {
+  "file": "pink/sign_sky.png",
+  "x": 485,
+  "y": 200,
+  "w": 40,
+  "h": 32
+ },
+ {
+  "file": "pinkwood/dialogue_berry.png",
+  "x": 8,
+  "y": 276,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "pinkwood/dialogue_magenta.png",
+  "x": 87,
+  "y": 276,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "pinkwood/dialogue_peach.png",
+  "x": 182,
+  "y": 276,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "pinkwood/dialogue_rose.png",
+  "x": 265,
+  "y": 276,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "pinkwood/dialogue_sky.png",
+  "x": 338,
+  "y": 276,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "tito/dialogue_checkered.png",
+  "x": 8,
+  "y": 344,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "tito/dialogue_cool_red.png",
+  "x": 113,
+  "y": 344,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "tito/dialogue_emerald.png",
+  "x": 206,
+  "y": 344,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "tito/dialogue_hoenn.png",
+  "x": 299,
+  "y": 344,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "tito/dialogue_orange.png",
+  "x": 385,
+  "y": 344,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "tito/dialogue_red.png",
+  "x": 472,
+  "y": 344,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "tito/dialogue_silver.png",
+  "x": 8,
+  "y": 388,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "tito/dialogue_sky_blue.png",
+  "x": 87,
+  "y": 388,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "tito/dialogue_square_red.png",
+  "x": 183,
+  "y": 388,
+  "w": 48,
+  "h": 24
+ },
+ {
+  "file": "tito/dialogue_woody.png",
+  "x": 290,
+  "y": 388,
+  "w": 48,
+  "h": 24
+ }
+]
