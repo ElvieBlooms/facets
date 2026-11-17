@@ -488,6 +488,29 @@ function filter.init(mod, rows, menu)
     local okT, top = pcall(function() return stack:top() end)
     return okT and type(top) == "table" and battleKinds[getmetatable(top)] == true or false
   end
+  -- Whether Red to Crystal's opening is showing: the intro movie, the
+  -- title and Oak's speech (and naming from it). PAPER leaves them be, as
+  -- the GBA games' -Elvie
+  local introKinds
+  local function introShowing(game)
+    if not introKinds then
+      introKinds = {}
+      for _, name in ipairs({ "src.ui.IntroMovie", "src.ui.YellowIntro", "src.ui.TitleState", "src.ui.OakSpeech",
+          "src.ui.gen2.CrystalIntro", "src.ui.gen2.GoldSilverIntro", "src.ui.gen2.IntroFade",
+          "src.ui.gen2.TitleState", "src.ui.gen2.OakSpeech" }) do
+        local ok, m = pcall(require, name)
+        if ok and type(m) == "table" then introKinds[m] = true end
+      end
+    end
+    local stack = type(game) == "table" and rawget(game, "stack")
+    local states = type(stack) == "table" and rawget(stack, "states")
+    if type(states) ~= "table" then return false end
+    for _, st in ipairs(states) do
+      local mt = type(st) == "table" and getmetatable(st)
+      if mt and (introKinds[mt] or (type(mt.__index) == "table" and introKinds[mt.__index])) then return true end
+    end
+    return false
+  end
   -- DARK's pictures this frame: a copy the size of what they were drawn
   -- on (keep), and where that sits on screen -Elvie
   local pics = { keep = nil, drawn = false, fresh = false, origin = nil, size = nil,
@@ -682,6 +705,11 @@ function filter.init(mod, rows, menu)
         -- PAPER leaves them be -Elvie
         if ctx.generation == 3 and game3 and (rawget(game3, "phase") == "boot" or rawget(game3, "phase") == "quest_log") then
           canvas = nil
+        end
+        if ctx.generation == 1 or ctx.generation == 2 then
+          local g = ctx.generation == 1 and package.loaded["src.core.Game"] or renderer
+          filter.introNow = introShowing(g)
+          if filter.introNow then canvas = nil end
         end
         layer.canvas = canvas
         if canvas then layer.origin, layer.size = origin, size end
@@ -1283,6 +1311,7 @@ function filter.init(mod, rows, menu)
     -- window is "owned" for the frame: kept, so the pass leaves it as
     -- drawn, and its letters are inked as they're drawn -Elvie
     local function paperNow()
+      if filter.introNow then return nil end
       local p = select(5, filter.settings(get))
       if not filter.isDark(p) then return nil end
       local t = filter.PAPER[p]
@@ -1292,6 +1321,7 @@ function filter.init(mod, rows, menu)
     -- a light PAPER's colour (not WHITE), or nil: for the window art with
     -- a paper map, whose painted part takes it, drawn -Elvie
     local function paperLight()
+      if filter.introNow then return nil end
       local p = select(5, filter.settings(get))
       if not p or p == "off" or filter.isDark(p) then return nil end
       local t = filter.PAPER[p]
