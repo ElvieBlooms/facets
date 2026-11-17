@@ -122,7 +122,9 @@ function scenes.skyBake(data, mask, daytime, ground)
     end
   end
   if bottom < 0 then return nil end
-  local span = math.max(1 / 255, hi - lo)
+  -- (a sky in one or two flat colours, the snow's, keeps to the hour's
+  -- gradient: its small differences aren't clouds) -Elvie
+  local span = math.max(0.3, hi - lo)
   local gr, gg, gb = ground and ground[1] or 1, ground and ground[2] or 1, ground and ground[3] or 1
   local top, hor, cloud = sky.top, sky.horizon, sky.cloud
   local out = data:clone()
