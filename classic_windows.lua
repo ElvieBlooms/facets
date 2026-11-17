@@ -776,12 +776,27 @@ function windows.init(mod, rows)
     do
       local typeBox = false
       local ownBox, ownCode = Font.drawBox, Font.drawCode
+      -- (Gold, Silver and Crystal draw the whole text box first, then the
+      -- move list's box inside it, as all of them do the FIGHT menu's: with
+      -- a set's text box the two drew two borders, one over the other, so
+      -- what's inside keeps to the text box's) -Elvie
+      local textBox, textAt = false, 0
       Font.drawBox = function(tx, ty, tw, th, ...)
         if tx == 0 and ty == 8 and tw == 11 and th == 5 then
           typeBox = windows.styled() and { ... } or false
         elseif not (tx == 4 and ty == 12 and tw == 16 and th == 6) then
           typeBox = false
         end
+        -- (and the FIGHT menu's, in every game: any six-row box inside the
+        -- text box just drawn) -Elvie
+        if ty == 12 and th == 6 and type(tx) == "number" and tx > 0 and type(tw) == "number"
+            and textBox and tx + tw <= textBox and windows.textStyled()
+            and love.graphics.getStats().drawcalls >= textAt then
+          return
+        end
+        textBox = ty == 12 and th == 6 and tx == 0 and type(tw) == "number" and tw >= 20 and tw or false
+        -- (this frame's: the draw call count starts again each frame) -Elvie
+        textAt = love.graphics.getStats().drawcalls
         return ownBox(tx, ty, tw, th, ...)
       end
       if type(ownCode) == "function" and type(Font.BORDER) == "table" then
