@@ -520,9 +520,12 @@ function windows.init(mod, rows)
       end
       local tkind, tkey, tn = windows.textParse(mod.options:get("classicTextBox"), value)
       -- (FireRed's text box goes with its frames; Emerald's and Ruby and
-      -- Sapphire's frames keep the game's own text box) -Elvie
+      -- Sapphire's frames, whose text boxes are laid out another way, make
+      -- the text box themselves, so it matches) -Elvie
       if tkind == "fr" and tkey == "fr" then
         out.dialogue, out.fill = fromGame("chrome/menu_message_rgba.rgba", 48, 24), { 1, 1, 1 }
+      elseif tkind == "fr" then
+        out.textFrame, out.fill = true, { 1, 1, 1 }
       elseif tkind == "set" then
         local st = styleOf(tkey, tn)
         if st then
@@ -588,6 +591,7 @@ function windows.init(mod, rows)
       local img
       if a then
         if kind == "dialogue" then img = a.fill and a.dialogue or nil else img = a.frame end
+        if kind == "dialogue" and not img and a.textFrame and a.frame then kind, img = "frame", a.frame end
       end
       if not img then return own(tx, ty, tw, th, fill, ...) end
       local G = love.graphics
