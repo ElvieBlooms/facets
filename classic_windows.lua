@@ -595,10 +595,20 @@ function windows.init(mod, rows)
       local white = math.min(inside[1], inside[2], inside[3]) > 0.9
         and math.max(inside[1], inside[2], inside[3]) - math.min(inside[1], inside[2], inside[3]) < 0.04
       local already = pp and math.abs(inside[1] - pp[1]) + math.abs(inside[2] - pp[2]) + math.abs(inside[3] - pp[3]) < 0.02
+      -- a light paper and art with a paper map: drawn too, the inside and
+      -- the map's part of the art in the paper's colour, kept as drawn
+      -- (papered: owned the same way, its letters black) -Elvie
+      local papered = false
+      local art0 = img -- (the art as loaded, whose inside shape is known) -Elvie
+      local lightArt = not pp and white and okF0 and type(filter0.paperArt) == "function" and filter0.paperArt(img) or nil
       if pp and (white or already)
           and filter0.own(tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb) then
         inside, dark = pp, true
         img = filter0.darkArt(img, kind == "dialogue" and a.fill or nil) or img
+      elseif lightArt and filter0.own(tx * T, ty * T, tw * T, th * T, filter0.paperLight(), true, true) then
+        -- (kept where it's drawn, its inside and its art, so what shows
+        -- round the art is papered as before) -Elvie
+        inside, papered, img = filter0.paperLight(), true, lightArt
       elseif okF0 and type(filter0.own) == "function"
           and 0.299 * inside[1] + 0.587 * inside[2] + 0.114 * inside[3] < 0.35
           and filter0.own(tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb, { inside[1], inside[2], inside[3] }) then
@@ -607,20 +617,27 @@ function windows.init(mod, rows)
         dark = true
       end
       G.setColor(inside[1], inside[2], inside[3], 1)
+      local filled = {} -- what's filled, kept after when papered -Elvie
       if kind == "dialogue" then
         -- only inside the border: the text box's own tiles carry their
         -- inside, and round its corners the map shows, as in Gen 3 -Elvie
         local L, Top, W, H = tx + 2, ty + 1, tw - 4, th - 2
         G.rectangle("fill", L * T - sl, Top * T - ht, W * T + sl + sr, H * T + ht + hb)
+        filled[#filled + 1] = { L * T - sl, Top * T - ht, W * T + sl + sr, H * T + ht + hb }
       else
         -- the middle, then only the frame's own inside under its border
         -- tiles, so its corners show the map -Elvie
-        local mask = maskFor(img)
+        local mask = maskFor(art0)
         if mask then
           G.rectangle("fill", (tx + 1) * T - hl, (ty + 1) * T - ht, (tw - 2) * T + hl + hr, (th - 2) * T + ht + hb)
-          windows.frameCells(tx, ty, tw, th, function(i, cx, cy, dy, dx) G.draw(mask, quad(mask, i), cx * T + dx, cy * T + dy) end, ht, hb, hl, hr)
+          filled[#filled + 1] = { (tx + 1) * T - hl, (ty + 1) * T - ht, (tw - 2) * T + hl + hr, (th - 2) * T + ht + hb }
+          windows.frameCells(tx, ty, tw, th, function(i, cx, cy, dy, dx)
+            G.draw(mask, quad(mask, i), cx * T + dx, cy * T + dy)
+            filled[#filled + 1] = { mask, quad(mask, i), cx * T + dx, cy * T + dy }
+          end, ht, hb, hl, hr)
         else
           G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
+          filled[#filled + 1] = { tx * T, ty * T, tw * T, th * T }
         end
       end
       G.setColor(1, 1, 1, 1)
@@ -628,14 +645,28 @@ function windows.init(mod, rows)
       -- -Elvie
       local okF, filter = pcall(require, "mods.facets.filter")
       local keep = okF and (filter.keepFrame or filter.keepDraw) or function() end
+      if papered and okF and type(filter.keepArt) == "function" then keep = filter.keepArt end
       -- the box covers whatever was kept under it (another window's frame)
       -- before its own frame is kept -Elvie
       -- (an owned box is already marked, and kept. One that isn't, in a
       -- colour of its own, isn't Font.drawBox's either: marking it clears
       -- what that kept) -Elvie
-      if not dark then
-        if okF0 and type(filter0.disown) == "function" then filter0.disown(tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb) end
+      if papered then
+        -- marked as before, then what this draws kept -Elvie
         if okF and type(filter.markPaper) == "function" then filter.markPaper(tx * T, ty * T, tw * T, th * T) end
+        for _, f in ipairs(filled) do
+          if type(f[1]) == "number" then filter0.keepRect(f[1], f[2], f[3], f[4])
+          elseif okF and type(filter.keepArt) == "function" then filter.keepArt(f[1], f[2], f[3], f[4]) end
+        end
+      elseif not dark then
+        if okF0 and type(filter0.disown) == "function" then filter0.disown(tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb) end
+        if pp and not white and okF0 and type(filter0.keepRect) == "function" then
+          -- on dark paper, a box in a pale colour of its own (PINK WOOD's
+          -- PEACH) is kept whole, as drawn, black letters and all -Elvie
+          filter0.keepRect(tx * T - hl, ty * T - ht, tw * T + hl + hr, th * T + ht + hb)
+        elseif okF and type(filter.markPaper) == "function" then
+          filter.markPaper(tx * T, ty * T, tw * T, th * T)
+        end
       end
       if kind == "dialogue" then
         windows.dialogueCells(tx, ty, tw, th, function(i, cx, cy, flip, dx, dy)
@@ -660,6 +691,11 @@ function windows.init(mod, rows)
         -- (drawn dark, its letters are inked instead) -Elvie
         if dark then
           windows.paper = nil
+        elseif papered then
+          local stats = G.getStats and G.getStats()
+          windows.paper = { x = tx * T, y = ty * T, w = tw * T, h = th * T,
+            fill = { math.floor(inside[1] * 255 + 0.5), math.floor(inside[2] * 255 + 0.5), math.floor(inside[3] * 255 + 0.5) },
+            at = love.timer and love.timer.getTime() or nil, calls = stats and stats.drawcalls or nil }
         elseif c[1] < 1 or c[2] < 1 or c[3] < 1 then
           local stats = G.getStats and G.getStats()
           windows.paper = { x = tx * T, y = ty * T, w = tw * T, h = th * T,

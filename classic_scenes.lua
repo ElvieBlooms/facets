@@ -749,6 +749,12 @@ function scenes.init(mod, rows)
         self._facetsSceneName = name
       end
       lit = self._facetsScene and lightOf(self, self._facetsSceneName) or nil
+      -- a plain COLORS field on dark paper is the paper itself, unlit, so
+      -- the HUDs drawn on it in the paper's colour sit flush -Elvie
+      if lit and byKey[setKey].colours then
+        local okF, F = pcall(require, "mods.facets.filter")
+        if okF and type(F.paperNow) == "function" and F.paperNow() then lit = nil end
+      end
       return self._facetsScene or nil
     end
     -- Gold, Silver and Crystal's wide battle with BATTLE HUD: EXTENDED

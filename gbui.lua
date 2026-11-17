@@ -202,6 +202,18 @@ function gbui.own(x, y, w, h)
   if pp and filter.own(x, y, w, h) then return pp end
   return nil
 end
+-- A light paper, and art with a paper map: the window owned (kept as
+-- drawn, letters black), and the paper's colour and the art with its
+-- map in it; nil when not -Elvie
+function gbui.lit(img, x, y, w, h)
+  local ok, filter = pcall(require, "mods.facets.filter")
+  if not (ok and type(filter.paperArt) == "function") then return nil end
+  local art = filter.paperArt(img)
+  if not art then return nil end
+  local lp = filter.paperLight()
+  if lp and filter.own(x, y, w, h, lp, nil, true) then return lp, art end
+  return nil
+end
 function gbui.darkArt(img, pp, also)
   if not pp then return img end
   local ok, filter = pcall(require, "mods.facets.filter")
@@ -219,10 +231,13 @@ function gbui.box(frame, x, y, w, h)
   gbui.markPaper(x, y, w * T, h * T)
   -- DARK: drawn dark and owned (filter.lua) -Elvie
   local pp = gbui.own(x, y, w * T, h * T)
-  if pp then G.setColor(pp[1], pp[2], pp[3], 1) else G.setColor(PAPER[1] / 255, PAPER[2] / 255, PAPER[3] / 255, 1) end
+  local lp, lit = nil, nil
+  if not pp then lp, lit = gbui.lit(a.framesImage, x, y, w * T, h * T) end
+  local fill = pp or lp
+  if fill then G.setColor(fill[1], fill[2], fill[3], 1) else G.setColor(PAPER[1] / 255, PAPER[2] / 255, PAPER[3] / 255, 1) end
   G.rectangle("fill", x, y, w * T, h * T)
   G.setColor(1, 1, 1, 1)
-  local img, base = gbui.darkArt(a.framesImage, pp), n * a.framesPerRow
+  local img, base = lit or gbui.darkArt(a.framesImage, pp), n * a.framesPerRow
   local function tile(i, cx, cy) G.draw(img, quad(img, base + i), x + cx * T, y + cy * T) end
   tile(0, 0, 0)
   for cx = 1, w - 2 do tile(1, cx, 0) end
@@ -692,10 +707,13 @@ function gbui.nineSlice(img, tx, ty, tw, th)
   -- (the frame's cells too: their inside is the window's white) -Elvie
   gbui.markPaper((tx - 1) * T, (ty - 1) * T, (tw + 2) * T, (th + 2) * T)
   local pp = gbui.own((tx - 1) * T, (ty - 1) * T, (tw + 2) * T, (th + 2) * T)
-  if pp then G.setColor(pp[1], pp[2], pp[3], 1) else G.setColor(1, 1, 1, 1) end
+  local lp, lit = nil, nil
+  if not pp then lp, lit = gbui.lit(img, (tx - 1) * T, (ty - 1) * T, (tw + 2) * T, (th + 2) * T) end
+  local fill = pp or lp
+  if fill then G.setColor(fill[1], fill[2], fill[3], 1) else G.setColor(1, 1, 1, 1) end
   G.rectangle("fill", tx * T, ty * T, tw * T, th * T)
   G.setColor(1, 1, 1, 1)
-  local art = gbui.darkArt(img, pp)
+  local art = lit or gbui.darkArt(img, pp)
   local function cell(i, cx, cy) G.draw(art, quad(art, i), cx * T, cy * T) end
   cell(0, tx - 1, ty - 1)
   for i = 0, tw - 1 do cell(1, tx + i, ty - 1) end
@@ -716,11 +734,12 @@ function gbui.dialogueBox(img, fill)
   local G = love.graphics
   local L, Top, W, H = 2, 15, 26, 4
   gbui.markPaper(L * T, Top * T, W * T, H * T)
-  local pp = nil
+  local pp, lp, lit = nil, nil, nil
   -- (white, not a pale colour of the box's own: PINK WOOD's pinks and
   -- PAPER WOOD's light colours keep theirs) -Elvie
   if math.min(fill[1], fill[2], fill[3]) > 0.9 and math.max(fill[1], fill[2], fill[3]) - math.min(fill[1], fill[2], fill[3]) < 0.04 then
     pp = gbui.own((L - 2) * T, (Top - 1) * T, (W + 4) * T, (H + 2) * T)
+    if not pp then lp, lit = gbui.lit(img, (L - 2) * T, (Top - 1) * T, (W + 4) * T, (H + 2) * T) end
   end
   -- a dark text box of its own (PAPER WOOD's dark ones): its letters inked
   -- on its own colour, whatever PAPER is -Elvie
@@ -729,12 +748,19 @@ function gbui.dialogueBox(img, fill)
     if ok and type(filter.own) == "function" then
       filter.own((L - 2) * T, (Top - 1) * T, (W + 4) * T, (H + 2) * T, { fill[1], fill[2], fill[3] })
     end
+  elseif not pp and not lp then
+    -- a pale one of its own on dark paper (PINK WOOD's PEACH): kept whole,
+    -- as drawn -Elvie
+    local ok, filter = pcall(require, "mods.facets.filter")
+    if ok and type(filter.paperNow) == "function" and filter.paperNow() and type(filter.keepRect) == "function" then
+      filter.keepRect((L - 2) * T, (Top - 1) * T, (W + 4) * T, (H + 2) * T)
+    end
   end
-  local inside = pp or fill
+  local inside = pp or lp or fill
   G.setColor(inside[1], inside[2], inside[3], 1)
   G.rectangle("fill", L * T, Top * T, W * T, H * T)
   G.setColor(1, 1, 1, 1)
-  local art = gbui.darkArt(img, pp, { fill[1], fill[2], fill[3] })
+  local art = lit or gbui.darkArt(img, pp, { fill[1], fill[2], fill[3] })
   local function cell(i, cx, cy, flip)
     if flip then G.draw(art, quad(art, i), cx * T, cy * T + T, 0, 1, -1)
     else G.draw(art, quad(art, i), cx * T, cy * T) end
