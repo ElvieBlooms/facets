@@ -1128,6 +1128,11 @@ function filter.init(mod, rows, menu)
       local ownDraw = G.draw
       G.draw = function(drawable, x, ...)
         local target = G.getCanvas()
+        -- (filter.swapNow: a GBA game's own window drawn on PAPER, its
+        -- frame art with its paper map in the paper's colour) -Elvie
+        if filter.swapNow and type(drawable) == "userdata" and filter.swapImg then
+          drawable = filter.swapImg(drawable) or drawable
+        end
         -- (filter.inkNow: a letter in a window drawn dark, in its dark
         -- colours, as they are: no palette shader over it) -Elvie
         if filter.inkNow and type(drawable) == "userdata" and drawable.typeOf and drawable:typeOf("Texture") then
@@ -1383,6 +1388,14 @@ function filter.init(mod, rows, menu)
       local lp, key = paperLight()
       if not lp or not filter.hasArtMask(img) then return nil end
       return maskArt(img, lp, key)
+    end
+    -- the art in the paper on now (dark or light) when it has a map -Elvie
+    function filter.swapImg(img)
+      if not artMasks[img] then return nil end
+      local pp, key = paperNow()
+      if not pp then pp, key = paperLight() end
+      if not pp then return nil end
+      return maskArt(img, pp, key)
     end
     function filter.darkArt(img, also)
       local pp, key = paperNow()
@@ -1837,6 +1850,73 @@ function filter.init(mod, rows, menu)
     if okW and type(Chrome3) == "table" and not Chrome3.facetsPaper then
       Chrome3.facetsPaper = true
       local T = 8
+      -- The games' own frames with a paper map (assets/windows/game3, by
+      -- game, painted by hand: shapes only, no art) are drawn on PAPER
+      -- rather than worked out: owned, the map's part of the art and the
+      -- inside in the paper's colour -Elvie
+      local mapped = setmetatable({}, { __mode = "k" })
+      local function version()
+        local okV, GV = pcall(require, "src.core.GameVersion")
+        local v = okV and type(GV) == "table" and type(GV.get) == "function" and GV.get() or nil
+        return type(v) == "string" and v or nil
+      end
+      local function mapAtlas(atlas)
+        if type(atlas) ~= "table" or type(atlas.image) ~= "userdata" then return nil end
+        local img = atlas.image
+        if mapped[img] == nil then
+          mapped[img] = false
+          local file = type(atlas.path) == "string" and atlas.path:match("([^/]+)%.rgba$")
+          local v = version()
+          if file and v then
+            local okM, data = pcall(love.image.newImageData,
+              mod.assets:path("assets/windows/game3/" .. v .. "/" .. file .. ".paper.png"))
+            if okM and data and filter.setArtMask then
+              filter.setArtMask(img, data)
+              mapped[img] = true
+            end
+          end
+        end
+        return mapped[img] and img or nil
+      end
+      local function atlasFor(name, frameType)
+        local count = type(Chrome3.userFrameCount) == "function" and Chrome3.userFrameCount() or 10
+        local function user(n)
+          n = tonumber(n) or 0
+          if n < 0 or n >= count or n ~= math.floor(n) then n = 0 end
+          return type(Chrome3._user) == "table" and Chrome3._user[n] or nil
+        end
+        if name == "userFrame" then return user(frameType) end
+        if name == "stdFrame" then return user(Chrome3._frameType) or Chrome3._std end
+        if name == "fixedStdFrame" then
+          local spec = type(Chrome3.frames) == "function" and Chrome3.frames() or nil
+          if spec and spec.std == "user" then return user(Chrome3._frameType) end
+          return Chrome3._std
+        end
+        if name == "dialogueFrame" then return Chrome3._dlg end
+        if name == "signFrame" then return Chrome3._sign or Chrome3._dlg end
+      end
+      -- own (x, y, w, h: the whole window) and draw it with its map, then
+      -- its inside (ix, iy, iw, ih) in the paper's colour; false when it
+      -- isn't drawn so -Elvie
+      local function drawnOn(atlas, x, y, w, h, ix, iy, iw, ih, call, ...)
+        if not mapAtlas(atlas) then return false end
+        local pp = paperNow()
+        local light = false
+        if not pp then pp, light = paperLight(), true end
+        if not pp then return false end
+        if not filter.own(x, y, w, h, pp, nil, light or nil) then return false end
+        filter.swapNow = true
+        local ok, err = pcall(call, ...)
+        filter.swapNow = nil
+        if not ok then error(err, 0) end
+        if iw then
+          local r, g, b, a = love.graphics.getColor()
+          love.graphics.setColor(pp[1], pp[2], pp[3], 1)
+          love.graphics.rectangle("fill", ix, iy, iw, ih)
+          love.graphics.setColor(r, g, b, a)
+        end
+        return true
+      end
       for _, name in ipairs({ "stdFrame", "fixedStdFrame", "userFrame" }) do
         local own = Chrome3[name]
         if type(own) == "function" then
@@ -1845,7 +1925,11 @@ function filter.init(mod, rows, menu)
             -- kept, and marking clears what's kept) -Elvie
             local a, b, c, d = ...
             if name == "userFrame" then a, b, c, d = select(2, ...) end
-            if tonumber(a) and tonumber(c) then filter.markPaper(a * T, b * T, c * T, d * T) end
+            if tonumber(a) and tonumber(c) then
+              filter.markPaper(a * T, b * T, c * T, d * T)
+              if drawnOn(atlasFor(name, (...)), (a - 1) * T, (b - 1) * T, (c + 2) * T, (d + 2) * T,
+                  a * T, b * T, c * T, d * T, own, ...) then return end
+            end
             return own(...)
           end
         end
@@ -1860,6 +1944,12 @@ function filter.init(mod, rows, menu)
               if ok and tonumber(l) then L, Top, W, H = l, t, w, h end
             end
             filter.markPaper(L * T, Top * T, W * T, H * T)
+            local atlas = atlasFor(name)
+            -- (Ruby and Sapphire's lays its inside in tiles, mapped too) -Elvie
+            local rs = type(atlas) == "table" and atlas.layout == "rs_dialogue"
+            local x, y, w, h = (L - 2) * T, (Top - 1) * T, (W + 4) * T, (H + 2) * T
+            if rs then x, y, w, h = 0, 14 * T, 30 * T, 6 * T end
+            if drawnOn(atlas, x, y, w, h, L * T, Top * T, not rs and W * T or nil, H * T, own, ...) then return end
             return own(...)
           end
         end
