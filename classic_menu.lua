@@ -37,24 +37,21 @@ end
 -- row shows -Elvie
 cmenu.TOPICS = {
   { id = "people", label = "PEOPLE", lead = "classicNpcs",
-    about = "The people on the map, and the Pokémon following you.",
-    keys = { "classicNpcs", "classicPikachu", "classicClefairy" } },
+    about = "The people on the map, and the trainers you battle.",
+    keys = { "classicNpcs", "classicTrainers", "classicTrainerSize" } },
   { id = "pokemon", label = "POKEMON", lead = "classicMons",
-    about = "Pokémon pictures, how they move, and how big they stand.",
+    about = "Pokémon pictures, how they move and how big they stand, and the Pokémon following you.",
     keys = { "classicMons", "classicPikachuBattle", "classicClefairyBattle", "animMode", "classicSide",
-      "classicSize", "classicIcons" } },
-  { id = "trainers", label = "TRAINERS", lead = "classicTrainers",
-    about = "The pictures of the trainers you battle.",
-    keys = { "classicTrainers", "classicTrainerSize" } },
+      "classicSize", "classicIcons", "classicPikachu", "classicClefairy" } },
   { id = "battle", label = "BATTLE", lead = "classicBattleBg",
     about = "What stands behind each battle, and the battle boxes.",
     keys = { "classicBattleBg", "sceneBorders", "classicSceneColours", "bgColour", "sceneTime", "classicBattleUi" } },
-  { id = "windows", label = "WINDOWS", lead = "classicWindows",
-    about = "The frames round menus, and the text box.",
-    keys = { "classicWindows", "classicTextBox" } },
-  { id = "screen", label = "SCREEN", lead = "filter",
-    about = "Colours, what fills the space round the game, and old-handheld looks.",
-    keys = { "classicColors", "surround", "filter", "filterOn", "dots", "shades", "paper" } },
+  { id = "menus", label = "MENUS", lead = "classicWindows",
+    about = "Window frames, the text box, PAPER, and what fills the space round the game.",
+    keys = { "classicWindows", "classicTextBox", "surround", "paper" } },
+  { id = "effects", label = "EFFECTS", lead = "classicColors",
+    about = "The game's colors, and old-handheld looks: the filter, its dots and shades.",
+    keys = { "classicColors", "filter", "filterOn", "dots", "shades" } },
 }
 
 -- The topics with the settings this game has, each with its entries in
@@ -81,7 +78,7 @@ end
 -- the values it wants, best first: the first one this game offers is
 -- used -Elvie
 cmenu.STYLES = {
-  { "ORIGINAL", "original", {
+  { "GAME", "original", {
     classicNpcs = { OFF }, classicTrainers = { OFF }, classicMons = { OFF }, classicBattleBg = { "game" },
     classicBattleUi = { "game" }, classicWindows = { "game" }, classicTextBox = { "match" } } },
   { "FIRERED", "firered", {
@@ -188,7 +185,10 @@ function cmenu.start(mod, rows)
   -- A page's rows: its settings, as the Mods manager has them. On its
   -- topic's page a SIZE needs no POKEMON or TRAINER before it, and Gen 2's
   -- page has room for nine letters before the values -Elvie
-  local SHORT = { classicSize = "SIZE", classicTrainerSize = "SIZE" }
+  -- (on PEOPLE, TRAINERS' size says whose; on POKEMON, the map's
+  -- partners say they're the map's) -Elvie
+  local SHORT = { classicSize = "SIZE", classicTrainerSize = "TRAINER SIZE",
+    classicPikachu = "MAP PIKACHU", classicClefairy = "MAP CLEFAIRY" }
   local function settingRows(list)
     local out = {}
     for _, e in ipairs(list) do
@@ -224,7 +224,7 @@ function cmenu.start(mod, rows)
   -- The first page: STYLE, the topics, then CREDITS -Elvie
   local function topRows()
     local out = {}
-    out[#out + 1] = { id = "facets.style", label = "STYLE", port = true,
+    out[#out + 1] = { id = "facets.style", label = "PRESETS", port = true,
       value = function()
         local now = cmenu.styleOf(get, entries)
         for _, c in ipairs(styleChoices()) do if c[2] == now then return c[1] end end
@@ -241,7 +241,7 @@ function cmenu.start(mod, rows)
         return true
       end,
       about = function()
-        return { key = "style", label = "STYLE", choices = styleChoices(), value = cmenu.styleOf(get, entries) }
+        return { key = "style", label = "PRESETS", choices = styleChoices(), value = cmenu.styleOf(get, entries) }
       end }
     for _, t in ipairs(topics) do
       local lead

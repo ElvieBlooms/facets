@@ -160,6 +160,7 @@ function screen.new(mod, model)
     local page = help.page({ key = row.key, label = row.label, choices = row.choices, value = row.value },
       okD and ds.api(mod) or nil)
     if row.page then page.about = "Everyone whose art Facets uses, in full. Press A on CREDITS to read it." end
+    if row.topic then page.about = (row.about or "") .. " Press A to open it." end
     local measure = FrlgFont and function(t) return FrlgFont.measure(t) end or nil
     return help.lines(page, measure and CREDITS_W - 8 or 34, measure), row.label
   end
@@ -208,6 +209,9 @@ function screen.new(mod, model)
     elseif input:wasPressed("up") then state.index = (state.index - 2) % #list + 1
     elseif input:wasPressed("down") then state.index = state.index % #list + 1
     elseif row and row.page and input:wasPressed("a") then openCredits()
+    -- a topic: its own page, over this one -Elvie
+    elseif row and row.topic and (input:wasPressed("a") or input:wasPressed("right")) then
+      if row.topic.screen then row.topic.screen.open(state.game) end
     -- a row that does something (BUILD NOW) instead of changing -Elvie
     elseif row and row.action and (input:wasPressed("a") or input:wasPressed("right")) then
       row.action(state.game)
@@ -330,7 +334,7 @@ function screen.new(mod, model)
         local y = ROW_Y0 + (slot - 1) * ROW_STEP
         Window.printPx(row.label, LABEL_X, y, { colors = FrlgFont.COLOR.NORMAL })
         local value = fit(FrlgFont, row.valueLabel or "", VALUE_W)
-        local changes = row.choices and #row.choices > 1 or row.page or row.action
+        local changes = row.choices and #row.choices > 1 or row.page or row.action or row.topic
         Window.printPx(value, VALUE_X, y,
           { colors = changes and FrlgFont.COLOR.OPTION_VALUE or FrlgFont.COLOR.NORMAL })
       end

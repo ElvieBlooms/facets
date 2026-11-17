@@ -627,7 +627,9 @@ function windows.init(mod, rows)
       else
         -- the middle, then only the frame's own inside under its border
         -- tiles, so its corners show the map -Elvie
-        local mask = maskFor(art0)
+        -- (dark: the whole of it, so whatever white is under its corners,
+        -- kept with it, is the paper too) -Elvie
+        local mask = not dark and maskFor(art0) or nil
         if mask then
           G.rectangle("fill", (tx + 1) * T - hl, (ty + 1) * T - ht, (tw - 2) * T + hl + hr, (th - 2) * T + ht + hb)
           filled[#filled + 1] = { (tx + 1) * T - hl, (ty + 1) * T - ht, (tw - 2) * T + hl + hr, (th - 2) * T + ht + hb }

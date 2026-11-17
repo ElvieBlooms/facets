@@ -10,7 +10,7 @@ local OFF = "__off"
 -- each style's values, best first: the first one this game offers is
 -- used. NPCS is setFrlg or setRse, by the game's family -Elvie
 style3.STYLES = {
-  { "ORIGINAL", "original", {
+  { "GAME", "original", {
     setFrlg = { OFF }, setRse = { OFF }, setTrainers = { OFF }, setMons = { OFF },
     gbcBattleBg = { "game" }, gbcFrame = { "game" }, gbcTextBox = { "match" }, gbcHud = { "game" } } },
   { "GBC", "gbc", {
@@ -31,7 +31,7 @@ function style3.init(mod, menu)
     local lists = { menu }
     for _, page in ipairs(menu.pages or {}) do lists[#lists + 1] = page end
     for _, m in ipairs(lists) do
-      local ok, rows = pcall(m.rows)
+      local ok, rows = pcall(m.allRows or m.rows)
       for _, row in ipairs(ok and rows or {}) do
         if row.key and row.key ~= "style" and type(row.choices) == "table" then
           out[#out + 1] = { key = row.key, choices = row.choices, value = row.value }
@@ -55,7 +55,7 @@ function style3.init(mod, menu)
       local choices = {}
       if current == cmenu.CUSTOM then choices[1] = { "CUSTOM", cmenu.CUSTOM } end
       for _, st in ipairs(style3.STYLES) do choices[#choices + 1] = { st[1], st[2] } end
-      return { { key = "style", label = "STYLE", who = "style", choices = choices, value = current } }
+      return { { key = "style", label = "PRESETS", who = "style", choices = choices, value = current } }
     end,
     preview = function(who)
       if who ~= "style" then return nil end

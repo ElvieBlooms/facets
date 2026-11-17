@@ -1260,13 +1260,13 @@ for _, version in ipairs({ "firered", "emerald" }) do
   local M = require("mods.facets.menu").current
   local tag = "screen (" .. version .. "): "
   local keys = {}
-  for _, r in ipairs(M.rows()) do keys[#keys + 1] = r.label end
-  eq(table.concat(keys, ","), frlg and "STYLE,NPCS,TRAINERS,POKéMON,ANIMS,ANIMATION,YOUR SIDE,CREDITS" or "STYLE,NPCS,TRAINERS,POKéMON,ANIMATION,YOUR SIDE,CREDITS",
+  for _, r in ipairs(M.allRows()) do keys[#keys + 1] = r.label end
+  eq(table.concat(keys, ","), frlg and "PRESETS,NPCS,TRAINERS,POKéMON,ANIMS,ANIMATION,YOUR SIDE,CREDITS" or "PRESETS,NPCS,TRAINERS,POKéMON,ANIMATION,YOUR SIDE,CREDITS",
     tag .. "the running game's rows only")
   -- YOUR SIDE: one row here for both options -Elvie
   local side
   local function sideRow()
-    for _, r in ipairs(M.rows()) do if r.key == "backMons" then return r end end
+    for _, r in ipairs(M.allRows()) do if r.key == "backMons" then return r end end
   end
   side = sideRow()
   eq(side and side.valueLabel, "BACK", tag .. "YOUR SIDE starts BACK")
@@ -1285,7 +1285,10 @@ for _, version in ipairs({ "firered", "emerald" }) do
   mod.options:set("mirrorMons", "__off")
   eq(sideRow().valueLabel, "FRONT", tag .. "...front alone as FRONT")
   mod.options:set("backMons", "back")
-  local rows = M.rows()
+  local top = {}
+  for _, r in ipairs(M.rows()) do top[#top + 1] = r.label end
+  eq(table.concat(top, ","), "PRESETS,PEOPLE,POKéMON,BATTLE,MENUS,CREDITS", tag .. "the screen: PRESETS, its topics, CREDITS")
+  local rows = M.allRows()
   eq(rows[1].key, "style", tag .. "STYLE first")
   eq(rows[1].valueLabel, "CUSTOM", tag .. "...CUSTOM with the settings mixed")
   eq(rows[2].key, frlg and "setFrlg" or "setRse", tag .. "NPCS is this family's SET")
@@ -1332,8 +1335,8 @@ for _, version in ipairs({ "firered", "emerald" }) do
   check(type(fe.draw) == "function", tag .. "...and its live preview for PRISM's corner")
   -- Facets inner, Lens outer -Elvie
   local other = V.addStart(wraps["ui.start_menu.items"](base, {}, nil), lensEntry, lensPicker, {})
-  -- with SCREEN (its windows and HP boxes rows) as the fourth -Elvie
-  eq(#other .. ":" .. other[2].label .. ":" .. #other[2].entries, "4:PRISM:4", tag .. "with Lens the other way round: the same")
+  -- (SCREEN's rows are on FACETS' topics now, not an entry) -Elvie
+  eq(#other .. ":" .. other[2].label .. ":" .. #other[2].entries, "4:PRISM:3", tag .. "with Lens the other way round: the same")
   local orBoth = wraps["ui.options.rows"](function() return V.addOption({ { id = "text_speed" } }, lensEntry, lensPicker, {}) end, {}, nil)
   eq(#orBoth .. ":" .. orBoth[2].label, "2:PRISM", tag .. "with Lens: one PRISM row on the OPTION menu")
   -- PRISM opens the list; A opens the picked mod's screen on top -Elvie
@@ -1373,17 +1376,21 @@ for _, version in ipairs({ "firered", "emerald" }) do
   press("down")
   eq(layers.facets.state().index, 2, tag .. "down picks the next row")
   press("down")
-  press("down")
-  press("right")
+  press("a")
+  check(layers.facets_pokemon ~= nil, tag .. "A on POKéMON opens its topic page")
+  local TP = layers.facets_pokemon
+  TP.handleInput({ wasPressed = function(_, k) return k == "right" end })
   eq(emitted[1] and emitted[1].key, "setMons", tag .. "right changes POKEMON")
   eq(emitted[1].value, "ds", tag .. "...to the next set")
   eq(game.options.modOptions.facets.setMons, "ds", tag .. "...saved with the options")
-  press("up"); press("up"); press("up")
+  TP.handleInput({ wasPressed = function(_, k) return k == "b" end })
+  check(layers.facets_pokemon == nil and layers.facets ~= nil, tag .. "B on a topic page comes back to FACETS")
+  press("up"); press("up")
   emitted = {}
   press("right")
   eq(emitted[1] and emitted[1].key .. "=" .. tostring(emitted[1].value), "style=original", tag .. "right on STYLE picks the next style")
   press("up")
-  eq(layers.facets.state().index, #rows, tag .. "up from the top wraps to CREDITS")
+  eq(layers.facets.state().index, #M.rows(), tag .. "up from the top wraps to CREDITS")
   press("a")
   check(layers.facets.state().credits ~= nil, tag .. "A on CREDITS opens the credits page")
   press("b")
@@ -2352,7 +2359,7 @@ do
   local t = cm.topics(entries)
   local names = {}
   for _, topic in ipairs(t) do names[#names + 1] = topic.label .. "=" .. #topic.entries end
-  eq(table.concat(names, ","), "PEOPLE=1,POKEMON=2,TRAINERS=1,BATTLE=1,SCREEN=2",
+  eq(table.concat(names, ","), "PEOPLE=2,POKEMON=2,BATTLE=1,EFFECTS=2",
     "facets page: topics with this game's settings, and a stray one on the last")
   local ds = cm.styleValues("ds", entries)
   eq(ds.classicMons .. "," .. ds.classicNpcs .. "," .. tostring(ds.classicBattleUi), "ds,diego,nil",

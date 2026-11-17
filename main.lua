@@ -104,6 +104,13 @@ return function(mod)
   -- STYLE, first on the FACETS screen -Elvie
   local okY, errY = pcall(function() require("mods.facets.style3").init(mod, menu) end)
   if not okY then mod.log:warn("STYLE is off: %s", tostring(errY)) end
+  -- FACETS as a few broad topics, as on Red to Crystal: SCREEN's rows go
+  -- on them too, so it's no longer a PRISM entry of its own -Elvie
+  local okT, errT = pcall(function()
+    menuMod.topics(mod, menu, menuMod.TOPICS3, { menu, screenPage })
+    screenPage.entry = nil
+  end)
+  if not okT then mod.log:warn("FACETS topics are off: %s", tostring(errT)) end
   local ok, err = pcall(menu.start)
   if not ok then mod.log:warn("FACETS screen is off: %s", tostring(err)) end
 end

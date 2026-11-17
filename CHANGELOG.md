@@ -2,6 +2,7 @@
 
 ## 1.2.6
 
+- **FACETS in a few broad topics, on every game:** **PRESETS** (what STYLE was, with **GAME** for what was ORIGINAL), then **PEOPLE** (the people on the map and the trainers), **POKEMON** (every Pokémon setting, the map's partners too), **BATTLE**, **MENUS** (WINDOWS, TEXT BOX, SURROUND and PAPER) and **EFFECTS** (the filter and the rest), each a page of its own, then CREDITS. On the GBA games these take in the old SCREEN page, so FACETS is one entry in PRISM again.
 - **ABOUT pages:** press **SELECT** on any Facets setting, on every game, for a page on what it does: what the setting changes, every choice with a line on it, and which of your games a choice uses or still needs importing. Left and right still change the setting there.
 - **Red to Crystal's FACETS page is now a short list of topics:** PEOPLE, POKEMON, TRAINERS, BATTLE, WINDOWS and SCREEN, each opening its own page, then CREDITS. Before, it was one long list of every setting. The game's COLORS row still opens straight at COLORS.
 - **STYLE**, at the top of that list, sets the main looks together in one go: **ORIGINAL**, **FIRERED**, **EMERALD** or **DS**. Change anything afterwards and it shows **CUSTOM**.

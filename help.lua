@@ -55,7 +55,7 @@ end
 -- sets and their numbers); other: the line for any choice not named -Elvie
 help.TEXT = {
   style = {
-    about = "Sets the people, trainers, Pokémon and battle scene together, in one look. Change any of them afterwards and STYLE shows CUSTOM.",
+    about = "Sets the people, trainers, Pokémon and battle scene together, in one look. Change any of them afterwards and PRESETS shows CUSTOM.",
     choices = {
       custom = "Your own mix. Pick a style to replace it.",
       original = "Everything as the game drew it.",

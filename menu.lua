@@ -176,6 +176,9 @@ function menu.new(mod, opts)
   end
 
   function M.title() return opts.title or "FACETS" end
+  -- every row the parts give, whatever the screen shows (STYLE reads
+  -- these) -Elvie
+  M.allRows = M.rows
 
   -- The screen and its two doors. -Elvie
   function M.start()
@@ -253,6 +256,96 @@ function menu.new(mod, opts)
   end
 
   return M
+end
+
+-- The GBA games' topics, as Red to Crystal's (classic_menu.lua) -Elvie
+menu.TOPICS3 = {
+  { id = "people", short = "The people, and the trainers.", label = "PEOPLE", about = "The people on the map, and the trainers you battle.",
+    keys = { "setFrlg", "setRse", "setTrainers", "sizeTrainers" } },
+  { id = "pokemon", short = "Pokémon, and how they move.", label = "POKéMON", about = "Pokémon pictures, how they move, and your side.",
+    keys = { "setMons", "animMons", "animMode", "backMons", "sizeMons" } },
+  { id = "battle", short = "Battle scenes and boxes.", label = "BATTLE", about = "What stands behind each battle, and the battle boxes.",
+    keys = { "gbcBattleBg", "sceneBorders", "bgColour", "sceneTime", "gbcHud" } },
+  { id = "menus", short = "Frames, text box and PAPER.", label = "MENUS", about = "Window frames, the text box, PAPER, and what fills the space round the game.",
+    keys = { "gbcFrame", "gbcTextBox", "surround", "paper" } },
+  { id = "effects", short = "The filter and its dots.", label = "EFFECTS", about = "Old-handheld looks: the filter and its dots.",
+    keys = { "filter", "filterOn", "dots", "shades" } },
+}
+
+-- Topics: the FACETS screen as a short list (PRESETS, then a row for each
+-- topic, opening a page of its own, then CREDITS), the way Red to Crystal
+-- have it. defs: { id, label, about, keys = { option keys, in order } };
+-- sources: the models whose parts give the rows (FACETS and SCREEN).
+-- Each topic page shows its keys' rows, in that order, and only its own
+-- parts' pictures -Elvie
+function menu.topics(mod, M, defs, sources)
+  local screen = require("mods.facets.screen")
+  local pages = {}
+  for _, def in ipairs(defs) do
+    local order = {}
+    for i, k in ipairs(def.keys) do order[k] = i end
+    local P = menu.new(mod, { title = def.label, layer = "facets_" .. def.id, credits = false })
+    for _, src in ipairs(sources) do
+      for _, part in ipairs(src.parts) do
+        local function mine(family)
+          local ok, rows = pcall(part.rows, family)
+          local out = {}
+          for _, r in ipairs(ok and type(rows) == "table" and rows or {}) do
+            if r.key and order[r.key] then out[#out + 1] = r end
+          end
+          return out
+        end
+        P.parts[#P.parts + 1] = {
+          rows = mine,
+          preview = type(part.preview) == "function" and function(who, family)
+            if #mine(family) == 0 then return nil end
+            return part.preview(who, family)
+          end or nil,
+          draw = type(part.draw) == "function" and function(clock, family, spots, who)
+            if #mine(family) == 0 then return end
+            return part.draw(clock, family, spots, who)
+          end or nil,
+        }
+      end
+    end
+    local ownRows = P.rows
+    P.rows = function()
+      local list = ownRows()
+      table.sort(list, function(a, b) return (order[a.key] or 0) < (order[b.key] or 0) end)
+      return list
+    end
+    P.allRows = P.rows
+    P.set = M.set
+    P.screen = screen.new(mod, P)
+    pages[#pages + 1] = { def = def, page = P }
+  end
+  local ownRows = M.rows
+  M.rows = function()
+    local all, out = ownRows(), {}
+    for _, row in ipairs(all) do
+      if row.key == "style" then out[#out + 1] = row end
+    end
+    for _, t in ipairs(pages) do
+      local first = t.page.rows()[1]
+      if first then
+        out[#out + 1] = { key = "topic." .. t.def.id, label = t.def.label, who = "topic." .. t.def.id,
+          topic = t.page, about = t.def.about, valueLabel = first.valueLabel or "" }
+      end
+    end
+    for _, row in ipairs(all) do
+      if row.key == "credits" then out[#out + 1] = row end
+    end
+    return out
+  end
+  local ownPreview = M.preview
+  M.preview = function(who)
+    for _, t in ipairs(pages) do
+      if who == "topic." .. t.def.id then return { lines = { { text = t.def.short or t.def.about }, { text = "A opens it." } } } end
+    end
+    return ownPreview(who)
+  end
+  M.topicPages = pages
+  return pages
 end
 
 return menu
