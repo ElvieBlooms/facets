@@ -1814,6 +1814,18 @@ function filter.init(mod, rows, menu)
           if plates(self) then plate(72, 56, 88, 40) end
           return ownPlayer(self, ...)
         end
+        -- Gold, Silver and Crystal's POKéDEX is dark already (white on
+        -- black, in an orange frame), so dark paper leaves it as drawn:
+        -- worked out, its letters went hollow and its edges white -Elvie
+        local okD, Dex = pcall(require, "src.ui.gen2.PokedexMenu")
+        if okD and type(Dex) == "table" and type(Dex.drawPanel) == "function" then
+          local ownPanel = Dex.drawPanel
+          Dex.drawPanel = function(self, ...)
+            local results = { ownPanel(self, ...) }
+            if paperNow() then filter.keepRect(0, 0, 20 * 8 + 8, 18 * 8) end
+            return unpack(results)
+          end
+        end
         local okH, BattleHud = pcall(require, "src.ui.gen2.BattleHud")
         if okH and type(BattleHud) == "table" and type(BattleHud.drawTile) == "function" then
           local ownTile = BattleHud.drawTile
