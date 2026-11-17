@@ -24,6 +24,12 @@ local gba = require("mods.facets.classic_gba")
 local GAMES = { "firered", "leafgreen", "emerald" }
 
 windows.FRAMES = 10
+-- Emerald's twenty, and the ones Ruby and Sapphire draw differently
+-- (the rest are Emerald's) -Elvie
+windows.EM_FRAMES = 20
+windows.RS_FRAMES = { 5, 7, 9, 10, 12, 13, 14, 17, 19 }
+local RS_OWN = {}
+for _, n in ipairs(windows.RS_FRAMES) do RS_OWN[n] = true end
 
 -- A tile row: the next box drawn there (eight wide, four tall or more)
 -- gets the text box look. The FACETS page sets it for the WINDOWS row,
@@ -75,6 +81,14 @@ function windows.parse(value)
   n = tonumber(n)
   if key == "fr" then
     if n >= 1 and n <= windows.FRAMES then return "fr", key, n end
+    return nil
+  end
+  if key == "em" then
+    if n >= 1 and n <= windows.EM_FRAMES then return "fr", key, n end
+    return nil
+  end
+  if key == "rs" then
+    if RS_OWN[n] then return "fr", key, n end
     return nil
   end
   return "set", key, n
@@ -322,6 +336,8 @@ function windows.init(mod, rows)
   local choices = { { "GAME", GAME } }
   local texts = { { "MATCH", "match" }, { "GAME", GAME }, { "FIRERED", "fr" } }
   for n = 1, windows.FRAMES do choices[#choices + 1] = { "FIRERED " .. n, "fr:" .. n } end
+  for n = 1, windows.EM_FRAMES do choices[#choices + 1] = { "EMERALD " .. n, "em:" .. n } end
+  for _, n in ipairs(windows.RS_FRAMES) do choices[#choices + 1] = { "R/S " .. n, "rs:" .. n } end
   for _, set in ipairs(sets) do
     byKey[set.key] = set
     local frames, boxes = windows.setChoices(set)
@@ -339,22 +355,31 @@ function windows.init(mod, rows)
     end
 
     local images, quads, datas = {}, {}, {}
-    local function fromGame(rel, w, h)
-      local id = "game:" .. rel
+    -- (games: where to look, first found; its paper map, from
+    -- assets/windows/game3, goes with it) -Elvie
+    local function fromGame(rel, w, h, games)
+      games = games or GAMES
+      local id = "game:" .. table.concat(games, ",") .. ":" .. rel
       if images[id] ~= nil then return images[id] or nil end
       images[id] = false
-      for _, game in ipairs(GAMES) do
+      for _, game in ipairs(games) do
         local data = gba.image(gba.read(game, rel), w, h)
         if data then
           local img = love.graphics.newImage(data)
           img:setFilter("nearest", "nearest")
           images[id] = img
           datas[img] = data
+          local file = rel:match("([^/]+)%.rgba$")
+          local okM, mask = pcall(love.image.newImageData,
+            mod.assets:path(DIR .. "/game3/" .. game .. "/" .. tostring(file) .. ".paper.png"))
+          local okF, filter = pcall(require, "mods.facets.filter")
+          if okM and mask and okF and type(filter.setArtMask) == "function" then filter.setArtMask(img, mask) end
           return img
         end
       end
       return nil
     end
+    local FROM = { fr = GAMES, em = { "emerald", "ruby", "sapphire" }, rs = { "ruby", "sapphire" } }
     local function fromSet(key, file)
       local id = key .. "/" .. tostring(file)
       if images[id] ~= nil then return images[id] or nil end
@@ -483,12 +508,14 @@ function windows.init(mod, rows)
         if not (st and type(st.frame) == "string") then kind, value = nil, "game" end
       end
       if kind == "fr" then
-        out.frame = fromGame("chrome/user_frame_" .. (n - 1) .. ".rgba", 24, 24)
+        out.frame = fromGame("chrome/user_frame_" .. (n - 1) .. ".rgba", 24, 24, FROM[key])
       elseif kind == "set" then
         out.frame = fromSet(key, styleOf(key, n).frame)
       end
       local tkind, tkey, tn = windows.textParse(mod.options:get("classicTextBox"), value)
-      if tkind == "fr" then
+      -- (FireRed's text box goes with its frames; Emerald's and Ruby and
+      -- Sapphire's frames keep the game's own text box) -Elvie
+      if tkind == "fr" and tkey == "fr" then
         out.dialogue, out.fill = fromGame("chrome/menu_message_rgba.rgba", 48, 24), { 1, 1, 1 }
       elseif tkind == "set" then
         local st = styleOf(tkey, tn)

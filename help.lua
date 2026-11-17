@@ -38,6 +38,8 @@ function help.needsOf(key, value)
   if (key == "classicPikachu" or key == "classicClefairy") and value == "hgss" then return "hgss" end
   if key == "classicClefairy" and value == "bw2" then return "bw2" end
   if (key == "classicWindows" or key == "classicTextBox") and (value == "fr" or value:match("^fr:")) then return "frames" end
+  if key == "classicWindows" and value:match("^em:") then return "emerald" end
+  if key == "classicWindows" and value:match("^rs:") then return "rs" end
   -- its words are in FireRed's small font, from FireRed, LeafGreen or Emerald -Elvie
   if key == "classicBattleUi" and value ~= "game" then return "frames" end
   if key == "animMons" and value == "emerald" then return "emerald" end
@@ -237,6 +239,8 @@ help.TEXT = {
     choices = { game = "The game's own frame." },
     prefix = {
       ["fr:"] = "One of FireRed's own frames.",
+      ["em:"] = "One of Emerald's own frames.",
+      ["rs:"] = "One of Ruby and Sapphire's own frames, where they differ from Emerald's.",
       ["libertytwins:"] = "One of LibertyTwins' frames.",
       ["pink:"] = "One of the PINK frames.",
     },

@@ -87,7 +87,7 @@ cmenu.STYLES = {
     classicTextBox = { "match" } } },
   { "EMERALD", "emerald", {
     classicNpcs = { "gba_emerald" }, classicTrainers = { "gba_emerald" }, classicMons = { "gba_emerald" },
-    classicBattleBg = { "gba_emerald" }, classicBattleUi = { "game" }, classicWindows = { "fr:1" },
+    classicBattleBg = { "gba_emerald" }, classicBattleUi = { "game" }, classicWindows = { "em:1" },
     classicTextBox = { "match" } } },
   { "DS", "ds", {
     classicNpcs = { "diego" }, classicTrainers = { "ds" }, classicMons = { "ds_hgss", "ds_dppt", "ds_bw2", "ds" },
