@@ -942,6 +942,8 @@ function gbui.init(mod, rows, menu)
           { key = "gbcBattleBg", label = "BATTLE BG", who = "gbcBattleBg", choices = gbui.BG, value = bg },
           { key = "bgColour", label = "BG COLOR", who = "bgColour", choices = require("mods.facets.filter").BG_COLOURS,
             value = tostring(get("bgColour") or "paper") },
+          { key = "sceneBorders", label = "BORDERS", who = "sceneBorders", choices = require("mods.facets.classic_scenes").BORDERS,
+            value = tostring(get("sceneBorders") or "blur") },
         }
       end,
       preview = function(who)
@@ -1002,6 +1004,13 @@ function gbui.init(mod, rows, menu)
             lines[#lines + 1] = { text = bg == "white" and "Plain white, like Gen 2."
               or bg == "colours" and "Plain colour: BG COLOR's." or "The game's own scenery." }
           end
+        elseif who == "sceneBorders" then
+          local b = tostring(get("sceneBorders") or "blur")
+          lines[#lines + 1] = { text = b == "blur" and "The battle's scene, blurred,"
+            or b == "fill" and "One big scene behind it all,"
+            or b == "off" and "The game's own borders."
+            or "SURROUND's fill round it." }
+          if b == "blur" or b == "fill" then lines[#lines + 1] = { text = "round the battle." } end
         elseif who == "bgColour" then
           lines[#lines + 1] = { text = tostring(get("bgColour") or "paper") == "paper"
             and "PAPER's colour, for COLORS." or "This colour, for COLORS." }
@@ -1368,6 +1377,38 @@ function gbui.init(mod, rows, menu)
       return Edges.lightFor(gbui.sceneName(bg, key), hour())
     end
 
+    -- BATTLE BG: GAME with BORDERS: BLUR or FILL: the game's own scene
+    -- (its field, 240x112, off the terrain picture), copied once a terrain,
+    -- for the borders to carry on as they do a set's -Elvie
+    local gameScenes = setmetatable({}, { __mode = "k" })
+    local function gameScene(key)
+      if not (okB and type(BattleChrome.terrain) == "function") then return nil end
+      local entry = BattleChrome.terrain(key) or BattleChrome.terrain("building") or BattleChrome.terrain("grass")
+      local img = entry and (entry.image or entry.bgImage)
+      if type(img) ~= "userdata" then return nil end
+      local got = gameScenes[img]
+      if got ~= nil then return got or nil end
+      gameScenes[img] = false
+      local ok, c = pcall(function()
+        local G = love.graphics
+        local c = G.newCanvas(240, 112, { dpiscale = 1 })
+        local iw, ih = img:getDimensions()
+        G.push("all")
+        G.setCanvas(c)
+        G.origin()
+        G.setScissor()
+        G.setShader()
+        G.clear(0, 0, 0, 1)
+        G.setColor(1, 1, 1, 1)
+        G.draw(img, G.newQuad(0, 0, 240, 112, iw, ih), 0, 0)
+        G.pop()
+        c:setFilter("nearest", "nearest")
+        return c
+      end)
+      gameScenes[img] = ok and c or false
+      return gameScenes[img] or nil
+    end
+
     -- A battle background set: the scene for the game's own background,
     -- in place of its terrain and platforms (and behind evolutions) -Elvie
     if okB and type(BattleChrome) == "table" then
@@ -1403,6 +1444,28 @@ function gbui.init(mod, rows, menu)
               -- noted, so the window's borders carry it on -Elvie
               if Edges then pcall(Edges._note, img, pad, pad, 0, 0, light) end
               return true
+            end
+            local mode = Edges and type(Edges.borders) == "function" and Edges.borders() or nil
+            if bg == "game" and (mode == "blur" or mode == "fill") then
+              local s = gameScene(key)
+              if s then
+                -- FILL: the screen's part of it, zoomed as the borders
+                -- are, once the battle's sliding in is done -Elvie
+                local a1, a2 = ...
+                local still = name == "drawCleanBg" or ((tonumber(a1) or 0) == 0 and (tonumber(a2) or 0) == 0)
+                if mode == "fill" and still then
+                  love.graphics.setColor(0, 0, 0, 1)
+                  love.graphics.rectangle("fill", 0, 112, 240, 48)
+                  love.graphics.setColor(1, 1, 1, 1)
+                  if Edges.fillDraw(s, 0, 0, 240) then
+                    pcall(Edges._note, s, 0, 0, 0, 0, nil)
+                    return true
+                  end
+                end
+                local results = { orig(key, ...) }
+                pcall(Edges._note, s, 0, 0, 0, 0, nil)
+                return unpack(results)
+              end
             end
             return orig(key, ...)
           end

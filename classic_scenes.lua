@@ -342,7 +342,7 @@ scenes.W, scenes.H = 160, 96
 scenes.WIDE_W = 304
 scenes.SCREEN_H = 144
 
--- SCENE COLOURS: GBC. The scenes were painted for the GBA's screen and
+-- SCENE COLORS: GBC. The scenes were painted for the GBA's screen and
 -- read pale beside Crystal's sprites, so each colour's saturation is
 -- raised, then rounded to the Game Boy Color's 32 levels a channel. One
 -- pixel in, one out: r, g, b (0-1) -Elvie
@@ -592,7 +592,7 @@ function scenes.init(mod, rows)
     choices[#choices + 1] = { set.label, set.key }
   end
   rows[#rows + 1] = { key = "classicBattleBg", type = "choice", label = "BATTLE BG", choices = choices, default = GAME }
-  rows[#rows + 1] = { key = "classicSceneColours", type = "choice", label = "SCENE COLOURS",
+  rows[#rows + 1] = { key = "classicSceneColours", type = "choice", label = "SCENE COLORS",
     choices = { { "ORIGINAL", "original" }, { "GBC", "gbc" } }, default = "original" }
   rows[#rows + 1] = { key = "bgColour", type = "choice", label = "BG COLOR",
     choices = require("mods.facets.filter").BG_COLOURS, default = "paper" }
