@@ -1163,6 +1163,26 @@ function filter.init(mod, rows, menu)
         if filter.swapNow and type(drawable) == "userdata" and filter.swapImg then
           drawable = filter.swapImg(drawable) or drawable
         end
+        -- (filter.inkBar: an HP bar's tile in a window drawn dark) -Elvie
+        if filter.inkBar and type(drawable) == "userdata" and drawable.typeOf and drawable:typeOf("Texture") then
+          -- (not while the variants are made: that draws too) -Elvie
+          local bar = filter.inkBar
+          filter.inkBar = nil
+          local lines, fill = filter.barInked(drawable, bar)
+          filter.inkBar = bar
+          if lines and fill then
+            local sh = G.getShader and G.getShader() or nil
+            local r, g, b, a = G.getColor()
+            if sh then G.setShader() end
+            G.setColor(1, 1, 1, a)
+            ownDraw(lines, x, ...)
+            G.setColor(r, g, b, a)
+            ownDraw(fill, x, ...)
+            G.setColor(r, g, b, a)
+            if sh then G.setShader(sh) end
+            return
+          end
+        end
         -- (filter.inkNow: a letter in a window drawn dark, in its dark
         -- colours, as they are: no palette shader over it) -Elvie
         if filter.inkNow and type(drawable) == "userdata" and drawable.typeOf and drawable:typeOf("Texture") then
@@ -1501,6 +1521,41 @@ function filter.init(mod, rows, menu)
         end
       end)
     end
+    -- Red, Blue and Yellow's HP bar tiles inked: (1) black white, white
+    -- (the bar's empty part) a grey well lighter than the paper, so what's
+    -- lost reads, and its grey fill left out; (2) the grey fill alone, to
+    -- be drawn in the bar's colour as the game tints it, lifted -Elvie
+    function filter.barInked(img, pp)
+      if type(pp) ~= "table" then return nil end
+      local key = ("%.3f,%.3f,%.3f"):format(pp[1], pp[2], pp[3])
+      local function grey(src, x, y, w, h)
+        local k = kindOf(src, x, y, w, h)
+        if k == "black" or k == "white" or k == "none" then return false, k end
+        local r, g, b = src:getPixel(x, y)
+        return math.max(r, g, b) - math.min(r, g, b) < 0.1, k
+      end
+      local lines = variant(img, "barA:" .. key, function(d, src, w, h)
+        for y = 0, h - 1 do
+          for x = 0, w - 1 do
+            local isGrey, k = grey(src, x, y, w, h)
+            if k == "black" then d:setPixel(x, y, 0.93, 0.93, 0.94, 1)
+            elseif k == "white" then
+              d:setPixel(x, y, pp[1] + (0.93 - pp[1]) * 0.35, pp[2] + (0.93 - pp[2]) * 0.35, pp[3] + (0.94 - pp[3]) * 0.35, 1)
+            elseif isGrey then d:setPixel(x, y, 0, 0, 0, 0) end
+          end
+        end
+      end)
+      local fill = variant(img, "barF", function(d, src, w, h)
+        for y = 0, h - 1 do
+          for x = 0, w - 1 do
+            -- (at full: drawn in the bar's colour, it comes out at the
+            -- colour itself, not a third of it, so it reads on the dark) -Elvie
+            if grey(src, x, y, w, h) then d:setPixel(x, y, 1, 1, 1, 1) else d:setPixel(x, y, 0, 0, 0, 0) end
+          end
+        end
+      end)
+      return lines, fill
+    end
     -- the windows owned this frame: { canvas, x0, y0, x1, y1 } in the
     -- pixels of what they're drawn on -Elvie
     local owned = {}
@@ -1693,6 +1748,22 @@ function filter.init(mod, rows, menu)
         local ok, err = pcall(ownCode, code, x, y, ...)
         filter.inkNow = nil
         G.setColor(r, g, b, a)
+        if not ok then error(err, 0) end
+      end
+    end
+    -- Red, Blue and Yellow's HP bar ("HP:", its outline and end) in a
+    -- window drawn dark (the wide battle's HUD boxes): inked as the
+    -- letters are, white on the dark -Elvie
+    local okT, HudTiles = pcall(require, "src.render.HudTiles")
+    if okT and type(HudTiles) == "table" and type(HudTiles.drawHPBar) == "function" then
+      local ownBar = HudTiles.drawHPBar
+      HudTiles.drawHPBar = function(data, tx, ty, ...)
+        local pp, _, light = nil, nil, nil
+        if type(tx) == "number" and type(ty) == "number" then pp, _, light = filter.ownedAt(tx * 8 + 4, ty * 8 + 4) end
+        if not pp or light then return ownBar(data, tx, ty, ...) end
+        filter.inkBar = pp
+        local ok, err = pcall(ownBar, data, tx, ty, ...)
+        filter.inkBar = nil
         if not ok then error(err, 0) end
       end
     end
