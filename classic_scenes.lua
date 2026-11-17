@@ -181,6 +181,13 @@ function scenes.skyImage(mod, dir, file, data, daytime)
   return per[daytime] or nil
 end
 
+-- The scene just drawn is kept from PAPER: its own white (snow, clouds)
+-- stays as painted, not the paper's colour -Elvie
+function scenes.keepScene()
+  local f = package.loaded["mods.facets.filter"]
+  if type(f) == "table" and type(f.keepScene) == "function" then pcall(f.keepScene) end
+end
+
 -- The borders show the scene zoomed in and blurred, a little darker, so
 -- the sharp battle sits in front of a soft backdrop of itself -Elvie
 scenes.ZOOM, scenes.DIM = 1.15, 0.8
@@ -575,6 +582,7 @@ local function startGen1(mod, sceneFor)
       -- FILL: the field's part of the one big scene -Elvie
       if not scenes.fillDraw(s.image, 0, 0, W) then G.draw(s.image, q, 0, 0) end
       G.setColor(1, 1, 1, 1)
+      scenes.keepScene()
       local qx, qy = q:getViewport()
       note(s.image, qx, qy, 0, 0, scenes.litNow)
       -- the game's own fill then goes down see-through -Elvie
@@ -662,6 +670,7 @@ local function startGen1(mod, sceneFor)
     scenes.setLight(scenes.litNow)
     if not scenes.fillDraw(s.image, sx or 0, sy or 0, scenes.W) then G.draw(s.image, s.quad, sx or 0, sy or 0) end
     G.setColor(1, 1, 1, 1)
+    scenes.keepScene()
     note(s.image, s.x, s.y, sx or 0, sy or 0, scenes.litNow)
     shader:send("paper", src)
     shader:send("offset", { sx or 0, sy or 0 })
@@ -993,6 +1002,7 @@ function scenes.init(mod, rows)
         end
         clear(...)
         drawScene(s, wide)
+        scenes.keepScene()
       end
       local ok, err = pcall(fn, ...)
       Chrome.clear = clear

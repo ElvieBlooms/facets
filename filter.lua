@@ -435,6 +435,8 @@ function filter.drawSwatch(area, get)
   love.graphics.setColor(1, 1, 1, 1)
 end
 
+filter.boxRects = {}
+
 -- What the options ask for: look, where, dots, shades, paper. -Elvie
 function filter.settings(get)
   return valueOf(filter.LOOKS, get("filter"), "off"), valueOf(filter.WHERE, get("filterOn"), "screen"),
@@ -672,6 +674,7 @@ function filter.init(mod, rows, menu)
     -- the next frame's pictures start afresh (the game can draw one after
     -- render.compose, so this waits till the pass has used them) -Elvie
     pics.drawn, pics.fresh = false, false
+    filter.boxRects = {}
     if slot ~= "map" and filter.ownedReset then filter.ownedReset() end
     love.graphics.push("all")
     love.graphics.setCanvas(cv)
@@ -1711,10 +1714,47 @@ function filter.init(mod, rows, menu)
     -- drawn is kept on a copy the size of what it's drawn on -Elvie
     -- Marks a box (x, y, w, h, in the pixels of what's being drawn on) as
     -- paper DARK may darken, on a copy the size of what it's drawn on -Elvie
+    -- the boxes marked this frame, in the pixels of what they're on, for
+    -- keepScene -Elvie
+    -- A battle scene drawn on what's being drawn on, all of it: kept, so
+    -- PAPER leaves the scene's own white (snow, clouds) as painted, but
+    -- not the boxes marked on it this frame (the game's text box, its HUD
+    -- boxes), which are the paper's. Boxes Facets owns keep their own -Elvie
+    filter.keepScene = function()
+      local p = select(5, filter.settings(get))
+      if not p or p == "off" then return end
+      local G = love.graphics
+      local target = G.getCanvas()
+      if not target then return end
+      local w, h = target:getDimensions()
+      G.push()
+      G.origin()
+      filter.keepRect(0, 0, w, h)
+      local clear = {}
+      for _, r in ipairs(filter.boxRects) do
+        if r[1] == target and not filter.ownedAt(r[2] + 1, r[3] + 1) then clear[#clear + 1] = r end
+      end
+      if pics.keep then
+        G.push("all")
+        G.setCanvas(pics.keep)
+        G.setScissor()
+        G.setShader()
+        G.setBlendMode("replace", "premultiplied")
+        G.setColor(0, 0, 0, 0)
+        for _, r in ipairs(clear) do G.rectangle("fill", r[2], r[3], r[4] - r[2], r[5] - r[3]) end
+        G.pop()
+      end
+      G.pop()
+    end
     filter.markPaper = function(x, y, w, h)
       local G = love.graphics
       local target = G.getCanvas()
       if not (target and tonumber(x) and tonumber(w)) then return end
+      do
+        local x0, y0 = G.transformPoint(x, y)
+        local x1, y1 = G.transformPoint(x + w, y + h)
+        filter.boxRects[#filter.boxRects + 1] = { target, math.min(x0, x1), math.min(y0, y1), math.max(x0, x1), math.max(y0, y1) }
+      end
       local dark = filter.isDark(select(5, filter.settings(get)))
       pcall(function()
         local cw, ch = target:getDimensions()
