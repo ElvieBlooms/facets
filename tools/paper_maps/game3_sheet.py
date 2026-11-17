@@ -5,10 +5,12 @@
 # committed or shipped. Each tile placement is recorded, so an edited
 # sheet maps back to each art file's tiles -Elvie
 #
-#   python3 game3_sheet.py <install> <out dir>
+#   python3 game3_sheet.py <install> <out dir> [blank]
+# (blank: the frames as drawn, nothing painted for you) -Elvie
 import hashlib, json, os, sys, zlib
 from PIL import Image, ImageDraw, ImageFont
 INST, OUT = sys.argv[1], sys.argv[2]
+BLANK = len(sys.argv) > 3 and sys.argv[3] == "blank"
 T = 8
 MAG = (255, 0, 255, 255)
 font = ImageFont.load_default()
@@ -130,7 +132,7 @@ for sheet, guess in ((art, False), (mask, True)):
     games = "+".join(it[1])
     dr.text((x, y), it[2], fill=(230, 230, 240, 255), font=font)
     ox, oy = x, y + LBL
-    src = guessed(it[4]) if guess else it[4]
+    src = guessed(it[4]) if guess and not BLANK else it[4]
     cols = it[5]
     for (i, cx, cy, vf, hf) in lay:
       sx, sy = (i % cols) * T, (i // cols) * T
@@ -143,7 +145,7 @@ for sheet, guess in ((art, False), (mask, True)):
                        "x": ox + cx * T, "y": oy + cy * T, "flip": vf, "hflip": hf})
     # the inside, always paper (over any fill tiles the game lays there)
     # -Elvie
-    if guess:
+    if guess and not BLANK:
       ix, iy, iw, ih = inner
       dr.rectangle([ox + ix * T, oy + iy * T, ox + (ix + iw) * T - 1, oy + (iy + ih) * T - 1], fill=MAG)
 art.save(os.path.join(OUT, "gba_frames_sheet.png"))
