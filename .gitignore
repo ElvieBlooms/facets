@@ -54,6 +54,10 @@ assets/windows/*
 !assets/windows/pink/
 # PINK WOOD: Tito's WOODY recoloured to match PINK, with credit. -Elvie
 !assets/windows/pinkwood/
+# PAPER WOOD: Tito's WOODY in PAPER's colours, with credit. -Elvie
+!assets/windows/paperwood/
+# The GBA games' own windows' paper maps: hand-painted shapes, no art -Elvie
+!assets/windows/game3/
 # tools/ips_extract.py's output, and pret's symbol file it fetches -Elvie
 extracted/
 tools/pokefirered.sym

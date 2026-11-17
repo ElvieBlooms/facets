@@ -1,0 +1,152 @@
+{
+  "label": "PAPER WOOD",
+  "credit": [
+    "Text boxes recoloured by ElvieBlooms in PAPER's colours, after Tito Seich / Sage's Woody, used with credit"
+  ],
+  "styles": [
+    {
+      "name": "CREAM",
+      "dialogue": "dialogue_cream.png",
+      "fill": [
+        248,
+        240,
+        216
+      ]
+    },
+    {
+      "name": "LEMON",
+      "dialogue": "dialogue_lemon.png",
+      "fill": [
+        248,
+        244,
+        204
+      ]
+    },
+    {
+      "name": "PEACH",
+      "dialogue": "dialogue_peach.png",
+      "fill": [
+        250,
+        228,
+        210
+      ]
+    },
+    {
+      "name": "ROSE",
+      "dialogue": "dialogue_rose.png",
+      "fill": [
+        248,
+        224,
+        230
+      ]
+    },
+    {
+      "name": "LILAC",
+      "dialogue": "dialogue_lilac.png",
+      "fill": [
+        234,
+        226,
+        248
+      ]
+    },
+    {
+      "name": "SKY",
+      "dialogue": "dialogue_sky.png",
+      "fill": [
+        218,
+        234,
+        250
+      ]
+    },
+    {
+      "name": "MINT",
+      "dialogue": "dialogue_mint.png",
+      "fill": [
+        222,
+        246,
+        228
+      ]
+    },
+    {
+      "name": "GREY",
+      "dialogue": "dialogue_grey.png",
+      "fill": [
+        214,
+        214,
+        214
+      ]
+    },
+    {
+      "name": "DARK",
+      "dialogue": "dialogue_dark.png",
+      "fill": [
+        34,
+        36,
+        46
+      ]
+    },
+    {
+      "name": "COCOA",
+      "dialogue": "dialogue_cocoa.png",
+      "fill": [
+        52,
+        38,
+        30
+      ]
+    },
+    {
+      "name": "OLIVE",
+      "dialogue": "dialogue_olive.png",
+      "fill": [
+        44,
+        44,
+        22
+      ]
+    },
+    {
+      "name": "RUST",
+      "dialogue": "dialogue_rust.png",
+      "fill": [
+        64,
+        34,
+        24
+      ]
+    },
+    {
+      "name": "WINE",
+      "dialogue": "dialogue_wine.png",
+      "fill": [
+        64,
+        22,
+        36
+      ]
+    },
+    {
+      "name": "PLUM",
+      "dialogue": "dialogue_plum.png",
+      "fill": [
+        46,
+        30,
+        62
+      ]
+    },
+    {
+      "name": "NAVY",
+      "dialogue": "dialogue_navy.png",
+      "fill": [
+        22,
+        32,
+        64
+      ]
+    },
+    {
+      "name": "FOREST",
+      "dialogue": "dialogue_forest.png",
+      "fill": [
+        22,
+        48,
+        34
+      ]
+    }
+  ]
+}
