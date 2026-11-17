@@ -50,8 +50,8 @@ cmenu.TOPICS = {
     about = "Window frames, the text box, PAPER, and what fills the space round the game.",
     keys = { "classicWindows", "classicTextBox", "surround", "paper" } },
   { id = "effects", label = "EFFECTS", lead = "classicColors",
-    about = "The game's colors, and old-handheld looks: the filter, its dots and shades.",
-    keys = { "classicColors", "filter", "filterOn", "dots", "shades" } },
+    about = "The game's colors, the map's time of day, and old-handheld looks: the filter, its dots and shades.",
+    keys = { "classicColors", "mapTime", "filter", "filterOn", "dots", "shades" } },
 }
 
 -- The topics with the settings this game has, each with its entries in

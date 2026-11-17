@@ -130,6 +130,8 @@ extern float cell;
 extern vec2 origin;
 extern float paperOn;
 extern vec3 paper;
+extern float mapTintOn;
+extern vec3 mapTint;
 extern Image ui;
 extern vec2 uiOrigin;
 extern vec2 uiSize;
@@ -341,6 +343,13 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       }
     }
   }
+  // MAP TIME: the map in the hour's light, where no menu is drawn over it
+  if (mapTintOn > 0.5) {
+    vec2 mp = (sc - uiOrigin) / uiSize;
+    float menu = 0.0;
+    if (mp.x >= 0.0 && mp.y >= 0.0 && mp.x < 1.0 && mp.y < 1.0) menu = Texel(ui, mp).a;
+    o = mix(o * mapTint, o, menu);
+  }
   if (mode > 0.5 && mode < 1.5) {
     float l = dot(o, vec3(0.299, 0.587, 0.114));
     // brightness to a 0..1 ramp, a quarter per band between the cuts
@@ -436,6 +445,8 @@ end
 -- Whether the whole-screen pass has anything to do. -Elvie
 function filter.screenOn(look, where, dots, _, paper)
   return (look ~= "off" and where == "screen") or dots == "on" or (paper ~= nil and paper ~= "off")
+    -- (MAP TIME on Red, Blue and Yellow is drawn in the pass too) -Elvie
+    or (type(filter.mapTimeWanted) == "function" and filter.mapTimeWanted() or false)
 end
 
 -- Where the UI layer sits on screen, in screen pixels, from the engine's
@@ -610,6 +621,16 @@ function filter.init(mod, rows, menu)
     send("cell", grid.cell)
     send("origin", grid.origin)
     local tint = paper and filter.PAPER[paper]
+    local mt = slot == "screen" and filter.mapTintNow or nil
+    if mt and layer.canvas then
+      send("mapTintOn", 1)
+      send("mapTint", { mt[1], mt[2], mt[3] })
+      send("ui", layer.canvas)
+      send("uiOrigin", layer.origin)
+      send("uiSize", layer.size)
+    else
+      send("mapTintOn", 0)
+    end
     if tint and layer.canvas then
       send("paperOn", 1)
       send("paper", { tint[1] / 255, tint[2] / 255, tint[3] / 255 })
@@ -673,7 +694,7 @@ function filter.init(mod, rows, menu)
     -- out; the frame itself when there's nothing to do -Elvie
     present = function(input, ctx)
       local look, where, dots, steps, paper = filter.settings(get)
-      if not filter.screenOn(look, where, dots, steps, paper) then return input end
+      if not filter.screenOn(look, where, dots, steps, paper) and not filter.mapTintNow then return input end
       if grid.cell <= 0 and type(ctx) == "table" then
         grid.cell = tonumber(ctx.scale) or 0
       end
@@ -691,6 +712,32 @@ function filter.init(mod, rows, menu)
   -- MAP: the map is shaded in place before the menus go over it, then the
   -- frame carries on as usual. render.compose is also where the pixel grid
   -- is read for DOTS. -Elvie
+  -- MAP TIME's light for Red, Blue and Yellow's map now, or nil: on the
+  -- outdoor maps only (as Gold, Silver and Crystal's houses and caves keep
+  -- their colours), read once a second. Morning a soft gold, evening a
+  -- rose, night a deep blue, a little lighter than the battle scenes'
+  -- so the map still reads -Elvie
+  filter.MAP_LIGHT = { MORN = { 1, 0.94, 0.84 }, EVE = { 0.97, 0.8, 0.74 }, NITE = { 0.58, 0.64, 0.9 } }
+  filter.MAP_OUTDOORS = { OVERWORLD = true, PLATEAU = true }
+  local mapAt, mapTint = -1, nil
+  filter.mapTimeWanted = function() return get("mapTime") == "on" end
+  function filter.mapLight()
+    if get("mapTime") ~= "on" then return nil end
+    local now = os.time()
+    if now == mapAt then return mapTint end
+    mapAt, mapTint = now, nil
+    local tiles
+    pcall(function()
+      local ow = require("src.world.WorldAPI").new(mod.game):overworld()
+      local def = type(ow) == "table" and type(ow.map) == "table" and ow.map.def or nil
+      tiles = def and def.tileset
+    end)
+    if not filter.MAP_OUTDOORS[tostring(tiles)] then return nil end
+    local okS, sc = pcall(require, "mods.facets.classic_scenes")
+    local daytime = okS and type(sc.daytime) == "function" and sc.daytime(tonumber(os.date("%H"))) or "DAY"
+    mapTint = filter.MAP_LIGHT[daytime]
+    return mapTint
+  end
   if mod.hooks and type(mod.hooks.wrap) == "function" then
     mod.hooks:wrap("render.compose", function(nextFn, renderer, ctx)
       if type(ctx) == "table" then
@@ -766,6 +813,8 @@ function filter.init(mod, rows, menu)
         end
         local look, where, _, steps = filter.settings(get)
         local world = ctx.worldOverride or ctx.worldCanvas
+        -- MAP TIME: the map's light now, for the pass -Elvie
+        filter.mapTintNow = ctx.generation == 1 and ctx.worldActive and filter.mapLight() or nil
         if look ~= "off" and where == "map" and ctx.worldActive and world and world.getDimensions then
           local out = run(world, "map", look, false, steps)
           if out then
@@ -789,6 +838,13 @@ function filter.init(mod, rows, menu)
   rows[#rows + 1] = { key = "dots", type = "choice", label = "  DOTS", choices = filter.DOTS, default = "off" }
   rows[#rows + 1] = { key = "shades", type = "choice", label = "  SHADES", choices = filter.STEPS, default = "4" }
   rows[#rows + 1] = { key = "paper", type = "choice", label = "  PAPER", choices = filter.PAPERS, default = "off" }
+  -- MAP TIME: Red, Blue and Yellow's outdoor maps in the light of the
+  -- hour, as Gold, Silver and Crystal's are, by your clock -Elvie
+  local okCl, Cl = pcall(require, "mods.facets.classic")
+  if okCl and type(Cl.generation) == "function" and Cl.generation() == 1 then
+    rows[#rows + 1] = { key = "mapTime", type = "choice", label = "MAP TIME",
+      choices = { { "OFF", "off" }, { "ON", "on" } }, default = "off" }
+  end
 
   if menu then
     menu.register({
@@ -861,6 +917,7 @@ function filter.init(mod, rows, menu)
         if look ~= "off" and where == "screen" then mod.options:set("filter", "off") end
         if dots == "on" then mod.options:set("dots", "off") end
         if paper ~= "off" then mod.options:set("paper", "off") end
+        if get("mapTime") == "on" then mod.options:set("mapTime", "off") end
       elseif not filter.screenOn(look, where, dots) then
         if look == "off" then mod.options:set("filter", lastLook) end
         if where ~= "screen" then mod.options:set("filterOn", "screen") end
@@ -2152,7 +2209,7 @@ function filter.init(mod, rows, menu)
       mod.events:on("mod.options_changed", function(change)
         if type(change) == "table" and change.mod == mod.id
             and (change.key == "filter" or change.key == "filterOn" or change.key == "dots" or change.key == "shades"
-              or change.key == "paper") then
+              or change.key == "paper" or change.key == "mapTime") then
           remember()
           apply()
         end

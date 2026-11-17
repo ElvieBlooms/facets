@@ -228,6 +228,13 @@ help.TEXT = {
       windows = "The battle's boxes in WINDOWS' frame.",
     },
   },
+  mapTime = {
+    about = "Red, Blue and Yellow's outdoor maps in the light of the hour on your clock, as Gold, Silver and Crystal's are: a soft gold in the morning (4 to 10), as drawn by day, a rose in the evening (17 to 20), deep blue at night. Houses, caves and the rest keep their colours.",
+    choices = {
+      off = "The map as drawn, all day.",
+      on = "The map follows your clock.",
+    },
+  },
   sceneTime = {
     about = "Outdoor battle scenes follow the hour: SCENERY's skies go peach in the morning, a sunset in the evening and navy at night. The game's clock where it has one, yours on Red, Blue, Yellow, FireRed and LeafGreen.",
     choices = {
