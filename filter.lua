@@ -1681,6 +1681,15 @@ function filter.init(mod, rows, menu)
       end
       return nil
     end
+    -- whether pixel x, y of canvas target (its own pixels) is in a window
+    -- owned there -Elvie
+    function filter.ownedOn(target, x, y)
+      for i = #owned, 1, -1 do
+        local o = owned[i]
+        if o[1] == target and x >= o[2] and y >= o[3] and x < o[4] and y < o[5] then return o[6] and true or false end
+      end
+      return false
+    end
     -- the keep, for a whole rectangle -Elvie
     filter.keepRect = function(x, y, w, h)
       local G = love.graphics
@@ -1720,17 +1729,27 @@ function filter.init(mod, rows, menu)
     -- PAPER leaves the scene's own white (snow, clouds) as painted, but
     -- not the boxes marked on it this frame (the game's text box, its HUD
     -- boxes), which are the paper's. Boxes Facets owns keep their own -Elvie
-    filter.keepScene = function()
+    -- (from: a canvas the battle was drawn into first, at the game's own
+    -- size, then copied here under the current transform: Gold, Silver and
+    -- Crystal's intro slide and move animations. Its boxes count too) -Elvie
+    filter.keepScene = function(from)
       local p = select(5, filter.settings(get))
       if not p or p == "off" then return end
       local G = love.graphics
       local target = G.getCanvas()
       if not target then return end
       local w, h = target:getDimensions()
+      local clear = {}
+      for _, r in ipairs(filter.boxRects) do
+        if from and r[1] == from and not filter.ownedOn(from, r[2] + 1, r[3] + 1) then
+          local x0, y0 = G.transformPoint(r[2], r[3])
+          local x1, y1 = G.transformPoint(r[4], r[5])
+          clear[#clear + 1] = { target, math.min(x0, x1), math.min(y0, y1), math.max(x0, x1), math.max(y0, y1) }
+        end
+      end
       G.push()
       G.origin()
       filter.keepRect(0, 0, w, h)
-      local clear = {}
       for _, r in ipairs(filter.boxRects) do
         if r[1] == target and not filter.ownedAt(r[2] + 1, r[3] + 1) then clear[#clear + 1] = r end
       end
@@ -1746,11 +1765,13 @@ function filter.init(mod, rows, menu)
       end
       G.pop()
     end
-    filter.markPaper = function(x, y, w, h)
+    -- (partial: a box with the battle showing between its parts, the HUD's
+    -- plates: not kept from a scene drawn after, which shows there) -Elvie
+    filter.markPaper = function(x, y, w, h, partial)
       local G = love.graphics
       local target = G.getCanvas()
       if not (target and tonumber(x) and tonumber(w)) then return end
-      do
+      if not partial then
         local x0, y0 = G.transformPoint(x, y)
         local x1, y1 = G.transformPoint(x + w, y + h)
         filter.boxRects[#filter.boxRects + 1] = { target, math.min(x0, x1), math.min(y0, y1), math.max(x0, x1), math.max(y0, y1) }
@@ -2040,7 +2061,7 @@ function filter.init(mod, rows, menu)
         -- battle shows between them as it is -Elvie
         local function plate(x, y, w, h)
           if paperNow() and filter.own(x, y, w, h, nil, true) then return end
-          filter.markPaper(x, y, w, h)
+          filter.markPaper(x, y, w, h, true)
         end
         local ownEnemy, ownPlayer = BattleState.drawEnemyHud, BattleState.drawPlayerHud
         BattleState.drawEnemyHud = function(self, ...)

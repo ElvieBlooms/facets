@@ -984,9 +984,17 @@ function scenes.init(mod, rows)
         baking = false
         if not ok then error(err, 0) end
       end
-      AnimView.fillBackground = function(...)
-        local results = { ownFill(...) }
-        if pending then drawScene(pending.s, pending.wide) end
+      AnimView.fillBackground = function(view, ...)
+        local results = { ownFill(view, ...) }
+        if pending then
+          drawScene(pending.s, pending.wide)
+          -- (kept from PAPER, but for the boxes baked into the canvas the
+          -- bands come from) -Elvie
+          local f = package.loaded["mods.facets.filter"]
+          local c = type(view) == "table" and view.canvas or nil
+          if type(c) == "table" then c = c.canvas or c.texture or c end
+          if type(f) == "table" and type(f.keepScene) == "function" then pcall(f.keepScene, c) end
+        end
         pending = nil
         return unpack(results)
       end
