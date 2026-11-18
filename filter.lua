@@ -184,6 +184,9 @@ extern Image keep;
 extern vec2 keepOrigin;
 extern vec2 keepSize;
 extern float paperDark;
+// a paper kept to windows and a battle's boxes: dark, or strong and light
+// (GAME WOOD's DARK GOLD)
+extern float paperBoxed;
 extern float lite;
 extern float cellF;
 extern vec2 srcPx;
@@ -316,8 +319,9 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
         if (b.x >= 0.0 && b.y >= 0.0 && b.x < 1.0 && b.y < 1.0) inBox = Texel(boxes, b).a;
       }
       // (where the boxes are known, they alone: the text box is one). The
-      // GBA games' paper is only ever in their windows
-      w *= boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : (gba > 0.5 && paperDark > 0.5 ? 0.0 : step(bandTop, p.y));
+      // GBA games' dark or strong paper is only ever in their windows,
+      // which Facets draws in it
+      w *= boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : (gba > 0.5 && paperBoxed > 0.5 ? 0.0 : step(bandTop, p.y));
       // a picture drawn this frame keeps its white, as drawn, unless a box
       // covers it (the move box over your Pokémon)
       w *= 1.0 - keptAt(sc);
@@ -805,6 +809,7 @@ function filter.init(mod, rows, menu)
       send("paperOn", 0)
     end
     send("paperDark", filter.isDark(paper) and 1 or 0)
+    send("paperBoxed", filter.boxed(paper) and 1 or 0)
     send("lite", get("paperDetail") == "light" and 1 or 0)
     send("bandTop", filter.boxed(paper) and layer.band or 0)
     send("gba", layer.gen == 3 and 1 or 0)
@@ -2280,7 +2285,9 @@ function filter.init(mod, rows, menu)
       -- shadow (only ever drawn on white), inked black, their shadow a
       -- deeper shade of the paper. Out of a battle, and in one only from
       -- its text box down, where the paper is -Elvie
-      local function strongPaper(y, opts)
+      -- (inWindow: in a window the paper owns, where a coloured letter,
+      -- FireRed's title menu's blue, is inked too) -Elvie
+      local function strongPaper(y, opts, inWindow)
         local p = select(5, filter.settings(get))
         if not filter.STRONG[p] or filter.introNow then return nil end
         opts = type(opts) == "table" and opts or {}
@@ -2289,10 +2296,16 @@ function filter.init(mod, rows, menu)
         if not base and not opts.gfxId and not opts.npcColor then
           base = (opts.small and FrlgFont.COLOR and FrlgFont.COLOR.PARTY) or (FrlgFont.COLOR and FrlgFont.COLOR.NORMAL)
         end
-        if not (type(base) == "table" and plain(base.fg) and type(base.shadow) == "table") then return nil end
-        local sr, sg, sb = tonumber(base.shadow[1]) or 0, tonumber(base.shadow[2]) or 0, tonumber(base.shadow[3]) or 0
-        if sr > 1 or sg > 1 or sb > 1 then sr, sg, sb = sr / 255, sg / 255, sb / 255 end
-        if 0.299 * sr + 0.587 * sg + 0.114 * sb < 0.6 then return nil end
+        if not (type(base) == "table" and type(base.fg) == "table" and type(base.shadow) == "table") then return nil end
+        if plain(base.fg) then
+          local sr, sg, sb = tonumber(base.shadow[1]) or 0, tonumber(base.shadow[2]) or 0, tonumber(base.shadow[3]) or 0
+          if sr > 1 or sg > 1 or sb > 1 then sr, sg, sb = sr / 255, sg / 255, sb / 255 end
+          if 0.299 * sr + 0.587 * sg + 0.114 * sb < 0.6 then return nil end
+        else
+          local r, g, b = tonumber(base.fg[1]) or 0, tonumber(base.fg[2]) or 0, tonumber(base.fg[3]) or 0
+          if r > 1 or g > 1 or b > 1 then r, g, b = r / 255, g / 255, b / 255 end
+          if not (inWindow and math.max(r, g, b) - math.min(r, g, b) >= 0.15) then return nil end
+        end
         local okB, active = pcall(function() return require("src.core.game3.battle").isActive() end)
         if okB and active and (tonumber(y) or 0) < 112 then return nil end
         local t = filter.PAPER[p]
@@ -2303,7 +2316,7 @@ function filter.init(mod, rows, menu)
         if type(x) == "number" and type(y) == "number" then pp, _, light = filter.ownedAt(x + 2, y + 2) end
         -- (and in a light paper's own window, the game's drawn papered) -Elvie
         if not pp or light == true then
-          local strong = strongPaper(y, opts)
+          local strong = strongPaper(y, opts, pp ~= nil)
           if strong then pp, light = strong, "black" end
         end
         if not pp or (light and light ~= "black") then return nil end
@@ -2325,8 +2338,16 @@ function filter.init(mod, rows, menu)
           -- own colour; a coloured letter (the PP's red) keeps its own -Elvie
           local r, g, b = tonumber(base.fg[1]) or 0, tonumber(base.fg[2]) or 0, tonumber(base.fg[3]) or 0
           if r > 1 or g > 1 or b > 1 then r, g, b = r / 255, g / 255, b / 255 end
-          if math.max(r, g, b) - math.min(r, g, b) >= 0.15 then return nil end
-          fg, shadow = { 0.1, 0.1, 0.1, 1 }, { pp[1] * 0.72, pp[2] * 0.72, pp[3] * 0.72, 1 }
+          if math.max(r, g, b) - math.min(r, g, b) >= 0.15 then
+            -- a coloured one (FireRed's title menu's blue, the PP's red)
+            -- keeps its colour, a blue one darkened to read on the colour,
+            -- and loses the white behind it -Elvie
+            if b > r and b > g then r, g, b = r * 0.35, g * 0.35, b * 0.45 end
+            fg = { r, g, b, 1 }
+            shadow = { pp[1] * 0.72, pp[2] * 0.72, pp[3] * 0.72, 1 }
+          else
+            fg, shadow = { 0.1, 0.1, 0.1, 1 }, { pp[1] * 0.72, pp[2] * 0.72, pp[3] * 0.72, 1 }
+          end
         elseif plain(base.fg) then
           fg = { 0.93, 0.93, 0.94, 1 }
         else
