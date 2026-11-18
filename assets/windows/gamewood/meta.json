@@ -16,6 +16,16 @@
       ]
     },
     {
+      "name": "DARK RED WOOD",
+      "frame": "frame_dark_red.png",
+      "dialogue": "dialogue_dark_red.png",
+      "fill": [
+        192,
+        32,
+        40
+      ]
+    },
+    {
       "name": "BLUE WOOD",
       "frame": "frame_blue.png",
       "dialogue": "dialogue_blue.png",
@@ -23,6 +33,16 @@
         226,
         236,
         255
+      ]
+    },
+    {
+      "name": "DARK BLUE WOOD",
+      "frame": "frame_dark_blue.png",
+      "dialogue": "dialogue_dark_blue.png",
+      "fill": [
+        40,
+        64,
+        176
       ]
     },
     {
@@ -36,6 +56,16 @@
       ]
     },
     {
+      "name": "DARK YELLOW WOOD",
+      "frame": "frame_dark_yellow.png",
+      "dialogue": "dialogue_dark_yellow.png",
+      "fill": [
+        240,
+        200,
+        32
+      ]
+    },
+    {
       "name": "GOLD WOOD",
       "frame": "frame_gold.png",
       "dialogue": "dialogue_gold.png",
@@ -43,6 +73,16 @@
         250,
         236,
         192
+      ]
+    },
+    {
+      "name": "DARK GOLD WOOD",
+      "frame": "frame_dark_gold.png",
+      "dialogue": "dialogue_dark_gold.png",
+      "fill": [
+        200,
+        148,
+        24
       ]
     },
     {
@@ -56,6 +96,16 @@
       ]
     },
     {
+      "name": "DARK SILVER WOOD",
+      "frame": "frame_dark_silver.png",
+      "dialogue": "dialogue_dark_silver.png",
+      "fill": [
+        72,
+        82,
+        100
+      ]
+    },
+    {
       "name": "CRYSTAL WOOD",
       "frame": "frame_crystal.png",
       "dialogue": "dialogue_crystal.png",
@@ -63,6 +113,16 @@
         224,
         248,
         252
+      ]
+    },
+    {
+      "name": "DARK CRYSTAL WOOD",
+      "frame": "frame_dark_crystal.png",
+      "dialogue": "dialogue_dark_crystal.png",
+      "fill": [
+        16,
+        104,
+        144
       ]
     },
     {
@@ -76,6 +136,16 @@
       ]
     },
     {
+      "name": "DARK EMERALD WOOD",
+      "frame": "frame_dark_emerald.png",
+      "dialogue": "dialogue_dark_emerald.png",
+      "fill": [
+        16,
+        120,
+        72
+      ]
+    },
+    {
       "name": "LEAFGREEN WOOD",
       "frame": "frame_leafgreen.png",
       "dialogue": "dialogue_leafgreen.png",
@@ -83,6 +153,16 @@
         236,
         250,
         212
+      ]
+    },
+    {
+      "name": "DARK LEAFGREEN WOOD",
+      "frame": "frame_dark_leafgreen.png",
+      "dialogue": "dialogue_dark_leafgreen.png",
+      "fill": [
+        64,
+        140,
+        24
       ]
     }
   ]

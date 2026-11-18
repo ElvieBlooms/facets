@@ -273,7 +273,7 @@ help.TEXT = {
       ["pink:"] = "A PINK text box.",
       ["pinkwood:"] = "Tito's Woody box, in PINK's colours.",
       ["paperwood:"] = "Tito's Woody box, in PAPER's colours, light and dark.",
-      ["gamewood:"] = "Tito's Woody box, in a game's own colour: Red, Blue, Yellow, Gold, Silver, Crystal, Emerald or LeafGreen.",
+      ["gamewood:"] = "Tito's Woody box, in a game's own colour: Red, Blue, Yellow, Gold, Silver, Crystal, Emerald or LeafGreen. Pale, or DARK in the game's rich colour, with white or black letters, whichever reads better.",
       ["tito:"] = "One of Tito's text boxes.",
     },
   },

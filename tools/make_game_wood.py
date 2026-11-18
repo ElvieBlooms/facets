@@ -1,5 +1,5 @@
 # GAME WOOD: Tito Seich / Sage's Woody text box and frame, recoloured in
-# each game's own colour, as PINK WOOD and PAPER WOOD are. Only the games
+# each game's own colour, pale and DARK, as PINK WOOD and PAPER WOOD are. Only the games
 # whose colours stand apart are made; the rest are here to compare
 # (--preview draws them all side by side).
 # python3 tools/make_game_wood.py assets/windows [--preview out.png] -Elvie
@@ -25,6 +25,40 @@ GAMES = [
   ("LEAFGREEN", (236, 250, 212), (208, 238, 168), (104, 176, 40),  (44, 80, 20)),
 ]
 MADE = ["RED", "BLUE", "YELLOW", "GOLD", "SILVER", "CRYSTAL", "EMERALD", "LEAFGREEN"]
+
+# The DARK ones: each game's colour rich and true, not pale. Their letters
+# go white or black by which reads better on them (WCAG contrast), and
+# Facets decides the same by the box's own colour (white below 0.35 of
+# 0.299 R + 0.587 G + 0.114 B, black above): the two are checked to agree,
+# so a colour is moved, not the rule -Elvie
+DARK = [
+  ("RED",       (192, 32, 40)),
+  ("BLUE",      (40, 64, 176)),
+  ("YELLOW",    (240, 200, 32)),
+  ("GOLD",      (200, 148, 24)),
+  ("SILVER",    (72, 82, 100)),
+  ("CRYSTAL",   (16, 104, 144)),
+  ("EMERALD",   (16, 120, 72)),
+  ("LEAFGREEN", (64, 140, 24)),
+]
+import colorsys
+def _lin(v):
+  v = v / 255
+  return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+def ink(c):
+  L = 0.2126 * _lin(c[0]) + 0.7152 * _lin(c[1]) + 0.0722 * _lin(c[2])
+  return "white" if (1.05 / (L + 0.05)) > ((L + 0.05) / 0.05) else "black"
+def facetsInk(c):
+  return "white" if (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255 < 0.35 else "black"
+def shade(c, dl, ds=0):
+  h, l, s = colorsys.rgb_to_hls(*[v / 255 for v in c])
+  return tuple(round(v * 255) for v in colorsys.hls_to_rgb(h, max(0, min(1, l + dl)), max(0, min(1, s + ds))))
+def darkTones(fill):
+  # the panel a shade under the inside, the trim a lighter tint of it,
+  # the outline the hue near black -Elvie
+  return fill, shade(fill, -0.07), shade(fill, 0.22), shade(fill, -0.5)
+for _n, _c in DARK:
+  assert ink(_c) == facetsInk(_c), "%s: reads best %s but Facets would ink %s" % (_n, ink(_c), facetsInk(_c))
 
 def recolour(light, mid, shadow, outline):
   m = {LIGHT: light, MID: mid, SHADOW: shadow, OUTLINE: outline}
@@ -79,21 +113,36 @@ def box(dlg, w, h):
   return out
 
 if "--preview" in sys.argv:
+  # each game made, its light one beside its DARK one, with letters in
+  # the colour Facets inks on it; then the ones left out, to compare -Elvie
   path = sys.argv[sys.argv.index("--preview") + 1]
   from PIL import ImageFont
-  W, H, S = 20, 6, 3
-  cols = 3
-  rows = (len(GAMES) + 1 + cols - 1) // cols
-  sheet = Image.new("RGB", (cols * (W * 8 + 8) * S + 8 * S, rows * (H * 8 + 18) * S + 8 * S), (40, 40, 44))
+  try: font = ImageFont.truetype("DejaVuSans-Bold.ttf", 28)
+  except Exception: font = ImageFont.load_default()
+  W, H, S = 20, 5, 3
+  darks = dict(DARK)
+  items = []
+  for n, *c in GAMES:
+    if n in MADE:
+      items.append((n + " WOOD", recolour(*c), facetsInk(c[0])))
+      items.append(("DARK " + n + " WOOD", recolour(*darkTones(darks[n])), facetsInk(darks[n])))
+  for n, *c in GAMES:
+    if n not in MADE: items.append((n + " (not made)", recolour(*c), facetsInk(c[0])))
+  cols = 2
+  rows = (len(items) + cols - 1) // cols
+  cw, ch = (W * 8 + 8) * S, (H * 8 + 18) * S
+  sheet = Image.new("RGB", (cols * cw + 8 * S, rows * ch + 8 * S), (40, 40, 44))
   d = ImageDraw.Draw(sheet)
-  items = [("WOODY (Tito's own)", woody)] + [(n + ("" if n in MADE else "  (not made)"), recolour(*c)) for n, *c in GAMES]
-  for i, (name, dlg) in enumerate(items):
-    x0 = 8 * S + (i % cols) * (W * 8 + 8) * S
-    y0 = 8 * S + (i // cols) * (H * 8 + 18) * S
+  for i, (name, dlg, letters) in enumerate(items):
+    x0, y0 = 8 * S + (i % cols) * cw, 8 * S + (i // cols) * ch
     b = box(dlg, W, H).resize((W * 8 * S, H * 8 * S), Image.NEAREST)
     sheet.paste(b, (x0, y0 + 12 * S), b)
     d.text((x0, y0), name, fill=(240, 240, 240))
-  sheet = sheet.resize((sheet.width, sheet.height))
+    ink_rgb = (255, 255, 255) if letters == "white" else (0, 0, 0)
+    tx, ty = x0 + 10 * S, y0 + 12 * S + 12 * S
+    if letters == "white":
+      for ox, oy in ((-2, 0), (2, 0), (0, -2), (0, 2)): d.text((tx + ox, ty + oy), "What will you do?", font=font, fill=(110, 110, 110))
+    d.text((tx, ty), "What will you do?", font=font, fill=ink_rgb)
   sheet.save(path)
   print("preview", path)
   sys.exit(0)
@@ -101,15 +150,20 @@ if "--preview" in sys.argv:
 import shutil
 os.makedirs(OUT, exist_ok=True)
 styles = []
+darks = dict(DARK)
+def make(name, file_stem, tones, paper):
+  out = recolour(*tones)
+  file = "dialogue_" + file_stem + ".png"
+  out.save(os.path.join(OUT, file))
+  if paper: shutil.copyfile(paperMap, os.path.join(OUT, "dialogue_" + file_stem + ".paper.png"))
+  frame = "frame_" + file_stem + ".png"
+  frameOf(out).save(os.path.join(OUT, frame))
+  styles.append({"name": name, "frame": frame, "dialogue": file, "fill": list(tones[0])})
+# each game's light one, then its dark one, so they step side by side -Elvie
 for name, light, mid, shadow, outline in GAMES:
   if name not in MADE: continue
-  out = recolour(light, mid, shadow, outline)
-  file = "dialogue_" + name.lower() + ".png"
-  out.save(os.path.join(OUT, file))
-  shutil.copyfile(paperMap, os.path.join(OUT, "dialogue_" + name.lower() + ".paper.png"))
-  frame = "frame_" + name.lower() + ".png"
-  frameOf(out).save(os.path.join(OUT, frame))
-  styles.append({"name": name + " WOOD", "frame": frame, "dialogue": file, "fill": list(light)})
+  make(name + " WOOD", name.lower(), (light, mid, shadow, outline), True)
+  if name in darks: make("DARK " + name + " WOOD", "dark_" + name.lower(), darkTones(darks[name]), False)
 json.dump({"label": "GAME WOOD", "short": True,
   "credit": ["Text boxes and frames recoloured by ElvieBlooms in each game's colour, after Tito Seich / Sage's Woody, used with credit"],
   "styles": styles}, open(os.path.join(OUT, "meta.json"), "w"), indent=2)

@@ -727,6 +727,13 @@ function gbui.precacheFor(mod)
   end)
 end
 
+-- A window colour of its own at least this bright (0.299 R + 0.587 G +
+-- 0.114 B) is pale (PINK WOOD's, PAPER WOOD's light ones, GAME WOOD's
+-- light ones, PAPER WOOD's GREY the least of them at 0.84): the game's own grey letters with their light shadow sit on
+-- it as on white. Under it, and not dark, it's a strong colour that reads
+-- best with black letters -Elvie
+gbui.PALE = 0.8
+
 -- Gen 3's 3x3 window frame round a content area (tiles), white inside. -Elvie
 -- (own: the frame's inside colour when it has one of its own, PAPER
 -- WOOD's; kept as it is on any paper, as its text box is) -Elvie
@@ -743,8 +750,13 @@ function gbui.nineSlice(img, tx, ty, tw, th, own)
     if not pp then lp, lit = gbui.lit(img, X, Y, W, H) end
   else
     local ok, filter = pcall(require, "mods.facets.filter")
-    if ok and 0.299 * own[1] + 0.587 * own[2] + 0.114 * own[3] < 0.35 and type(filter.own) == "function" then
+    local l = 0.299 * own[1] + 0.587 * own[2] + 0.114 * own[3]
+    if ok and l < 0.35 and type(filter.own) == "function" then
       filter.own(X, Y, W, H, { own[1], own[2], own[3] })
+    elseif ok and l < gbui.PALE and type(filter.own) == "function" then
+      -- a strong colour that reads best with black letters (GAME WOOD's
+      -- DARK GOLD): its letters inked black -Elvie
+      filter.own(X, Y, W, H, { own[1], own[2], own[3] }, nil, "black")
     elseif ok and type(filter.paperNow) == "function" and filter.paperNow() and type(filter.keepRect) == "function" then
       filter.keepRect(X, Y, W, H)
     end
@@ -789,6 +801,13 @@ function gbui.dialogueBox(img, fill, L0, W0)
     local ok, filter = pcall(require, "mods.facets.filter")
     if ok and type(filter.own) == "function" then
       filter.own((L - 2) * T, (Top - 1) * T, (W + 4) * T, (H + 2) * T, { fill[1], fill[2], fill[3] })
+    end
+  elseif not pp and not lp and 0.299 * fill[1] + 0.587 * fill[2] + 0.114 * fill[3] < gbui.PALE then
+    -- a strong colour that reads best with black letters (GAME WOOD's
+    -- DARK GOLD): its letters inked black -Elvie
+    local ok, filter = pcall(require, "mods.facets.filter")
+    if ok and type(filter.own) == "function" then
+      filter.own((L - 2) * T, (Top - 1) * T, (W + 4) * T, (H + 2) * T, { fill[1], fill[2], fill[3] }, nil, "black")
     end
   elseif not pp and not lp then
     -- a pale one of its own on dark paper (PINK WOOD's PEACH): kept whole,

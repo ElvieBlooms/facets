@@ -1909,7 +1909,10 @@ function filter.init(mod, rows, menu)
     -- (tiles: nothing kept now; what's drawn in it keeps its own tiles, for
     -- a HUD with the battle showing between its parts) -Elvie
     -- (light: a light paper's window, kept as drawn, its letters left
-    -- black) -Elvie
+    -- black; "black": a window in a strong colour of its own that reads
+    -- best with black letters, GAME WOOD's DARK GOLD, whose letters are
+    -- inked black on the GBA games, where the game's are grey with a light
+    -- shadow) -Elvie
     function filter.own(x, y, w, h, colour, tiles, light)
       local pp = type(colour) == "table" and colour or paperNow()
       if not pp or not (tonumber(x) and tonumber(w)) then return false end
@@ -2224,7 +2227,7 @@ function filter.init(mod, rows, menu)
       local function inkOpts(x, y, opts)
         local pp, _, light = nil, nil, nil
         if type(x) == "number" and type(y) == "number" then pp, _, light = filter.ownedAt(x + 2, y + 2) end
-        if not pp or light then return nil end
+        if not pp or (light and light ~= "black") then return nil end
         opts = opts or {}
         local base = opts.colors
         if not base and opts.color then base = { fg = opts.color, shadow = opts.shadow, bg = opts.bg } end
@@ -2238,7 +2241,14 @@ function filter.init(mod, rows, menu)
         if type(bg) == "table" and (tonumber(bg[4]) or 1) > 0 then bg = { 0, 0, 0, 0 } end
         local ol = filter.outlineOf(pp)
         local fg, shadow = nil, { ol[1], ol[2], ol[3], 1 }
-        if plain(base.fg) then
+        if light == "black" then
+          -- black letters, their shadow a deeper shade of the window's
+          -- own colour; a coloured letter (the PP's red) keeps its own -Elvie
+          local r, g, b = tonumber(base.fg[1]) or 0, tonumber(base.fg[2]) or 0, tonumber(base.fg[3]) or 0
+          if r > 1 or g > 1 or b > 1 then r, g, b = r / 255, g / 255, b / 255 end
+          if math.max(r, g, b) - math.min(r, g, b) >= 0.15 then return nil end
+          fg, shadow = { 0.1, 0.1, 0.1, 1 }, { pp[1] * 0.72, pp[2] * 0.72, pp[3] * 0.72, 1 }
+        elseif plain(base.fg) then
           fg = { 0.93, 0.93, 0.94, 1 }
         else
           -- a coloured letter keeps its colour; a blue one, which sinks
