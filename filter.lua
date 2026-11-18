@@ -312,7 +312,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       if (gba < 0.5 && paperDark > 0.5 && w < 0.5) {
         float l = dot(before, vec3(0.299, 0.587, 0.114));
         float region = Texel(ui, p).a * (boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : step(bandTop, p.y)) * (1.0 - keptAt(sc));
-        // (LIGHT: a black touching the paper's ground on one side is a
+        // (POTATO: a black touching the paper's ground on one side is a
         // letter, with only its four next pixels looked at. A black with no
         // paper beside it, a screen wipe's or a battle's dark, stays) -Elvie
         if (lite > 0.5) {
@@ -984,12 +984,12 @@ function filter.init(mod, rows, menu)
   rows[#rows + 1] = { key = "dots", type = "choice", label = "  DOTS", choices = filter.DOTS, default = "off" }
   rows[#rows + 1] = { key = "shades", type = "choice", label = "  SHADES", choices = filter.STEPS, default = "4" }
   rows[#rows + 1] = { key = "paper", type = "choice", label = "  PAPER", choices = filter.PAPERS, default = "off" }
-  -- For small devices: PAPER DETAIL: LIGHT skips dark paper's look round
+  -- For small devices: PAPER DETAIL: POTATO skips dark paper's look round
   -- each letter (its outline, and telling a letter from a picture's dark
   -- by what's round it); PRECACHE makes PAPER's pictures ahead, a little
   -- each frame, and keeps them on the install -Elvie
   rows[#rows + 1] = { key = "paperDetail", type = "choice", label = "  PAPER DETAIL",
-    choices = { { "FULL", "full" }, { "LIGHT", "light" } }, default = "full" }
+    choices = { { "FULL", "full" }, { "POTATO", "light" } }, default = "full" }
   rows[#rows + 1] = { key = "paperPrecache", type = "choice", label = "  PRECACHE",
     choices = { { "OFF", "off" }, { "ON", "on" } }, default = "off" }
   -- MAP TIME: Red, Blue and Yellow's outdoor maps in the light of the

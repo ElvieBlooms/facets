@@ -339,10 +339,10 @@ help.TEXT = {
     },
   },
   paperDetail = {
-    about = "How much work dark paper does each frame. LIGHT is for small devices: letters turn white without the outline round them, and without checking what's round each letter.",
+    about = "How much work dark paper does each frame. POTATO is for small devices: letters turn white without the outline round them, and without checking what's round each letter.",
     choices = {
       full = "Letters white with an outline, pictures' own dark left be.",
-      light = "Lighter on small devices: letters white, no outline.",
+      light = "For low-power devices: letters white, no outline, much less work.",
     },
   },
   paperPrecache = {
