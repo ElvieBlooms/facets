@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1
+
+- **Fixed: PAPER crashing on entering a battle, and slowing the game before it**, on phones and other small devices. Each time a frame drew on something of a different size (Gold, Silver and Crystal's battles draw on two), PAPER made a new full-size copy for what it keeps, dozens a second; small devices ran out of memory. The copies are made once for each size now and kept.
+- **Fixed: letters flashing and sprites patched dark with PAPER** (FACETS's own pages on Emerald, among others): making that new copy threw away what the first had kept, every other frame.
+
 ## 1.3.0
 
 - **FACETS in a few broad topics, on every game:** **PRESETS** (the main looks set together in one go: **GAME**, **FIRERED**, **EMERALD** or **DS** on Red to Crystal, **GAME**, **GBC** or **DS** on the GBA games; change anything afterwards and it shows **CUSTOM**), then **PEOPLE** (the people on the map and the trainers), **POKEMON** (every Pokémon setting, the map's partners too), **BATTLE**, **MENUS** (WINDOWS, TEXT BOX, SURROUND and PAPER) and **EFFECTS** (the filter and the rest), each a page of its own, then CREDITS. Before, Red to Crystal's FACETS page was one long list of every setting; on the GBA games these take in the old SCREEN page, so FACETS is one entry in PRISM again.

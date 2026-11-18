@@ -530,10 +530,66 @@ function filter.init(mod, rows, menu)
   -- on (keep), and where that sits on screen -Elvie
   local pics = { keep = nil, drawn = false, fresh = false, origin = nil, size = nil,
     boxes = nil, boxesDrawn = false, boxesFresh = false }
+  -- The copies, one for each size of thing drawn on in a frame (the
+  -- game's own screen, a battle's canvas, the window), made once and
+  -- kept: a frame that draws on two sizes no longer makes a new copy each
+  -- time it goes from one to the other, which ran small devices out of
+  -- memory (a crash on entering a battle) and lost what the first had
+  -- kept (letters flashing, sprites patched dark). The pass picks the one
+  -- the size of the screen it reads -Elvie
+  local keepPool, boxesPool = {}, {}
+  local function poolEntry(pool, target, make)
+    if not target then return nil end
+    local w, h = target:getDimensions()
+    local dpi = target:getDPIScale()
+    local key = w .. "x" .. h .. "@" .. dpi
+    local e = pool[key]
+    if not e and make then
+      local ok, c = pcall(love.graphics.newCanvas, w, h, { dpiscale = dpi })
+      if not ok or not c then return nil end
+      e = { canvas = c, fresh = false, drawn = false, idle = 0 }
+      pool[key] = e
+    end
+    if e then e.idle = 0 end
+    return e
+  end
+  -- the copy the size (in pixels) of pw x ph, if one was drawn on -Elvie
+  local function poolMatch(pool, pw, ph)
+    for _, e in pairs(pool) do
+      if e.canvas:getPixelWidth() == pw and e.canvas:getPixelHeight() == ph then return e end
+    end
+    return nil
+  end
+  -- after the pass: every copy starts afresh next frame, and one not
+  -- drawn on for a while (a size gone, the window resized) is let go -Elvie
+  local function poolReset(pool)
+    for key, e in pairs(pool) do
+      e.fresh, e.drawn = false, false
+      e.idle = e.idle + 1
+      if e.idle > 600 then
+        pcall(function() e.canvas:release() end)
+        pool[key] = nil
+      end
+    end
+  end
+  -- the copy of target's size, cleared once a frame, to draw on -Elvie
+  local function keepOn(target)
+    local e = poolEntry(keepPool, target, true)
+    if e and not e.fresh then
+      love.graphics.push("all")
+      love.graphics.setCanvas(e.canvas)
+      love.graphics.origin()
+      love.graphics.clear(0, 0, 0, 0)
+      love.graphics.pop()
+      e.fresh = true
+    end
+    return e
+  end
   -- Gold, Silver and Crystal draw the map and the menus into one picture,
   -- so PAPER keeps its own copy of the menus drawn over the map (gen2Mask,
   -- from start below); with no map, the whole picture is menus -Elvie
   local gen2Mask, gen2Drawn, gen2Game, whole = nil, false, nil, nil
+  local gen2Masks = nil
   -- the GBA game, from its own update (start, below) -Elvie
   local game3 = nil
   local function wholeImage()
@@ -662,7 +718,6 @@ function filter.init(mod, rows, menu)
       send("keepOrigin", pics.origin)
       send("keepSize", pics.size)
     end
-    pics.boxesDrawn, pics.boxesFresh = false, false
     if tint and layer.canvas and pics.keep and pics.drawn and pics.origin then
       send("keepOn", 1)
       send("keep", pics.keep)
@@ -673,7 +728,11 @@ function filter.init(mod, rows, menu)
     end
     -- the next frame's pictures start afresh (the game can draw one after
     -- render.compose, so this waits till the pass has used them) -Elvie
-    pics.drawn, pics.fresh = false, false
+    if slot ~= "map" then
+      poolReset(keepPool)
+      poolReset(boxesPool)
+      pics.drawn, pics.boxesDrawn = false, false
+    end
     filter.boxRects = {}
     if slot ~= "map" and filter.ownedReset then filter.ownedReset() end
     love.graphics.push("all")
@@ -807,19 +866,24 @@ function filter.init(mod, rows, menu)
         -- where the pictures' copy sits: the UI layer's place on Red to
         -- Emerald, the whole picture on Gold to Crystal -Elvie
         pics.origin, pics.size = nil, nil
-        local copy = pics.keep or pics.boxes
-        if pics.keep and pics.boxes and pics.keep:getPixelWidth() ~= pics.boxes:getPixelWidth() then copy = pics.keep end
-        if copy then
-          local kw, kh = copy:getPixelDimensions()
+        pics.keep, pics.drawn, pics.boxes, pics.boxesDrawn = nil, false, nil, false
+        do
+          -- the copies the size of the screen the pass reads: the whole
+          -- picture on Gold to Crystal (a battle draws its Pokémon on a
+          -- canvas of its own first), the UI layer on Red to Emerald -Elvie
           local scene = ctx.sceneCanvas
-          if ctx.generation == 2 then
-            -- only a copy of the whole picture (a battle draws its
-            -- Pokémon on a canvas of its own first) -Elvie
-            if scene and kw == scene:getPixelWidth() and kh == scene:getPixelHeight() then
-              pics.origin, pics.size = { 0, 0 }, { kw, kh }
+          local read = nil
+          if ctx.generation == 2 then read = scene
+          elseif canvas == ctx.uiCanvas then read = canvas end
+          if read then
+            local kw, kh = read:getPixelDimensions()
+            local ke, be = poolMatch(keepPool, kw, kh), poolMatch(boxesPool, kw, kh)
+            if ke then pics.keep, pics.drawn = ke.canvas, ke.drawn end
+            if be then pics.boxes, pics.boxesDrawn = be.canvas, be.drawn end
+            if ke or be then
+              if ctx.generation == 2 then pics.origin, pics.size = { 0, 0 }, { kw, kh }
+              else pics.origin, pics.size = origin, size end
             end
-          elseif canvas == ctx.uiCanvas and canvas and kw == canvas:getPixelWidth() and kh == canvas:getPixelHeight() then
-            pics.origin, pics.size = origin, size
           end
         end
         local look, where, _, steps = filter.settings(get)
@@ -953,8 +1017,14 @@ function filter.init(mod, rows, menu)
         local w, h = target:getDimensions()
         local dpi = target.getDPIScale and target:getDPIScale() or 1
         if not gen2Mask or gen2Mask:getWidth() ~= w or gen2Mask:getHeight() ~= h or gen2Mask:getDPIScale() ~= dpi then
-          local ok, made = pcall(G.newCanvas, w, h, { dpiscale = dpi })
-          gen2Mask = ok and made or nil
+          -- (one kept for each size, as the keeps are) -Elvie
+          local key = w .. "x" .. h .. "@" .. dpi
+          gen2Masks = gen2Masks or {}
+          if not gen2Masks[key] then
+            local ok, made = pcall(G.newCanvas, w, h, { dpiscale = dpi })
+            gen2Masks[key] = ok and made or nil
+          end
+          gen2Mask = gen2Masks[key]
           if not gen2Mask then return ownDraw(self, ...) end
         end
         G.setCanvas({ gen2Mask, stencil = true })
@@ -982,7 +1052,9 @@ function filter.init(mod, rows, menu)
             local pw, ph = target:getPixelDimensions()
             local saved = { layer.canvas, layer.origin, layer.size, pics.origin, pics.size }
             layer.canvas, layer.origin, layer.size = gen2Mask, { 0, 0 }, { pw, ph }
-            if pics.keep and pics.keep:getPixelWidth() == pw and pics.keep:getPixelHeight() == ph then
+            local ke = poolMatch(keepPool, pw, ph)
+            if ke then
+              pics.keep, pics.drawn = ke.canvas, ke.drawn
               pics.origin, pics.size = { 0, 0 }, { pw, ph }
             end
             local out = run(target, "ui", "off", false, "4", paper)
@@ -1296,26 +1368,16 @@ function filter.init(mod, rows, menu)
       filter.keepArt = function(img, x, ...)
         local target = G.getCanvas()
         if not target then return end
-        local w, h = target:getDimensions()
-        local dpi = target:getDPIScale()
-        if not pics.keep or pics.keep:getWidth() ~= w or pics.keep:getHeight() ~= h or pics.keep:getDPIScale() ~= dpi then
-          local okK, k = pcall(G.newCanvas, w, h, { dpiscale = dpi })
-          pics.keep = okK and k or nil
-          pics.fresh = false
-        end
-        if pics.keep then
+        local e = keepOn(target)
+        if e then
           G.push("all")
-          G.setCanvas(pics.keep)
-          if not pics.fresh then
-            G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
-            pics.fresh = true
-          end
+          G.setCanvas(e.canvas)
           G.setShader()
           G.setBlendMode("alpha")
           G.setColor(1, 1, 1, 1)
           ownDraw(img, x, ...)
           G.pop()
-          pics.drawn = true
+          e.drawn = true
         end
       end
     end
@@ -1703,27 +1765,17 @@ function filter.init(mod, rows, menu)
       local G = love.graphics
       local target = G.getCanvas()
       if not target then return end
-      local cw, ch = target:getDimensions()
-      local dpi = target:getDPIScale()
-      if not pics.keep or pics.keep:getWidth() ~= cw or pics.keep:getHeight() ~= ch or pics.keep:getDPIScale() ~= dpi then
-        local okK, k = pcall(G.newCanvas, cw, ch, { dpiscale = dpi })
-        pics.keep = okK and k or nil
-        pics.fresh = false
-      end
-      if not pics.keep then return end
+      local e = keepOn(target)
+      if not e then return end
       G.push("all")
-      G.setCanvas(pics.keep)
-      if not pics.fresh then
-        G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
-        pics.fresh = true
-      end
+      G.setCanvas(e.canvas)
       G.setShader()
       G.setScissor()
       G.setBlendMode("alpha")
       G.setColor(1, 1, 1, 1)
       G.rectangle("fill", x, y, w, h)
       G.pop()
-      pics.drawn = true
+      e.drawn = true
     end
 
     -- DARK in Red, Blue and Yellow's battles: the game's own boxes (the HP
@@ -1761,9 +1813,10 @@ function filter.init(mod, rows, menu)
       for _, r in ipairs(filter.boxRects) do
         if r[1] == target and not filter.ownedAt(r[2] + 1, r[3] + 1) then clear[#clear + 1] = r end
       end
-      if pics.keep then
+      local ke = poolEntry(keepPool, target, false)
+      if ke and ke.fresh then
         G.push("all")
-        G.setCanvas(pics.keep)
+        G.setCanvas(ke.canvas)
         G.setScissor()
         G.setShader()
         G.setBlendMode("replace", "premultiplied")
@@ -1791,26 +1844,24 @@ function filter.init(mod, rows, menu)
         G.push("all")
         G.setScissor()
         G.setShader()
-        if dark then
-          if not pics.boxes or pics.boxes:getWidth() ~= cw or pics.boxes:getHeight() ~= ch or pics.boxes:getDPIScale() ~= dpi then
-            pics.boxes = G.newCanvas(cw, ch, { dpiscale = dpi })
-            pics.boxesFresh = false
-          end
-          G.setCanvas(pics.boxes)
-          if not pics.boxesFresh then
+        local be = dark and poolEntry(boxesPool, target, true) or nil
+        if be then
+          G.setCanvas(be.canvas)
+          if not be.fresh then
             G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
-            pics.boxesFresh = true
+            be.fresh = true
           end
           G.setBlendMode("alpha")
           G.setColor(1, 1, 1, 1)
           G.rectangle("fill", x, y, w, h)
-          pics.boxesDrawn = true
+          be.drawn = true
         end
         -- a box drawn over a picture covers it: that part of the picture's
         -- copy goes (the move box over your Pokémon, a menu over another
         -- window's frame) -Elvie
-        if pics.keep and pics.fresh and pics.keep:getWidth() == cw and pics.keep:getHeight() == ch then
-          G.setCanvas(pics.keep)
+        local ke = poolEntry(keepPool, target, false)
+        if ke and ke.fresh then
+          G.setCanvas(ke.canvas)
           G.setBlendMode("replace", "premultiplied")
           G.setColor(0, 0, 0, 0)
           G.rectangle("fill", x, y, w, h)
