@@ -432,8 +432,12 @@ function surround.draw(info, battle, real)
         local y0 = math.floor((ph - sh * k) / 2) / dy
         scenes.drawPart(snapshot, sw, sh, 0, 0, x0, y0, k / dx, k / dy, r)
       else
-        -- the picture is the window in pixels: one unit is pw / ww of them -Elvie
-        scenes.drawPart(snapshot, sw, sh, 0, 0, 0, 0, ww / pw, wh / ph, r)
+        -- the picture is the whole window, kept at the window's own size in
+        -- units: so it's laid back over the window unit for unit. (It was
+        -- once scaled as if it were pixels, which on a phone or handheld
+        -- with a DPI scale over 1 shrank it into the top left and smeared
+        -- its edge into stripes across the rest) -Elvie
+        scenes.drawPart(snapshot, sw, sh, 0, 0, 0, 0, ww / sw, wh / sh, r)
       end
     end)
     return true
