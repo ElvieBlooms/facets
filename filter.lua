@@ -564,7 +564,7 @@ function filter.init(mod, rows, menu)
   -- drawn on for a while (a size gone, the window resized) is let go -Elvie
   local function poolReset(pool)
     for key, e in pairs(pool) do
-      e.fresh, e.drawn = false, false
+      e.fresh, e.drawn, e.ops = false, false, {}
       e.idle = e.idle + 1
       if e.idle > 600 then
         pcall(function() e.canvas:release() end)
@@ -573,17 +573,65 @@ function filter.init(mod, rows, menu)
     end
   end
   -- the copy of target's size, cleared once a frame, to draw on -Elvie
+  -- What's kept is written down as it's drawn and put on the copies in
+  -- one go, just before the pass reads them: going to a copy and back for
+  -- each letter and picture (dozens of times a frame) tripled a battle's
+  -- cost, on a small device a slideshow -Elvie
   local function keepOn(target)
     local e = poolEntry(keepPool, target, true)
     if e and not e.fresh then
-      love.graphics.push("all")
-      love.graphics.setCanvas(e.canvas)
-      love.graphics.origin()
-      love.graphics.clear(0, 0, 0, 0)
-      love.graphics.pop()
-      e.fresh = true
+      e.fresh, e.needClear, e.ops = true, true, {}
     end
     return e
+  end
+  -- the transform now, as a Transform -Elvie
+  local function transformNow()
+    local G = love.graphics
+    local a, b = G.transformPoint(0, 0)
+    local c, d = G.transformPoint(1, 0)
+    local e, f = G.transformPoint(0, 1)
+    local t = love.math.newTransform()
+    t:setMatrix(c - a, e - a, 0, a, d - b, f - b, 0, b, 0, 0, 1, 0, 0, 0, 0, 1)
+    return t
+  end
+  -- writes down one thing to keep (or, erase, to take away) on e -Elvie
+  local function keepOp(e, op)
+    op.tf = transformNow()
+    op.sc = op.noScissor and false or { love.graphics.getScissor() }
+    e.ops[#e.ops + 1] = op
+  end
+  -- puts everything written down on the copies -Elvie
+  local function keepFlush()
+    local G = love.graphics
+    for _, pool in ipairs({ keepPool, boxesPool }) do
+    for _, e in pairs(pool) do
+      if e.needClear or (e.ops and #e.ops > 0) then
+        G.push("all")
+        G.setCanvas(e.canvas)
+        G.origin()
+        G.setShader()
+        if e.needClear then G.clear(0, 0, 0, 0); e.needClear = false end
+        for _, op in ipairs(e.ops or {}) do
+          G.replaceTransform(op.tf)
+          if op.sc and op.sc[1] then G.setScissor(op.sc[1], op.sc[2], op.sc[3], op.sc[4]) else G.setScissor() end
+          if op.erase then
+            G.setBlendMode("replace", "premultiplied")
+            G.setColor(0, 0, 0, 0)
+          else
+            G.setBlendMode("alpha")
+            G.setColor(1, 1, 1, 1)
+          end
+          if op.rect then
+            G.rectangle("fill", op.rect[1], op.rect[2], op.rect[3], op.rect[4])
+          elseif op.draw then
+            pcall(op.draw, unpack(op.args, 1, op.n))
+          end
+        end
+        e.ops = {}
+        G.pop()
+      end
+    end
+    end
   end
   -- Gold, Silver and Crystal draw the map and the menus into one picture,
   -- so PAPER keeps its own copy of the menus drawn over the map (gen2Mask,
@@ -656,6 +704,7 @@ function filter.init(mod, rows, menu)
     local function send(name, ...)
       if sh:hasUniform(name) then sh:send(name, ...) end
     end
+    if slot ~= "map" then keepFlush() end
     local w, h = src:getDimensions()
     local cv = canvases[slot]
     local dpi = src.getDPIScale and src:getDPIScale() or 1
@@ -1377,13 +1426,7 @@ function filter.init(mod, rows, menu)
         if not target then return end
         local e = keepOn(target)
         if e then
-          G.push("all")
-          G.setCanvas(e.canvas)
-          G.setShader()
-          G.setBlendMode("alpha")
-          G.setColor(1, 1, 1, 1)
-          ownDraw(img, x, ...)
-          G.pop()
+          keepOp(e, { draw = ownDraw, args = { img, x, ... }, n = 2 + select("#", ...) })
           e.drawn = true
         end
       end
@@ -1824,14 +1867,7 @@ function filter.init(mod, rows, menu)
       if not target then return end
       local e = keepOn(target)
       if not e then return end
-      G.push("all")
-      G.setCanvas(e.canvas)
-      G.setShader()
-      G.setScissor()
-      G.setBlendMode("alpha")
-      G.setColor(1, 1, 1, 1)
-      G.rectangle("fill", x, y, w, h)
-      G.pop()
+      keepOp(e, { rect = { x, y, w, h }, noScissor = true })
       e.drawn = true
     end
 
@@ -1872,14 +1908,9 @@ function filter.init(mod, rows, menu)
       end
       local ke = poolEntry(keepPool, target, false)
       if ke and ke.fresh then
-        G.push("all")
-        G.setCanvas(ke.canvas)
-        G.setScissor()
-        G.setShader()
-        G.setBlendMode("replace", "premultiplied")
-        G.setColor(0, 0, 0, 0)
-        for _, r in ipairs(clear) do G.rectangle("fill", r[2], r[3], r[4] - r[2], r[5] - r[3]) end
-        G.pop()
+        for _, r in ipairs(clear) do
+          keepOp(ke, { rect = { r[2], r[3], r[4] - r[2], r[5] - r[3] }, erase = true, noScissor = true })
+        end
       end
       G.pop()
     end
@@ -1895,36 +1926,20 @@ function filter.init(mod, rows, menu)
         filter.boxRects[#filter.boxRects + 1] = { target, math.min(x0, x1), math.min(y0, y1), math.max(x0, x1), math.max(y0, y1) }
       end
       local dark = filter.isDark(select(5, filter.settings(get)))
-      pcall(function()
-        local cw, ch = target:getDimensions()
-        local dpi = target:getDPIScale()
-        G.push("all")
-        G.setScissor()
-        G.setShader()
-        local be = dark and poolEntry(boxesPool, target, true) or nil
-        if be then
-          G.setCanvas(be.canvas)
-          if not be.fresh then
-            G.push(); G.origin(); G.clear(0, 0, 0, 0); G.pop()
-            be.fresh = true
-          end
-          G.setBlendMode("alpha")
-          G.setColor(1, 1, 1, 1)
-          G.rectangle("fill", x, y, w, h)
-          be.drawn = true
-        end
-        -- a box drawn over a picture covers it: that part of the picture's
-        -- copy goes (the move box over your Pokémon, a menu over another
-        -- window's frame) -Elvie
-        local ke = poolEntry(keepPool, target, false)
-        if ke and ke.fresh then
-          G.setCanvas(ke.canvas)
-          G.setBlendMode("replace", "premultiplied")
-          G.setColor(0, 0, 0, 0)
-          G.rectangle("fill", x, y, w, h)
-        end
-        G.pop()
-      end)
+      -- (both written down and drawn with the keeps, before the pass) -Elvie
+      local be = dark and poolEntry(boxesPool, target, true) or nil
+      if be then
+        if not be.fresh then be.fresh, be.needClear, be.ops = true, true, {} end
+        keepOp(be, { rect = { x, y, w, h }, noScissor = true })
+        be.drawn = true
+      end
+      -- a box drawn over a picture covers it: that part of the picture's
+      -- copy goes (the move box over your Pokémon, a menu over another
+      -- window's frame) -Elvie
+      local ke = poolEntry(keepPool, target, false)
+      if ke and ke.fresh then
+        keepOp(ke, { rect = { x, y, w, h }, erase = true, noScissor = true })
+      end
     end
 
     -- Red to Crystal: every box the game draws (Font.drawBox), marked
