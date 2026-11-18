@@ -1509,15 +1509,25 @@ function gbui.init(mod, rows, menu)
       for _, name in ipairs({ "drawTerrain", "drawCleanBg" }) do
         local orig = BattleChrome[name]
         if type(orig) == "function" then
-          BattleChrome[name] = function(key, ...)
+          gbui.ownTerrain = gbui.ownTerrain or {}
+          gbui.ownTerrain[name] = function(key, ...)
             local _, _, bg = gbui.settings(get)
             if name == "drawTerrain" then gbui.lastTerrain = key end -- for achievements.lua -Elvie
             -- the woods, as forests -Elvie
             if gbui.BG_SETS[bg] then key = gbui.forestKey(key, gbui.mapSec()) end
             local img = gbui.BG_SETS[bg] and gbui.scene(mod, bg, key)
             if img then
+              -- under the text box: black, as the game has it; with the
+              -- text box hidden (Kanto Gear's battle screen), the scene's
+              -- ground carried on down instead -Elvie
+              local hiddenPanel = false
+              pcall(function()
+                local Ui = package.loaded["src.core.game3.battle.ui"]
+                hiddenPanel = type(Ui) == "table" and type(Ui.bottomUIVisible) == "function" and Ui.bottomUIVisible() == false
+              end)
               love.graphics.setColor(0, 0, 0, 1)
               love.graphics.rectangle("fill", 0, 112, 240, 48)
+              gbui.groundBelow = hiddenPanel
               local light = lightFor(bg, key)
               -- a scene with a sky map: its sky painted for the hour, the
               -- ground in the hour's light, drawn as it is -Elvie
@@ -1540,6 +1550,13 @@ function gbui.init(mod, rows, menu)
                 love.graphics.draw(img, gbui._gbaQuad, 0, 0)
               else
                 love.graphics.draw(img, 0, 0)
+              end
+              -- (FILL's big scene covers the text box's place already) -Elvie
+              if hiddenPanel and not (Edges and Edges.borders and Edges.borders() == "fill") then
+                local iw, ih = img:getDimensions()
+                gbui._groundQuad = gbui._groundQuad or love.graphics.newQuad(0, 0, 240, 8, iw, ih)
+                gbui._groundQuad:setViewport(pad, pad + 104, 240, 8, iw, ih)
+                for y = 112, 152, 8 do love.graphics.draw(img, gbui._groundQuad, 0, y) end
               end
               love.graphics.setColor(1, 1, 1, 1)
               -- noted, so the window's borders carry it on -Elvie
@@ -1570,6 +1587,7 @@ function gbui.init(mod, rows, menu)
             end
             return orig(key, ...)
           end
+          BattleChrome[name] = gbui.ownTerrain[name]
         end
       end
     end
@@ -1586,6 +1604,18 @@ function gbui.init(mod, rows, menu)
           love.graphics.rectangle("fill", 0, 0, 240, 160)
           love.graphics.setColor(1, 1, 1, 1)
           return true
+        end
+        -- a scene set: drawn by Facets straight, whoever else wraps the
+        -- terrain after it (Kanto Gear paints the game's own ground over
+        -- the hidden text box's place, over the scene) -Elvie
+        local own = gbui.ownTerrain and gbui.ownTerrain.drawTerrain
+        if gbui.BG_SETS[bg] and own and okB and BattleChrome.drawTerrain ~= own
+            and type(BattleBg.sheetKey) == "function" then
+          local id, a1, a2, a3 = ...
+          local okK, key = pcall(BattleBg.sheetKey, id)
+          if okK and key and gbui.scene(mod, bg, gbui.forestKey(key, gbui.mapSec())) then
+            return own(key, a1, a2, a3)
+          end
         end
         return origBg(...)
       end
