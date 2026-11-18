@@ -2,6 +2,8 @@
 
 ## 1.3.1
 
+- **GAME WOOD** (WINDOWS and TEXT BOX, on every game): Tito Seich / Sage's Woody box in a game's own colour: RED, BLUE, YELLOW, GOLD, SILVER, CRYSTAL, EMERALD and LEAFGREEN WOOD.
+- **Choices for games you haven't imported are skipped** in FACETS: without Ruby or Sapphire there are no R/S frames to step through, without Emerald no EMERALD frames, and the same for the other games' frames, scenes and looks. Their ABOUT page still lists them, with the game they need.
 - **Fixed: PAPER crashing on entering a battle, and slowing the game before it**, on phones and other small devices. Each time a frame drew on something of a different size (Gold, Silver and Crystal's battles draw on two), PAPER made a new full-size copy for what it keeps, dozens a second; small devices ran out of memory. The copies are made once for each size now and kept.
 - **Fixed: Kanto Gear's hidden battle text box** (FireRed to Emerald, BATTLE BG: SCENERY): Kanto Gear 4.6.5 paints the game's own ground into the text box's place when it hides it, which landed over Facets' scene as a pale strip. The scene is drawn straight by Facets now, its ground stretched down into that space (BORDERS: FILL's big scene covers it already).
 - **PAPER DETAIL** (MENUS, under PAPER), for small devices: **POTATO** has dark paper turn letters white without their outline, looking only at each letter's four next pixels (a black touching the paper is a letter; the wipe into a battle, which touches none, stays black), which saves most of dark paper's work on a handheld's graphics chip. **FULL** (the default) is as before.

@@ -16,7 +16,7 @@ Facets leaves the player and the rival alone: [Emerald Lens](https://github.com/
 | Your side | YOUR SIDE: your Pokémon by their front | The same |
 | Party icons | GBC-ISH's Game Boy icons | MINIDEX; CRYSTAL on Red, Blue and Yellow |
 | Battle | SCENERY (its skies painted for the time of day), WHITE and COLORS scenes, battle box sets, GBC boxes | SCENERY (its skies painted for the time of day) and COLORS, and battle box sets (box sets in wide battles) |
-| Windows | GBC frames, TITO, LIBERTY, PINK, PAPER WOOD and other window sets | FireRed's, Emerald's and Ruby and Sapphire's frames, TITO, LIBERTY, PINK, PAPER WOOD |
+| Windows | GBC frames, TITO, LIBERTY, PINK, PAPER WOOD, GAME WOOD and other window sets | FireRed's, Emerald's and Ruby and Sapphire's frames, TITO, LIBERTY, PINK, PAPER WOOD, GAME WOOD |
 | Screen | The GB filter; PAPER, light or dark; SURROUND | The GB filter; PAPER, light or dark; SURROUND; MAP TIME; COLORS keeps the game in full colour |
 | Yellow's Pikachu | | Seven looks, in battle too |
 
@@ -83,7 +83,7 @@ The same choices for the game you're playing are on a screen of their own, laid 
 * A preview of what you've picked: a starter from each region in turn, drawn the way the game draws it and playing its front animation when the game has one (so GBC Pokémon flip through Crystal's frames), and everyday NPCs (a nurse, a Youngster, a Lass and others) walking through all four facings with your set's sprites and fallbacks. The NPCs show once a game is loaded.
 * Under the rows: the selected set's credit, or what OFF keeps.
 * **CREDITS** (press A) opens a page with every set's credit in full, then Facets' own. Up and down scroll, left and right turn a page, B goes back.
-* **SELECT** on any row, on all three screens, opens its **ABOUT** page: what the setting changes, every choice with a line on what it does (the current one has the cursor), and which of your games a choice uses, or needs and you haven't imported yet (in red). Left and right still change it there, up and down scroll, and B goes back.
+* **SELECT** on any row, on all three screens, opens its **ABOUT** page: what the setting changes, every choice with a line on what it does (the current one has the cursor), and which of your games a choice uses, or needs and you haven't imported yet (in red). Left and right still change it there, up and down scroll, and B goes back. A choice that needs a game you haven't imported (R/S frames without Ruby or Sapphire, say) is skipped as you step through a setting, here and on the page itself; ABOUT still lists it, with what it needs.
 
 The MENUS page also has **SURROUND**, for the space round the GBA screen where the game leaves black (menus, the summary, the Pokédex and the like; the map and battles fill the window themselves): **GLOW**, **SCENE** (the blurred battle scene for the ground of your last battle, from BATTLE BG's set, or SCENERY), **WINDOWS** (your WINDOWS frame's colour, or the GBA windows' blue-grey with the game's own), **DOTS**, **CHECKS** or **STRIPES** or **WORLD** (the map from just before the menu opened, round it, dimmed), as on [Gen 1 and 2](#colours-and-the-screen).
 
@@ -142,6 +142,7 @@ A window set is a folder in `assets/windows/` with Gen 3-format window art: menu
 * **PINK** (included): five window frames by **ElvieBlooms**, each with its own text and sign box, drawn to match Pokémon Pink's border: **BORDER**, **PASTEL**, **BLUSH**, **SKY** and **BERRY**.
 * **PINK WOOD** (included): TITO's **Woody** text box by **Tito Seich / Sage**, recoloured in PINK's colours (used with credit): **ROSE**, **MAGENTA**, **SKY**, **BERRY** and **PEACH**. Text boxes only, so they go with any WINDOWS; PINK's frames are the ones they're made for. Built with `python3 tools/make_pink_wood.py assets/windows/tito/dialogue_woody.png assets/windows/pinkwood`.
 * **PAPER WOOD** (included): the same **Woody** box by **Tito Seich / Sage**, recoloured in each of PAPER's colours (used with credit): **CREAM**, **LEMON**, **PEACH**, **ROSE**, **LILAC**, **SKY**, **MINT**, **GREY**, and the dark ones, **DARK**, **COCOA**, **OLIVE**, **RUST**, **WINE**, **PLUM**, **NAVY** and **FOREST**, whose letters are white with a grey outline whatever PAPER is. Each is a WINDOWS frame too, and in the menus they're listed by colour alone. Built with `python3 tools/make_paper_wood.py assets/windows`.
+* **GAME WOOD** (included): the **Woody** box by **Tito Seich / Sage** again, in a game's own colour (used with credit): **RED WOOD**, **BLUE WOOD**, **YELLOW WOOD**, **GOLD WOOD**, **SILVER WOOD**, **CRYSTAL WOOD**, **EMERALD WOOD** and **LEAFGREEN WOOD**, each a WINDOWS frame and a TEXT BOX. (Ruby, Sapphire and FireRed sit too close to Red and Blue to be told apart.) Built with `python3 tools/make_game_wood.py assets/windows`; `--preview out.png` draws every game's colour side by side.
 
 A window set's art can carry a paper map beside it, `<art>.paper.png`: white where PAPER's colour goes inside the frame's own pixels (a frame's cut-ins, a text box's inside edge). With a map, PAPER (light or dark) fills exactly those pixels and leaves the rest of the art as drawn. The maps are painted by hand on an assembled sheet: `python3 tools/paper_maps/make.py`, `assembled_mask.py` and `slice_masks.py` make the sheet and cut an edited one back into maps. The GBA games' own frames can be painted the same way: `python3 tools/paper_maps/game3_sheet.py <your install> <folder>` assembles them from your own imported games (that sheet holds the games' art, so it stays with you), and `game3_slice.py` cuts the edited one into maps, with no art in them. Those maps live in `assets/windows/game3/<game>/`, one beside each art file's name.
 
@@ -427,7 +428,7 @@ The page opens on a short list, so it's never a wall of settings:
 
 On every page, up and down pick a row, left and right (or A) change it, and B or START closes it. Changes apply straight away and are saved with the game's options, so they're still there after you quit.
 
-**SELECT** on any row opens its **ABOUT** page: what the setting changes, every choice with a line on what it does (the current one has the cursor), and which of your games a choice uses, or needs and you haven't imported yet. Left and right still change it there, up and down scroll, and B goes back.
+**SELECT** on any row opens its **ABOUT** page: what the setting changes, every choice with a line on what it does (the current one has the cursor), and which of your games a choice uses, or needs and you haven't imported yet. Left and right still change it there, up and down scroll, and B goes back. A choice that needs a game you haven't imported (R/S frames without Ruby or Sapphire, say) is skipped as you step through a setting, here and on the page itself; ABOUT still lists it, with what it needs.
 
 ### People
 

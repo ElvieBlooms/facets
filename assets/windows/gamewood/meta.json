@@ -1,0 +1,89 @@
+{
+  "label": "GAME WOOD",
+  "short": true,
+  "credit": [
+    "Text boxes and frames recoloured by ElvieBlooms in each game's colour, after Tito Seich / Sage's Woody, used with credit"
+  ],
+  "styles": [
+    {
+      "name": "RED WOOD",
+      "frame": "frame_red.png",
+      "dialogue": "dialogue_red.png",
+      "fill": [
+        255,
+        226,
+        220
+      ]
+    },
+    {
+      "name": "BLUE WOOD",
+      "frame": "frame_blue.png",
+      "dialogue": "dialogue_blue.png",
+      "fill": [
+        226,
+        236,
+        255
+      ]
+    },
+    {
+      "name": "YELLOW WOOD",
+      "frame": "frame_yellow.png",
+      "dialogue": "dialogue_yellow.png",
+      "fill": [
+        255,
+        248,
+        200
+      ]
+    },
+    {
+      "name": "GOLD WOOD",
+      "frame": "frame_gold.png",
+      "dialogue": "dialogue_gold.png",
+      "fill": [
+        250,
+        236,
+        192
+      ]
+    },
+    {
+      "name": "SILVER WOOD",
+      "frame": "frame_silver.png",
+      "dialogue": "dialogue_silver.png",
+      "fill": [
+        236,
+        240,
+        246
+      ]
+    },
+    {
+      "name": "CRYSTAL WOOD",
+      "frame": "frame_crystal.png",
+      "dialogue": "dialogue_crystal.png",
+      "fill": [
+        224,
+        248,
+        252
+      ]
+    },
+    {
+      "name": "EMERALD WOOD",
+      "frame": "frame_emerald.png",
+      "dialogue": "dialogue_emerald.png",
+      "fill": [
+        220,
+        248,
+        232
+      ]
+    },
+    {
+      "name": "LEAFGREEN WOOD",
+      "frame": "frame_leafgreen.png",
+      "dialogue": "dialogue_leafgreen.png",
+      "fill": [
+        236,
+        250,
+        212
+      ]
+    }
+  ]
+}

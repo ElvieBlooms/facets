@@ -56,6 +56,8 @@ assets/windows/*
 !assets/windows/pinkwood/
 # PAPER WOOD: Tito's WOODY in PAPER's colours, with credit. -Elvie
 !assets/windows/paperwood/
+# GAME WOOD: Tito's Woody box in each game's colour, credited -Elvie
+!assets/windows/gamewood/
 # The GBA games' own windows' paper maps: hand-painted shapes, no art -Elvie
 !assets/windows/game3/
 # tools/ips_extract.py's output, and pret's symbol file it fetches -Elvie
