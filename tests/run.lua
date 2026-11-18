@@ -1574,6 +1574,21 @@ do
     check(filter.isDark(v) and filter.PAPER[v] ~= nil, "filter: PAPER " .. v .. " is a dark paper")
   end
   check(not filter.isDark("mint") and not filter.isDark("off"), "filter: the light papers aren't dark")
+  -- GAME WOOD's papers: each box's own colour, dark where its letters
+  -- are white -Elvie
+  do
+    local f = io.open("assets/windows/gamewood/meta.json", "rb")
+    local meta = f and require("mods.facets.npcs").decodeJson(f:read("*a"))
+    if f then f:close() end
+    check(meta and #meta.styles == 16, "paper: GAME WOOD's sixteen read")
+    for _, st in ipairs(meta and meta.styles or {}) do
+      local key = st.name:gsub(" WOOD$", ""):lower():gsub(" ", "_")
+      local c, fc = filter.PAPER[key], st.fill
+      check(c and c[1] == fc[1] and c[2] == fc[2] and c[3] == fc[3], "paper: " .. key .. " matches its wood")
+      local dark = (0.299 * fc[1] + 0.587 * fc[2] + 0.114 * fc[3]) / 255 < 0.35
+      eq(filter.isDark(key), dark, "paper: " .. key .. (dark and " is dark" or " is light"))
+    end
+  end
   local look, where, dots = filter.settings(function(k) return ({ filter = "bogus", filterOn = "map", dots = "on" })[k] end)
   eq(look .. where .. dots, "offmapon", "filter: an unknown value is OFF")
   local _, _, _, steps = filter.settings(function(k) return ({ shades = "16" })[k] end)

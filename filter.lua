@@ -76,6 +76,20 @@ filter.PAPERS = { { "WHITE", "off" }, { "CREAM", "cream" }, { "LEMON", "lemon" }
   { "ROSE", "rose" }, { "LILAC", "lilac" }, { "SKY", "sky" }, { "MINT", "mint" }, { "GREY", "grey" },
   { "DARK", "dark" }, { "COCOA", "cocoa" }, { "OLIVE", "olive" }, { "RUST", "rust" }, { "WINE", "wine" },
   { "PLUM", "plum" }, { "NAVY", "navy" }, { "FOREST", "forest" } }
+-- GAME WOOD's colours, to match its boxes: each game's pale one and its
+-- DARK one, in the order they step in WINDOWS -Elvie
+for _, c in ipairs({
+  { "RED", "red" }, { "DARK RED", "dark_red" },
+  { "BLUE", "blue" }, { "DARK BLUE", "dark_blue" },
+  { "YELLOW", "yellow" }, { "DARK YELLOW", "dark_yellow" },
+  { "GOLD", "gold" }, { "DARK GOLD", "dark_gold" },
+  { "SILVER", "silver" }, { "DARK SILVER", "dark_silver" },
+  { "CRYSTAL", "crystal" }, { "DARK CRYSTAL", "dark_crystal" },
+  { "EMERALD", "emerald" }, { "DARK EMERALD", "dark_emerald" },
+  { "LEAFGREEN", "leafgreen" }, { "DARK LEAFGREEN", "dark_leafgreen" },
+}) do
+  filter.PAPERS[#filter.PAPERS + 1] = c
+end
 filter.PAPER = {
   cream = { 248, 240, 216 }, lemon = { 248, 244, 204 }, peach = { 250, 228, 210 },
   rose = { 248, 224, 230 }, lilac = { 234, 226, 248 }, sky = { 218, 234, 250 },
@@ -85,6 +99,24 @@ filter.PAPER = {
   -- Pictures on it keep their white (see pics below) -Elvie
   dark = { 34, 36, 46 }, cocoa = { 52, 38, 30 }, olive = { 44, 44, 22 }, rust = { 64, 34, 24 },
   wine = { 64, 22, 36 }, plum = { 46, 30, 62 }, navy = { 22, 32, 64 }, forest = { 22, 48, 34 },
+  -- GAME WOOD's (assets/windows/gamewood, tools/make_game_wood.py): the
+  -- same colours as its boxes' insides -Elvie
+  red = { 255, 226, 220 },
+  dark_red = { 192, 32, 40 },
+  blue = { 226, 236, 255 },
+  dark_blue = { 40, 64, 176 },
+  yellow = { 255, 248, 200 },
+  dark_yellow = { 240, 200, 32 },
+  gold = { 250, 236, 192 },
+  dark_gold = { 200, 148, 24 },
+  silver = { 236, 240, 246 },
+  dark_silver = { 72, 82, 100 },
+  crystal = { 224, 248, 252 },
+  dark_crystal = { 16, 104, 144 },
+  emerald = { 220, 248, 232 },
+  dark_emerald = { 16, 120, 72 },
+  leafgreen = { 236, 250, 212 },
+  dark_leafgreen = { 64, 140, 24 },
 }
 -- BATTLE BG: COLORS, a battle on plain colour, and BG COLOR, which:
 -- PAPER (whatever PAPER is, white when it's off) or any of PAPER's colours
@@ -102,8 +134,20 @@ end
 -- the dark papers, which turn the letters round (white edges, white GBA
 -- letters) and keep pictures' white -Elvie
 filter.DARKS = { dark = true, cocoa = true, olive = true, rust = true, wine = true, plum = true, navy = true, forest = true }
+-- (and GAME WOOD's DARK ones whose letters read best white; its DARK
+-- YELLOW, GOLD and LEAFGREEN read best black, so they're light papers,
+-- strong ones) -Elvie
+for _, k in ipairs({ "dark_red", "dark_blue", "dark_silver", "dark_crystal", "dark_emerald" }) do filter.DARKS[k] = true end
 function filter.isDark(paper)
   return filter.DARKS[paper] == true
+end
+-- the strong light papers: GAME WOOD's DARK YELLOW, GOLD and LEAFGREEN,
+-- black-lettered like any light paper, but too strong a colour for a
+-- whole battle field or the GBA games' HUDs. In a battle they're kept to
+-- the battle's boxes, as the dark papers are -Elvie
+filter.STRONG = { dark_yellow = true, dark_gold = true, dark_leafgreen = true }
+function filter.boxed(paper)
+  return filter.DARKS[paper] == true or filter.STRONG[paper] == true
 end
 
 -- DARK in a battle: only its text box goes dark, so the scene behind, the
@@ -762,7 +806,7 @@ function filter.init(mod, rows, menu)
     end
     send("paperDark", filter.isDark(paper) and 1 or 0)
     send("lite", get("paperDetail") == "light" and 1 or 0)
-    send("bandTop", filter.isDark(paper) and layer.band or 0)
+    send("bandTop", filter.boxed(paper) and layer.band or 0)
     send("gba", layer.gen == 3 and 1 or 0)
     send("bandToo", layer.gen == 2 and 1 or 0)
     -- a game pixel, in screen pixels, and the screen's size, so the look
@@ -771,7 +815,11 @@ function filter.init(mod, rows, menu)
     local sw, shh = src:getPixelDimensions()
     send("cellF", math.max(1, tonumber(layer.cell) or 1))
     send("srcPx", { math.max(1, sw), math.max(1, shh) })
-    if tint and filter.isDark(paper) and (layer.band > 0 or layer.gen == 3) and pics.boxes and pics.boxesDrawn and pics.origin then
+    -- (a strong light paper: only in a battle, on every game; the GBA
+    -- games' own menus outside one take it as any light paper) -Elvie
+    local boxedNow = filter.isDark(paper) and (layer.band > 0 or layer.gen == 3)
+      or filter.STRONG[paper] and layer.band > 0
+    if tint and boxedNow and pics.boxes and pics.boxesDrawn and pics.origin then
       send("boxesOn", 1)
       send("boxes", pics.boxes)
     else
@@ -916,7 +964,8 @@ function filter.init(mod, rows, menu)
         -- DARK in a battle: only from its text box down -Elvie
         layer.band = 0
         local gen = ctx.generation
-        if canvas and filter.isDark(select(5, filter.settings(get))) and filter.BATTLE_BOX[gen] then
+        -- (and a strong light paper the same, GAME WOOD's DARK GOLD) -Elvie
+        if canvas and filter.boxed(select(5, filter.settings(get))) and filter.BATTLE_BOX[gen] then
           local game = gen == 1 and package.loaded["src.core.Game"] or renderer
           if battleShowing(gen, game) then
             layer.band = filter.BATTLE_BOX[gen]
@@ -2035,7 +2084,7 @@ function filter.init(mod, rows, menu)
         local x1, y1 = G.transformPoint(x + w, y + h)
         filter.boxRects[#filter.boxRects + 1] = { target, math.min(x0, x1), math.min(y0, y1), math.max(x0, x1), math.max(y0, y1) }
       end
-      local dark = filter.isDark(select(5, filter.settings(get)))
+      local dark = filter.boxed(select(5, filter.settings(get)))
       -- (both written down and drawn with the keeps, before the pass) -Elvie
       local be = dark and poolEntry(boxesPool, target, true) or nil
       if be then
@@ -2224,9 +2273,37 @@ function filter.init(mod, rows, menu)
         if r > 1 or g > 1 or b > 1 then r, g, b = r / 255, g / 255, b / 255 end
         return 0.299 * r + 0.587 * g + 0.114 * b <= 0.45 and math.max(r, g, b) - math.min(r, g, b) < 0.15
       end
+      -- a strong light paper (GAME WOOD's DARK GOLD) under the game's own
+      -- windows: their letters, the game's dark grey with its light grey
+      -- shadow (only ever drawn on white), inked black, their shadow a
+      -- deeper shade of the paper. Out of a battle, and in one only from
+      -- its text box down, where the paper is -Elvie
+      local function strongPaper(y, opts)
+        local p = select(5, filter.settings(get))
+        if not filter.STRONG[p] or filter.introNow then return nil end
+        opts = type(opts) == "table" and opts or {}
+        local base = opts.colors
+        if not base and opts.color then base = { fg = opts.color, shadow = opts.shadow, bg = opts.bg } end
+        if not base and not opts.gfxId and not opts.npcColor then
+          base = (opts.small and FrlgFont.COLOR and FrlgFont.COLOR.PARTY) or (FrlgFont.COLOR and FrlgFont.COLOR.NORMAL)
+        end
+        if not (type(base) == "table" and plain(base.fg) and type(base.shadow) == "table") then return nil end
+        local sr, sg, sb = tonumber(base.shadow[1]) or 0, tonumber(base.shadow[2]) or 0, tonumber(base.shadow[3]) or 0
+        if sr > 1 or sg > 1 or sb > 1 then sr, sg, sb = sr / 255, sg / 255, sb / 255 end
+        if 0.299 * sr + 0.587 * sg + 0.114 * sb < 0.6 then return nil end
+        local okB, active = pcall(function() return require("src.core.game3.battle").isActive() end)
+        if okB and active and (tonumber(y) or 0) < 112 then return nil end
+        local t = filter.PAPER[p]
+        return { t[1] / 255, t[2] / 255, t[3] / 255 }
+      end
       local function inkOpts(x, y, opts)
         local pp, _, light = nil, nil, nil
         if type(x) == "number" and type(y) == "number" then pp, _, light = filter.ownedAt(x + 2, y + 2) end
+        -- (and in a light paper's own window, the game's drawn papered) -Elvie
+        if not pp or light == true then
+          local strong = strongPaper(y, opts)
+          if strong then pp, light = strong, "black" end
+        end
         if not pp or (light and light ~= "black") then return nil end
         opts = opts or {}
         local base = opts.colors
@@ -2278,10 +2355,39 @@ function filter.init(mod, rows, menu)
         for k, v in pairs(opts) do o[k] = v end
         o.colors = { fg = fg, shadow = shadow, bg = bg }
         o.color, o.shadow, o.gfxId, o.npcColor = nil, nil, nil, nil
+        o.facetsBlack = light == "black" or nil
         return o
       end
+      -- (black: the game's own text carries colour codes that put its grey
+      -- back part-way, the start menu's labels: while a text inked black
+      -- draws, a plain letter they switch to stays black) -Elvie
+      local inkBlack = nil
+      if type(FrlgFont.scanTokens) == "function" then
+        local ownScan = FrlgFont.scanTokens
+        FrlgFont.scanTokens = function(text, colors, ...)
+          local it, st, init = ownScan(text, colors, ...)
+          local want = inkBlack
+          if not want then return it, st, init end
+          return function(...)
+            local a, b, c = it(...)
+            if type(c) == "table" and c.fg ~= want.fg and plain(c.fg) and type(c.shadow) == "table" then
+              local sr, sg, sb = tonumber(c.shadow[1]) or 0, tonumber(c.shadow[2]) or 0, tonumber(c.shadow[3]) or 0
+              if sr > 1 or sg > 1 or sb > 1 then sr, sg, sb = sr / 255, sg / 255, sb / 255 end
+              if 0.299 * sr + 0.587 * sg + 0.114 * sb >= 0.6 then c.fg, c.shadow = want.fg, want.shadow end
+            end
+            return a, b, c
+          end, st, init
+        end
+      end
       FrlgFont.draw = function(text, x, y, opts, ...)
-        return ownFD(text, x, y, inkOpts(x, y, opts) or opts, ...)
+        local o = inkOpts(x, y, opts)
+        if not (o and o.facetsBlack) then return ownFD(text, x, y, o or opts, ...) end
+        local was = inkBlack
+        inkBlack = o.colors
+        local results = { pcall(ownFD, text, x, y, o, ...) }
+        inkBlack = was
+        if not results[1] then error(results[2], 0) end
+        return unpack(results, 2)
       end
       if type(FrlgFont.drawGlyph) == "function" then
         local ownGlyph = FrlgFont.drawGlyph
