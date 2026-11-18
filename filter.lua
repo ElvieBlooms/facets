@@ -1474,7 +1474,9 @@ function filter.init(mod, rows, menu)
           filter.keepDraw(drawable, x, ...)
           return
         end
-        if not (images[drawable] and target and filter.isDark(select(5, filter.settings(get)))) then
+        -- (and on a strong light paper, GAME WOOD's DARK GOLD, whose colour
+        -- would sit in a picture's white as no pale one shows) -Elvie
+        if not (images[drawable] and target and filter.boxed(select(5, filter.settings(get)))) then
           return ownDraw(drawable, x, ...)
         end
         local quad = type(x) == "userdata" and x:typeOf("Quad") and x or nil
@@ -1490,7 +1492,7 @@ function filter.init(mod, rows, menu)
       -- (keepArt: the same on any paper, for a light paper's window drawn
       -- with its map) -Elvie
       filter.keepDraw = function(img, x, ...)
-        if not filter.isDark(select(5, filter.settings(get))) then return end
+        if not filter.boxed(select(5, filter.settings(get))) then return end
         return filter.keepArt(img, x, ...)
       end
       filter.keepArt = function(img, x, ...)
@@ -1508,7 +1510,7 @@ function filter.init(mod, rows, menu)
     -- menus' previews (a Pokémon, a trainer), whose outlines would
     -- otherwise turn white like letters -Elvie
     filter.keeping = function(fn, ...)
-      if not filter.isDark(select(5, filter.settings(get))) or not filter.keepDraw then return fn(...) end
+      if not filter.boxed(select(5, filter.settings(get))) or not filter.keepDraw then return fn(...) end
       filter.keepingAll = true
       local results = { pcall(fn, ...) }
       filter.keepingAll = false
