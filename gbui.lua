@@ -1519,7 +1519,7 @@ function gbui.init(mod, rows, menu)
             if img then
               -- under the text box: black, as the game has it; with the
               -- text box hidden (Kanto Gear's battle screen), the scene's
-              -- ground carried on down instead -Elvie
+              -- ground stretched down into it instead -Elvie
               local hiddenPanel = false
               pcall(function()
                 local Ui = package.loaded["src.core.game3.battle.ui"]
@@ -1540,9 +1540,21 @@ function gbui.init(mod, rows, menu)
               -- a GBA background has its surroundings round it, for the
               -- borders: the scene is the 240x112 at pad, pad -Elvie
               local pad = gbui.BG_SETS[bg].gba and require("mods.facets.gba_bg").PAD or 0
+              local fillMode = Edges and Edges.borders and Edges.borders() == "fill"
               -- BORDERS: FILL, the screen's part of one big scene -Elvie
               if Edges and Edges.fillDraw(img, 0, 0, 240) then
                 -- drawn -Elvie
+              elseif hiddenPanel and not fillMode then
+                -- the text box hidden: the scene's top as it is, its
+                -- ground (the bottom 40 rows) stretched down to the
+                -- screen's foot -Elvie
+                local iw, ih = img:getDimensions()
+                gbui._topQuad = gbui._topQuad or love.graphics.newQuad(0, 0, 240, 72, iw, ih)
+                gbui._topQuad:setViewport(pad, pad, 240, 72, iw, ih)
+                gbui._lowQuad = gbui._lowQuad or love.graphics.newQuad(0, 0, 240, 40, iw, ih)
+                gbui._lowQuad:setViewport(pad, pad + 72, 240, 40, iw, ih)
+                love.graphics.draw(img, gbui._topQuad, 0, 0)
+                love.graphics.draw(img, gbui._lowQuad, 0, 72, 0, 1, 88 / 40)
               elseif pad > 0 then
                 local iw, ih = img:getDimensions()
                 gbui._gbaQuad = gbui._gbaQuad or love.graphics.newQuad(pad, pad, 240, 112, iw, ih)
@@ -1550,13 +1562,6 @@ function gbui.init(mod, rows, menu)
                 love.graphics.draw(img, gbui._gbaQuad, 0, 0)
               else
                 love.graphics.draw(img, 0, 0)
-              end
-              -- (FILL's big scene covers the text box's place already) -Elvie
-              if hiddenPanel and not (Edges and Edges.borders and Edges.borders() == "fill") then
-                local iw, ih = img:getDimensions()
-                gbui._groundQuad = gbui._groundQuad or love.graphics.newQuad(0, 0, 240, 8, iw, ih)
-                gbui._groundQuad:setViewport(pad, pad + 104, 240, 8, iw, ih)
-                for y = 112, 152, 8 do love.graphics.draw(img, gbui._groundQuad, 0, y) end
               end
               love.graphics.setColor(1, 1, 1, 1)
               -- noted, so the window's borders carry it on -Elvie
