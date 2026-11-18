@@ -312,10 +312,15 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       if (gba < 0.5 && paperDark > 0.5 && w < 0.5) {
         float l = dot(before, vec3(0.299, 0.587, 0.114));
         float region = Texel(ui, p).a * (boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : step(bandTop, p.y)) * (1.0 - keptAt(sc));
-        // (LIGHT: a black on the paper's ground is a letter, no looking
-        // round it) -Elvie
+        // (LIGHT: a black touching the paper's ground on one side is a
+        // letter, with only its four next pixels looked at. A black with no
+        // paper beside it, a screen wipe's or a battle's dark, stays) -Elvie
         if (lite > 0.5) {
-          if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region * step(0.03, distance(before, paper)) > 0.5) o = vec3(0.93, 0.93, 0.94);
+          if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region * step(0.03, distance(before, paper)) > 0.5) {
+            float touch = 0.0;
+            for (int i = 0; i < 4; i++) touch = max(touch, goesDark(tex, tc, sc, around(i)));
+            if (touch > 0.5) o = vec3(0.93, 0.93, 0.94);
+          }
         } else if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region * step(0.03, distance(before, paper)) > 0.5
             && (boxesOn > 0.5 || inBar(tex, tc, sc) < 0.5)) {
           float onPaper = 0.0;
