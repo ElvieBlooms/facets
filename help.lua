@@ -273,6 +273,7 @@ help.TEXT = {
       ["pink:"] = "A PINK text box.",
       ["pinkwood:"] = "Tito's Woody box, in PINK's colours.",
       ["paperwood:"] = "Tito's Woody box, in PAPER's colours, light and dark.",
+      ["gamewood:"] = "Tito's Woody box, in a game's own colour: Red, Blue, Yellow, Gold, Silver, Crystal, Emerald or LeafGreen.",
       ["tito:"] = "One of Tito's text boxes.",
     },
   },
@@ -458,6 +459,38 @@ function help.have(need, dsApi)
   local okI, got = pcall(gb.imported, n.games)
   if not okI then return nil end
   return got ~= nil
+end
+
+-- Whether a choice can be picked: false only when it needs a game you
+-- haven't imported (EMERALD frames without Emerald, R/S without Ruby or
+-- Sapphire). The menus step past those; ABOUT still lists them, saying
+-- what they need. Prism Importer's dumps are only listed once picked, so
+-- they're left be. Asked again at most every few seconds -Elvie
+local haveCache, haveAt = {}, {}
+function help.available(key, value)
+  local need = help.needsOf(key, value)
+  local n = need and help.NEEDS[need]
+  if not n or n.ds then return true end
+  local now = os.clock()
+  if haveAt[need] == nil or now - haveAt[need] > 3 then
+    haveCache[need], haveAt[need] = help.have(need), now
+  end
+  return haveCache[need] ~= false
+end
+
+-- The next choice along from value, wrapping, past any that need a game
+-- you haven't imported. key: the setting, or nil to skip none -Elvie
+function help.step(choices, key, value, dir)
+  local n = #choices
+  if n == 0 then return value end
+  dir = (dir or 1) < 0 and -1 or 1
+  local at = 1
+  for i, c in ipairs(choices) do if c[2] == value then at = i end end
+  for k = 1, n do
+    local c = choices[(at - 1 + dir * k) % n + 1]
+    if not key or help.available(key, c[2]) then return c[2] end
+  end
+  return value
 end
 
 -- The ABOUT page's text for a row: { about, choices = { { label, value,

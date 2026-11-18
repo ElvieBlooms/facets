@@ -2417,6 +2417,17 @@ do
   local needLine
   for _, l in ipairs(help.lines(missing, 30)) do if l.kind == "need" then needLine = l end end
   eq(needLine and needLine.missing, true, "help: ...so its page says it's needed")
+  -- the menus step past a choice whose game isn't imported -Elvie
+  do
+    local ownHave = help.have
+    help.have = function(need) if need == "rs" then return false end return true end
+    local list = { { "GAME", "game" }, { "R/S 1", "rs:1" }, { "R/S 2", "rs:2" }, { "EMERALD 1", "em:1" } }
+    eq(help.step(list, "classicWindows", "game", 1), "em:1", "imports: R/S skipped without Ruby or Sapphire")
+    eq(help.step(list, "classicWindows", "em:1", -1), "game", "imports: ...going back too")
+    eq(help.step(list, nil, "game", 1), "rs:1", "imports: no setting, nothing skipped")
+    eq(help.available("classicBattleBg", "gba_rs"), false, "imports: R/S scenes unavailable too")
+    help.have = ownHave
+  end
   local page = help.page({ key = "animMode", label = "ANIMATION", value = "off",
     choices = { { "LOOP", "loop" }, { "OFF", "off" } } })
   local lines = help.lines(page, 16)

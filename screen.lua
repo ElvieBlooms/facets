@@ -59,11 +59,9 @@ function screen.new(mod, model)
   local function step(row, dir)
     local n = row.choices and #row.choices or 0
     if n < 2 then return end
-    local at = 1
-    for i, choice in ipairs(row.choices) do
-      if choice[2] == row.value then at = i end
-    end
-    local value = row.choices[(at - 1 + dir) % n + 1][2]
+    -- (past any choice that needs a game you haven't imported) -Elvie
+    local value = require("mods.facets.help").step(row.choices, row.key, row.value, dir)
+    if value == row.value then return end
     -- a row standing for more than one option sets them itself -Elvie
     if type(row.set) == "function" then return row.set(state.game, value) end
     model.set(state.game, row.key, value)

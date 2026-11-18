@@ -25,8 +25,10 @@ function cmenu.entries(rows)
   return out
 end
 
--- The next choice along, wrapping -Elvie
-function cmenu.step(choices, value, dir)
+-- The next choice along, wrapping; with key, past any that need a game
+-- you haven't imported (help.step) -Elvie
+function cmenu.step(choices, value, dir, key)
+  if key then return require("mods.facets.help").step(choices, key, value, dir) end
   local at = 1
   for i, c in ipairs(choices) do if c[2] == value then at = i end end
   return choices[(at - 1 + (dir or 1)) % #choices + 1][2]
@@ -196,7 +198,7 @@ function cmenu.start(mod, rows)
         -- a long one scrolls under the cursor, as the screen's own do -Elvie
         value = function() return labelFor(e) end,
         step = function(game, dir)
-          set(game, e.key, cmenu.step(e.choices, get(e.key), dir))
+          set(game, e.key, cmenu.step(e.choices, get(e.key), dir, e.key))
           return true
         end,
         about = function()
