@@ -23,7 +23,11 @@ end
 
 -- side() gives YOUR SIDE: "back", "front" or "mirrored". Returns whether
 -- it went in -Elvie
-function sideAnim.install(BattleState, MonAnim, side, log)
+-- seconds a Pokémon stands still between plays, with ANIMATION: LOOP -Elvie
+sideAnim.REST = 3
+
+-- mode() gives ANIMATION: "loop", "intro" or "off" -Elvie
+function sideAnim.install(BattleState, MonAnim, side, log, mode)
   if type(BattleState) ~= "table" or type(MonAnim) ~= "table" or type(MonAnim.new) ~= "function" then return false end
   for _, name in ipairs({ "animData", "animSheetPath", "finishSendOut", "pic", "update" }) do
     if type(BattleState[name]) ~= "function" then return false end
@@ -121,8 +125,114 @@ function sideAnim.install(BattleState, MonAnim, side, log)
     return unpack(results)
   end
 
+  -- ANIMATION: LOOP. The game plays the foe's animation once as it comes
+  -- out (self.frontAnim, which the battle also waits on). While the battle
+  -- waits for your command, each Pokémon that's out plays it again after
+  -- a rest (counted in the battle's frames), with no cry, on a runner of Facets' own so the battle never
+  -- waits on it -Elvie
+  local function waiting(self)
+    local p = self.phase
+    if not (p == "menu" or p == "moves" or p == "submenu") then return false end
+    if self.frontAnim or self.faintSlide or self.backpicSlide or self.winSliding or self.trainerSlide then return false end
+    if self.anim and not (type(self.anim.done) == "function" and self.anim:done()) then return false end
+    return true
+  end
+  local function out(self, which)
+    local battle = self.battle
+    if type(battle) ~= "table" then return nil end
+    local mon = battle[which]
+    if type(self.activeMon) == "function" then
+      local ok, m = pcall(self.activeMon, self, which)
+      if ok and m ~= nil then mon = m end
+    end
+    if type(mon) ~= "table" or (tonumber(mon.hp) or 0) <= 0 then return nil end
+    return mon
+  end
+  local function foeRunner(self, mon)
+    local data = self:animData(mon)
+    if type(data) ~= "table" or not data.tiles then return nil end
+    local sheetPath, replaced = self:animSheetPath(mon, data)
+    if type(sheetPath) ~= "string" then return nil end
+    if not replaced and type(self.frontPicReplaced) == "function" then
+      local okR, yes = pcall(self.frontPicReplaced, self, mon)
+      if okR and yes then return nil end
+    end
+    self.picCache = self.picCache or {}
+    local sheet = self.picCache[sheetPath]
+    if sheet == nil then
+      local ok, image = pcall(Assets.image, sheetPath)
+      sheet = ok and image or false
+      self.picCache[sheetPath] = sheet
+    end
+    if not sheet then return nil end
+    local runner = MonAnim.new(data, "battle")
+    if not runner then return nil end
+    return { mon = mon, runner = runner, sheet = sheet, size = data.tiles * 8, quads = {} }
+  end
+  local function looping(self, now)
+    local rest = self.facetsRest or {}
+    self.facetsRest = rest
+    if not (mode and mode() == "loop") or not waiting(self) then
+      rest.foe, rest.side = nil, nil
+      self.facetsFoeLoop = nil
+      return
+    end
+    -- the foe's -Elvie
+    local foe = out(self, "enemy")
+    local playing = self.facetsFoeLoop
+    if playing and playing.mon ~= foe then playing, self.facetsFoeLoop = nil, nil end
+    if playing then
+      playing.runner:update()
+      if playing.runner:finished() then self.facetsFoeLoop = nil; rest.foe = now end
+    elseif foe then
+      if not rest.foe or rest.foeMon ~= foe then rest.foe, rest.foeMon = now, foe end
+      if now - rest.foe >= sideAnim.REST * 60 then
+        rest.foe = now
+        self.facetsFoeLoop = foeRunner(self, foe)
+      end
+    end
+    -- yours, when YOUR SIDE shows its front -Elvie
+    local s = side()
+    local mine = (s == "front" or s == "mirrored") and out(self, "player") or nil
+    if mine and not self.facetsSideAnim and not self.showPlayerTrainer then
+      if not rest.side or rest.sideMon ~= mine then rest.side, rest.sideMon = now, mine end
+      if now - rest.side >= sideAnim.REST * 60 then
+        rest.side = now
+        pcall(start, self, mine)
+      end
+    elseif self.facetsSideAnim then
+      rest.side = now
+    end
+  end
+
+  if type(BattleState.frontAnimFrame) == "function" then
+    local ownFrame = BattleState.frontAnimFrame
+    BattleState.frontAnimFrame = function(self, mon, ...)
+      local sheet, quad, size = ownFrame(self, mon, ...)
+      if sheet then return sheet, quad, size end
+      local state = self.facetsFoeLoop
+      if not (state and mon and state.mon == mon) then return sheet, quad, size end
+      local okF, frame = pcall(state.runner.currentFrame, state.runner)
+      if not okF or type(frame) ~= "number" or frame <= 0 then return nil end
+      local q = state.quads[frame]
+      if not q then
+        local w, h = state.sheet:getDimensions()
+        local x, y, qw, qh = sideAnim.frameRect(frame, state.size, w, h)
+        if not x then return nil end
+        q = love.graphics.newQuad(x, y, qw, qh, w, h)
+        state.quads[frame] = q
+      end
+      return state.sheet, q, state.size
+    end
+  end
+
   local ownUpdate = BattleState.update
   BattleState.update = function(self, ...)
+    -- (the battle steps once a frame, whatever the time passed: so the
+    -- rest is counted in its frames) -Elvie
+    self.facetsTick = (self.facetsTick or 0) + 1
+    local ok, err = pcall(looping, self, self.facetsTick)
+    if not ok and log then log("ANIMATION: LOOP: %s", tostring(err)) end
     local state = self.facetsSideAnim
     if state and state.player then
       if not state.player.step() then self.facetsSideAnim = nil end

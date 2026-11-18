@@ -595,7 +595,7 @@ function classic.init(mod, rows)
           if animMode() == "off" then return "back" end
           return mod.options:get("classicSide")
         end,
-          function(...) mod.log:warn(...) end)
+          function(...) mod.log:warn(...) end, animMode)
         if not done then mod.log:warn("Gen 2's battle front animation wasn't found; YOUR SIDE stays still") end
       end
     end
