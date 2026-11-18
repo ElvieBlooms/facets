@@ -338,6 +338,20 @@ help.TEXT = {
       forest = "Dark forest green, as DARK.",
     },
   },
+  paperDetail = {
+    about = "How much work dark paper does each frame. LIGHT is for small devices: letters turn white without the outline round them, and without checking what's round each letter.",
+    choices = {
+      full = "Letters white with an outline, pictures' own dark left be.",
+      light = "Lighter on small devices: letters white, no outline.",
+    },
+  },
+  paperPrecache = {
+    about = "Makes PAPER's windows and letters ahead, a little each frame, for the windows you've picked, and keeps them on your install. Again for a new PAPER or new windows.",
+    choices = {
+      off = "Made the first time each comes up.",
+      on = "Made ahead, so menus and battles don't stall.",
+    },
+  },
   -- the GBA games' own -Elvie
   setTrainers = {
     about = "The trainers you battle, in their battle pictures. Also the Hall of Fame, PokéNav and Battle Dome.",

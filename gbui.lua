@@ -705,6 +705,28 @@ function gbui.styleArt(mod, value)
   return out
 end
 
+-- PRECACHE: the windows for these settings (filter.precacheAdd), set up
+-- once with mod -Elvie
+function gbui.precacheFor(mod)
+  local okF, f = pcall(require, "mods.facets.filter")
+  if not (okF and type(f.precacheAdd) == "function") or gbui.precacheAdded then return end
+  gbui.precacheAdded = true
+  f.precacheAdd(function()
+    local out = {}
+    local a = gbui.art()
+    if a and type(a.framesImage) == "userdata" then out[#out + 1] = { img = a.framesImage } end
+    for _, key in ipairs({ "gbcFrame", "gbcTextBox" }) do
+      local sa = gbui.styleArt(mod, mod.options:get(key))
+      if sa then
+        if type(sa.frame) == "userdata" then out[#out + 1] = { img = sa.frame } end
+        if type(sa.dialogue) == "userdata" then out[#out + 1] = { img = sa.dialogue, also = sa.fill } end
+        if type(sa.sign) == "userdata" then out[#out + 1] = { img = sa.sign, also = sa.signFill } end
+      end
+    end
+    return out
+  end)
+end
+
 -- Gen 3's 3x3 window frame round a content area (tiles), white inside. -Elvie
 -- (own: the frame's inside colour when it has one of its own, PAPER
 -- WOOD's; kept as it is on any paper, as its text box is) -Elvie
@@ -1073,6 +1095,7 @@ function gbui.init(mod, rows, menu)
   end
 
   return function()
+    pcall(gbui.precacheFor, mod)
     local okC, Chrome = pcall(require, "src.ui.game3.chrome")
     local okB, BattleChrome = pcall(require, "src.ui.game3.battle_chrome")
     local okG, BattleBg = pcall(require, "src.core.game3.battle.bg")

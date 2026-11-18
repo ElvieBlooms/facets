@@ -1509,7 +1509,7 @@ do
   check(type(wraps["render.compose"]) == "function", "filter: wraps render.compose for MAP")
   local keys = {}
   for _, r in ipairs(rows) do keys[#keys + 1] = r.key .. "=" .. tostring(r.default) end
-  eq(table.concat(keys, ","), "sectionScreen=_,filter=off,filterOn=screen,dots=off,shades=4,paper=off", "filter: SCREEN rows and defaults")
+  eq(table.concat(keys, ","), "sectionScreen=_,filter=off,filterOn=screen,dots=off,shades=4,paper=off,paperDetail=full,paperPrecache=off", "filter: SCREEN rows and defaults")
   local looks = {}
   for _, c in ipairs(rows[2].choices) do looks[#looks + 1] = c[1] end
   eq(table.concat(looks, ","), "OFF,GRAY,GREEN,YELLOW,GOLD,CRYSTAL,RUBY,SAPPHIRE,EMERALD,GBC", "filter: the looks")

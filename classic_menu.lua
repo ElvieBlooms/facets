@@ -48,7 +48,7 @@ cmenu.TOPICS = {
     keys = { "classicBattleBg", "sceneBorders", "classicSceneColours", "bgColour", "sceneTime", "classicBattleUi" } },
   { id = "menus", label = "MENUS", lead = "classicWindows",
     about = "Window frames, the text box, PAPER, and what fills the space round the game.",
-    keys = { "classicWindows", "classicTextBox", "surround", "paper" } },
+    keys = { "classicWindows", "classicTextBox", "surround", "paper", "paperDetail", "paperPrecache" } },
   { id = "effects", label = "EFFECTS", lead = "classicColors",
     about = "The game's colors, the map's time of day, and old-handheld looks: the filter, its dots and shades.",
     keys = { "classicColors", "mapTime", "filter", "filterOn", "dots", "shades" } },

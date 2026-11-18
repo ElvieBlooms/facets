@@ -542,6 +542,21 @@ function windows.init(mod, rows)
       return out
     end
 
+    -- PRECACHE: the frame and text box art for these settings -Elvie
+    do
+      local okF, f = pcall(require, "mods.facets.filter")
+      if okF and type(f.precacheAdd) == "function" then
+        f.precacheAdd(function()
+          local a = art()
+          if not a then return {} end
+          local out = {}
+          if type(a.frame) == "userdata" then out[#out + 1] = { img = a.frame } end
+          if type(a.dialogue) == "userdata" then out[#out + 1] = { img = a.dialogue, also = a.fill } end
+          return out
+        end)
+      end
+    end
+
     local okP, PaletteFX = pcall(require, "src.render.PaletteFX")
     local function grey()
       if not (okP and type(PaletteFX) == "table") then return true end

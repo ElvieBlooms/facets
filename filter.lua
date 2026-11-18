@@ -140,6 +140,7 @@ extern Image keep;
 extern vec2 keepOrigin;
 extern vec2 keepSize;
 extern float paperDark;
+extern float lite;
 extern float cellF;
 extern vec2 srcPx;
 extern float bandTop;
@@ -282,7 +283,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       // GBA games' letters have their shadow. A picture's own black (kept)
       // stays as it is
       float edge = 0.0;
-      if (paperDark > 0.5 && w > 0.5 && gba < 0.5) {
+      if (paperDark > 0.5 && w > 0.5 && gba < 0.5 && lite < 0.5) {
         for (int i = 0; i < 8; i++) {
           vec3 c = nbTex(tex, tc, sc, around(i));
           float chi = max(c.r, max(c.g, c.b));
@@ -311,7 +312,11 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
       if (gba < 0.5 && paperDark > 0.5 && w < 0.5) {
         float l = dot(before, vec3(0.299, 0.587, 0.114));
         float region = Texel(ui, p).a * (boxesOn > 0.5 ? max(inBox, bandToo * step(bandTop, p.y)) : step(bandTop, p.y)) * (1.0 - keptAt(sc));
-        if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region * step(0.03, distance(before, paper)) > 0.5
+        // (LIGHT: a black on the paper's ground is a letter, no looking
+        // round it) -Elvie
+        if (lite > 0.5) {
+          if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region * step(0.03, distance(before, paper)) > 0.5) o = vec3(0.93, 0.93, 0.94);
+        } else if (step(l, 0.2) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * region * step(0.03, distance(before, paper)) > 0.5
             && (boxesOn > 0.5 || inBar(tex, tc, sc) < 0.5)) {
           float onPaper = 0.0;
           float light = 0.0;
@@ -328,7 +333,10 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
         // (black too: FireRed's PP numbers)
         float text = step(l, 0.45);
         float shade = step(0.70, l) * step(l, 0.88);
-        if ((text + shade) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * Texel(ui, p).a > 0.5
+        if (lite > 0.5) {
+          if ((text + shade) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * Texel(ui, p).a > 0.5 && inBox > 0.5 && keptAt(sc) < 0.5)
+            o = text > 0.5 ? vec3(0.93, 0.93, 0.94) : mix(paper, vec3(0.93), 0.22);
+        } else if ((text + shade) * (1.0 - smoothstep(0.08, 0.14, hi - lo)) * Texel(ui, p).a > 0.5
             && inBox > 0.5 && keptAt(sc) < 0.5) {
           float onPaper = 0.0;
           float light = 0.0;
@@ -748,6 +756,7 @@ function filter.init(mod, rows, menu)
       send("paperOn", 0)
     end
     send("paperDark", filter.isDark(paper) and 1 or 0)
+    send("lite", get("paperDetail") == "light" and 1 or 0)
     send("bandTop", filter.isDark(paper) and layer.band or 0)
     send("gba", layer.gen == 3 and 1 or 0)
     send("bandToo", layer.gen == 2 and 1 or 0)
@@ -858,6 +867,7 @@ function filter.init(mod, rows, menu)
   end
   if mod.hooks and type(mod.hooks.wrap) == "function" then
     mod.hooks:wrap("render.compose", function(nextFn, renderer, ctx)
+      if type(filter.precacheStep) == "function" then pcall(filter.precacheStep) end
       if type(ctx) == "table" then
         grid.cell, grid.origin = filter.gridFor(ctx)
         -- where the menus' layer goes in the window, in its units, for
@@ -969,6 +979,14 @@ function filter.init(mod, rows, menu)
   rows[#rows + 1] = { key = "dots", type = "choice", label = "  DOTS", choices = filter.DOTS, default = "off" }
   rows[#rows + 1] = { key = "shades", type = "choice", label = "  SHADES", choices = filter.STEPS, default = "4" }
   rows[#rows + 1] = { key = "paper", type = "choice", label = "  PAPER", choices = filter.PAPERS, default = "off" }
+  -- For small devices: PAPER DETAIL: LIGHT skips dark paper's look round
+  -- each letter (its outline, and telling a letter from a picture's dark
+  -- by what's round it); PRECACHE makes PAPER's pictures ahead, a little
+  -- each frame, and keeps them on the install -Elvie
+  rows[#rows + 1] = { key = "paperDetail", type = "choice", label = "  PAPER DETAIL",
+    choices = { { "FULL", "full" }, { "LIGHT", "light" } }, default = "full" }
+  rows[#rows + 1] = { key = "paperPrecache", type = "choice", label = "  PRECACHE",
+    choices = { { "OFF", "off" }, { "ON", "on" } }, default = "off" }
   -- MAP TIME: Red, Blue and Yellow's outdoor maps in the light of the
   -- hour, as Gold, Silver and Crystal's are, by your clock -Elvie
   local okCl, Cl = pcall(require, "mods.facets.classic")
@@ -1511,6 +1529,7 @@ function filter.init(mod, rows, menu)
       frameMasks[img] = ok and out or false
       return frameMasks[img] or nil
     end
+    filter.frameMaskOf = frameMask
     filter.keepFrame = function(img, ...)
       if not filter.isDark(select(5, filter.settings(get))) then return end
       return filter.keepDraw(frameMask(img) or img, ...)
@@ -1786,6 +1805,89 @@ function filter.init(mod, rows, menu)
       end)
       return lines, fill
     end
+    -- PRECACHE: what PAPER makes for the settings now, made ahead, a few
+    -- milliseconds a frame, and kept on the install (variant above), so a
+    -- small device doesn't stall the first time a window or a battle comes
+    -- up. The parts that draw windows each say what they'll draw
+    -- (filter.precacheAdd); the fonts are filter's own -Elvie
+    filter.precacheProviders = filter.precacheProviders or {}
+    function filter.precacheAdd(fn)
+      if type(fn) == "function" then filter.precacheProviders[#filter.precacheProviders + 1] = fn end
+    end
+    -- Red to Crystal's letter sheets, as the game loads them -Elvie
+    filter.precacheAdd(function()
+      if gen ~= 1 and gen ~= 2 then return {} end
+      local okA, Assets = pcall(require, "src.render.Assets")
+      if not (okA and type(Assets) == "table" and type(Assets.image) == "function") then return {} end
+      local out = {}
+      for _, rel in ipairs({ "font.png", "font_extra.png", "font_battle_extra.png", "frames.png", "bold_p.png" }) do
+        local ok, img = pcall(Assets.image, "assets/generated/fonts/" .. rel)
+        if ok and img then out[#out + 1] = { img = img, font = true } end
+      end
+      return out
+    end)
+    local queue, queueAt = nil, 0
+    filter.precacheTotal, filter.precacheDone = 0, 0
+    function filter.precacheStart()
+      queue, queueAt = {}, 0
+      local pp = paperNow()
+      local lp = paperLight()
+      if not (pp or lp) then filter.precacheTotal, filter.precacheDone = 0, 0; return end
+      for _, provider in ipairs(filter.precacheProviders) do
+        local ok, items = pcall(provider)
+        for _, it in ipairs(ok and type(items) == "table" and items or {}) do
+          local img = it.img
+          if type(img) == "userdata" then
+            if it.font then
+              if pp then
+                queue[#queue + 1] = function() filter.inked(img, true, pp) end
+                queue[#queue + 1] = function() filter.inked(img, false, pp) end
+              end
+            else
+              if pp then
+                queue[#queue + 1] = function() filter.darkArt(img, it.also) end
+                queue[#queue + 1] = function() frameMask(img) end
+              elseif lp and filter.hasArtMask(img) then
+                queue[#queue + 1] = function() filter.paperArt(img) end
+              end
+            end
+          end
+        end
+      end
+      filter.precacheTotal, filter.precacheDone = #queue, 0
+    end
+    function filter.precacheStep(budget)
+      if not queue then return end
+      local start = os.clock()
+      repeat
+        queueAt = queueAt + 1
+        local unit = queue[queueAt]
+        if not unit then break end
+        queue[queueAt] = nil
+        pcall(unit)
+        filter.precacheDone = math.min(queueAt, #queue)
+      until os.clock() - start >= (budget or 0.004)
+      if queueAt >= #queue then
+        queue = nil
+        if disk.dirty() then pcall(disk.flush) end
+      end
+    end
+    -- started with the game, and again for a new PAPER or new windows -Elvie
+    if mod.events and type(mod.events.on) == "function" then
+      local WATCH = { paper = true, paperPrecache = true, classicWindows = true, classicTextBox = true,
+        gbcFrame = true, gbcTextBox = true }
+      local function maybe()
+        if get("paperPrecache") == "on" then filter.precacheStart() end
+      end
+      mod.events:on("game.ready", maybe)
+      mod.events:on("map.entered", function()
+        if get("paperPrecache") == "on" and filter.precacheTotal == 0 and not queue then maybe() end
+      end)
+      mod.events:on("mod.options_changed", function(change)
+        if type(change) == "table" and change.mod == mod.id and WATCH[change.key] then maybe() end
+      end)
+    end
+
     -- the windows owned this frame: { canvas, x0, y0, x1, y1 } in the
     -- pixels of what they're drawn on -Elvie
     local owned = {}
