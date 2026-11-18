@@ -2060,6 +2060,32 @@ do
   check(disk.hash("a") ~= disk.hash("b") and #disk.hash("x") == 8, "diskcache: short distinct stamps")
   eq(disk.stampText("0.5.2", "0.3.93", { emerald = "m1", crystal = "m2" }),
     "facets 0.5.2\nengine 0.3.93\ncrystal m2\nemerald m1", "diskcache: stamp text in a fixed order")
+  do
+    -- PAPER's group is kept with PREBUILD off, and cleared on its own -Elvie
+    local files = {}
+    local store = {
+      read = function(_, rel) return files[rel] end,
+      write = function(_, rel, bytes) files[rel] = bytes; return true end,
+      delete = function(_, rel) files[rel] = nil; return true end,
+    }
+    disk.setup(store, "paper test", nil)
+    disk.enable(false)
+    disk.always("paper")
+    local d = love.image.newImageData(2, 2)
+    d:setPixel(1, 1, 0.2, 0.4, 0.6, 1)
+    disk.put("paper", "abc:art:dark", d)
+    disk.put("mons", "x", d)
+    eq(disk.flush(), 1, "diskcache: PAPER's pictures kept with PREBUILD off, nothing else")
+    disk.setup(store, "paper test", nil)
+    local back = disk.get("paper", "abc:art:dark")
+    eq(back and select(3, back:getPixel(1, 1)) or nil, select(3, d:getPixel(1, 1)), "diskcache: ...and read back next start")
+    disk.clearGroup("paper")
+    eq(disk.get("paper", "abc:art:dark"), nil, "diskcache: a new PAPER clears them")
+    local left = 0
+    for rel in pairs(files) do if rel:find("paper%.bin$") then left = left + 1 end end
+    eq(left, 0, "diskcache: ...file and all")
+    disk.reset()
+  end
   check(not disk.setup(nil, "x"), "diskcache: no mod.cache, no cache")
   disk.enable(true)
   check(not disk.enabled(), "diskcache: can't be on without a store")

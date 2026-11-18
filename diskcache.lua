@@ -26,6 +26,9 @@ local stamp       -- this run's folder name
 local enabled = false
 local groups = {} -- [group] = { entries = { [key] = { meta, w, h, blob } }, dirty }
 local listed = {} -- files named in the index
+-- groups kept whether PREBUILD is on or not: PAPER's pictures, small and
+-- slow to make on a small device -Elvie
+local always = {}
 local log
 
 -- A short, stable name for any text (djb2, 32-bit; plain arithmetic, so
@@ -143,6 +146,8 @@ local function writeIndex()
 end
 
 function diskcache.enable(on) enabled = on and store ~= nil or false end
+function diskcache.always(group) always[group] = true end
+local function open(group) return store ~= nil and (enabled or always[group] == true) end
 function diskcache.enabled() return enabled end
 
 local function groupOf(name)
@@ -159,7 +164,7 @@ end
 -- The picture kept for key, as ImageData, and its meta; nil when there
 -- isn't one (or the cache is off). -Elvie
 function diskcache.get(group, key)
-  if not enabled then return nil end
+  if not open(group) then return nil end
   local e = groupOf(group).entries[key]
   if not e then return nil end
   local raw = decompress(e.blob)
@@ -171,7 +176,7 @@ end
 
 -- Keeps data (ImageData) under key, written at the next flush. -Elvie
 function diskcache.put(group, key, data, meta)
-  if not enabled or not data or type(data.getString) ~= "function" then return end
+  if not open(group) or not data or type(data.getString) ~= "function" then return end
   local ok, raw = pcall(data.getString, data)
   if not ok or type(raw) ~= "string" then return end
   local w, h = data:getDimensions()
@@ -217,9 +222,52 @@ function diskcache.clear()
   return true
 end
 
+-- The stamp for this install: Facets' version, the engine's version and
+-- ROM cache generation, and each imported game's import marker -Elvie
+function diskcache.stampFor(mod)
+  local out = {}
+  local okC, Contract = pcall(require, "src.import.CacheContract")
+  -- every game Facets reads, whichever is running, so switching games
+  -- keeps each one's pictures -Elvie
+  local games = { "firered", "leafgreen", "ruby", "sapphire", "emerald" }
+  local okG, gb = pcall(require, "mods.facets.gb")
+  if okG and type(gb) == "table" and type(gb.GAMES) == "table" then
+    for _, g in ipairs(gb.GAMES) do games[#games + 1] = g end
+  end
+  for _, g in ipairs(games) do
+    local marker = okC and type(Contract) == "table" and type(Contract.readMarker) == "function"
+      and select(2, pcall(Contract.readMarker, g)) or nil
+    out[g] = type(marker) == "string" and marker or "none"
+  end
+  local okV, Version = pcall(require, "src.core.Version")
+  local engine = okV and type(Version) == "table" and (tostring(Version.engine) .. " " .. tostring(Version.cache)) or "?"
+  return diskcache.stampText(mod.version, engine, out)
+end
+
+-- Sets the store up once for this run, from mod (whichever part asks
+-- first: PREBUILD on the GBA games, PAPER on every game) -Elvie
+function diskcache.ensure(mod)
+  if store then return true end
+  if type(mod) ~= "table" then return false end
+  return diskcache.setup(mod.cache, diskcache.stampFor(mod), mod.log)
+end
+
+-- Deletes one group, so its pictures are made (and kept) again -Elvie
+function diskcache.clearGroup(name)
+  if not store then return false end
+  groups[name] = { entries = {}, dirty = false }
+  local file = fileOf(name)
+  if listed[file] then
+    if type(store.delete) == "function" then pcall(store.delete, store, file) end
+    listed[file] = nil
+    writeIndex()
+  end
+  return true
+end
+
 -- For the tests -Elvie
 function diskcache.reset()
-  store, stamp, enabled, groups, listed = nil, nil, false, {}, {}
+  store, stamp, enabled, groups, listed, always = nil, nil, false, {}, {}, {}
 end
 
 return diskcache

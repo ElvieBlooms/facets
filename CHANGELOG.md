@@ -3,6 +3,7 @@
 ## 1.3.1
 
 - **Fixed: PAPER crashing on entering a battle, and slowing the game before it**, on phones and other small devices. Each time a frame drew on something of a different size (Gold, Silver and Crystal's battles draw on two), PAPER made a new full-size copy for what it keeps, dozens a second; small devices ran out of memory. The copies are made once for each size now and kept.
+- **PAPER's pictures are kept on your install:** the window art and letters PAPER makes for its colour are written to the engine's per-install mod cache (the same place PREBUILD keeps its pictures, whether PREBUILD is on or not), so a small device makes each one once, as it first comes up, and reads it back on later starts. Picking another PAPER clears them to be made again, and so does a new Facets or gen1recomp.
 - **Fixed: letters flashing and sprites patched dark with PAPER** (FACETS's own pages on Emerald, among others): making that new copy threw away what the first had kept, every other frame.
 
 ## 1.3.0

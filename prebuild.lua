@@ -93,35 +93,21 @@ function prebuild.init(mod, rows)
     -- The install cache: what was built is kept, under a stamp of
     -- Facets', the engine's and each imported game's versions. -Elvie
     local disk = require("mods.facets.diskcache")
-    local function markers()
-      local out = {}
-      local okC, Contract = pcall(require, "src.import.CacheContract")
-      -- every game Facets reads, whichever is running, so switching
-      -- games keeps each one's pictures -Elvie
-      local games = { "firered", "leafgreen", "ruby", "sapphire", "emerald" }
-      for _, g in ipairs(require("mods.facets.gb").GAMES) do games[#games + 1] = g end
-      for _, g in ipairs(games) do
-        local marker = okC and type(Contract) == "table" and type(Contract.readMarker) == "function"
-          and select(2, pcall(Contract.readMarker, g)) or nil
-        out[g] = type(marker) == "string" and marker or "none"
-      end
-      return out
-    end
-    local okV, Version = pcall(require, "src.core.Version")
-    local engine = okV and type(Version) == "table" and (tostring(Version.engine) .. " " .. tostring(Version.cache)) or "?"
     local ready = false
     local function setUp()
       if ready then return end
       ready = true
-      disk.setup(mod.cache, disk.stampText(mod.version, engine, markers()), mod.log)
+      disk.ensure(mod)
     end
+    -- (set up whatever PREBUILD is: PAPER keeps its pictures either
+    -- way) -Elvie
     local function applyDisk()
-      if on() then setUp() end
+      setUp()
       disk.enable(on())
     end
     applyDisk()
     local function flush()
-      if disk.enabled() and disk.dirty() then disk.flush() end
+      if disk.dirty() then disk.flush() end
     end
     local function clock()
       return love and love.timer and love.timer.getTime and love.timer.getTime() or os.clock()

@@ -728,6 +728,13 @@ function filter.init(mod, rows, menu)
     end
     -- the next frame's pictures start afresh (the game can draw one after
     -- render.compose, so this waits till the pass has used them) -Elvie
+    -- PAPER's new pictures written out a few seconds after the last one
+    -- was made, in one go, so a crash or a quit doesn't lose them -Elvie
+    if filter.paperPutAt and love.timer and love.timer.getTime() - filter.paperPutAt > 3 then
+      filter.paperPutAt = nil
+      local disk = require("mods.facets.diskcache")
+      if disk.dirty() then pcall(disk.flush) end
+    end
     if slot ~= "map" then
       poolReset(keepPool)
       poolReset(boxesPool)
@@ -1419,6 +1426,15 @@ function filter.init(mod, rows, menu)
         G.draw(img, 0, 0, 0, w / img:getWidth(), h / img:getHeight())
         G.pop()
         local data = c:newImageData()
+        -- (kept on the install, as the paper's other pictures are) -Elvie
+        local disk = require("mods.facets.diskcache")
+        local h0 = type(filter.hashOf) == "function" and filter.hashOf(data) or nil
+        local kept = h0 and disk.get("paper", h0 .. ":frameMask") or nil
+        if kept and kept:getWidth() == w and kept:getHeight() == h then
+          local m = G.newImage(kept, { dpiscale = img:getDPIScale() })
+          m:setFilter("nearest", "nearest")
+          return m
+        end
         local function kind(x, y)
           if x < 0 or y < 0 or x >= w or y >= h then return "none" end
           local r, g, b, a = data:getPixel(x, y)
@@ -1444,6 +1460,7 @@ function filter.init(mod, rows, menu)
           end
         end
         for _, p in ipairs(cut) do data:setPixel(p[1], p[2], 0, 0, 0, 0) end
+        if h0 then disk.put("paper", h0 .. ":frameMask", data); filter.paperPutAt = love.timer and love.timer.getTime() or 0 end
         local m = G.newImage(data, { dpiscale = img:getDPIScale() })
         m:setFilter("nearest", "nearest")
         return m
@@ -1520,6 +1537,39 @@ function filter.init(mod, rows, menu)
       return "colour"
     end
     -- a variant of an image made once per paper -Elvie
+    -- Each is kept on the install too (diskcache, group "paper"), under
+    -- its picture's own pixels and what was made of it, so a small device
+    -- makes it once, not every start. A new PAPER clears them (below);
+    -- a new Facets or gen1recomp starts afresh -Elvie
+    local disk = require("mods.facets.diskcache")
+    disk.always("paper")
+    disk.ensure(mod)
+    -- written out at the same moments PREBUILD writes, on every game -Elvie
+    if mod.events and type(mod.events.on) == "function" then
+      local function flush() if disk.dirty() then pcall(disk.flush) end end
+      mod.events:on("map.entered", flush)
+      mod.events:on("battle.ended", flush)
+      mod.events:on("save.writing", flush)
+      -- (only for a PAPER that's really new, not one set again) -Elvie
+      local paperWas = get("paper")
+      mod.events:on("mod.options_changed", function(change)
+        if type(change) == "table" and change.mod == mod.id and change.key == "paper" and get("paper") ~= paperWas then
+          paperWas = get("paper")
+          disk.clearGroup("paper")
+        end
+      end)
+    end
+    local hashes = setmetatable({}, { __mode = "k" })
+    local function hashOf(data)
+      local got = hashes[data]
+      if got then return got end
+      local ok, h = pcall(function()
+        return love.data.encode("string", "hex", love.data.hash("md5", data))
+      end)
+      hashes[data] = ok and h or false
+      return hashes[data] or nil
+    end
+    filter.hashOf = hashOf
     local variants = setmetatable({}, { __mode = "k" })
     local function variant(img, key, make)
       local per = variants[img]
@@ -1529,8 +1579,15 @@ function filter.init(mod, rows, menu)
       local data = pixelsOf(img)
       if not data then return nil end
       local ok, out = pcall(function()
-        local d = data:clone()
-        make(d, data, d:getWidth(), d:getHeight())
+        local h = hashOf(data)
+        local diskKey = h and (h .. ":" .. key) or nil
+        local d = diskKey and disk.get("paper", diskKey) or nil
+        if d and (d:getWidth() ~= data:getWidth() or d:getHeight() ~= data:getHeight()) then d = nil end
+        if not d then
+          d = data:clone()
+          make(d, data, d:getWidth(), d:getHeight())
+          if diskKey then disk.put("paper", diskKey, d); filter.paperPutAt = love.timer and love.timer.getTime() or 0 end
+        end
         local m = love.graphics.newImage(d, { dpiscale = img:getDPIScale() })
         m:setFilter("nearest", "nearest")
         return m
@@ -1554,7 +1611,7 @@ function filter.init(mod, rows, menu)
     end
     local function maskArt(img, pp, key)
       local mask = artMasks[img]
-      return variant(img, "mask:" .. key, function(d, src, w, h)
+      return variant(img, "mask:" .. key .. ":" .. tostring(hashOf(mask)), function(d, src, w, h)
         local mw, mh = mask:getWidth(), mask:getHeight()
         for y = 0, math.min(h, mh) - 1 do
           for x = 0, math.min(w, mw) - 1 do
