@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.2
+
+- **Fixed: DOTS uneven when another mod resizes the picture** (Kanto Gear's layout on a phone, among others): the dot lines were drawn into the picture at the game's own size, so a mod drawing it a little bigger or smaller doubled some lines and lost others, more on one side than the other. Facets now sees the picture drawn at a size of its own and draws the lines over it there, one on each game pixel as shown. DOTS also follows a GBA game stretched more one way than the other.
+
 ## 1.3.1
 
 - **GAME WOOD** (WINDOWS and TEXT BOX, on every game): Tito Seich / Sage's Woody box in a game's own colour: RED, BLUE, YELLOW, GOLD, SILVER, CRYSTAL, EMERALD and LEAFGREEN WOOD, each pale, and DARK in the game's rich colour with white or black letters, whichever reads better.

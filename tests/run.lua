@@ -1552,13 +1552,17 @@ do
   -- the dot grid: the engine's scale is already screen pixels; only the
   -- origin (LÖVE units) takes the DPI -Elvie
   local cell, origin = filter.gridFor({ scale = 6, dpiX = 2, dpiY = 2, ox = 10, oy = 4, worldActive = true })
-  eq(cell .. ":" .. origin[1] .. "," .. origin[2], "6:20,8", "filter: on a 2x screen, a 6-pixel grid from (20, 8)")
+  eq(cell[1] .. "x" .. cell[2] .. ":" .. origin[1] .. "," .. origin[2], "6x6:20,8", "filter: on a 2x screen, a 6-pixel grid from (20, 8)")
   cell = filter.gridFor({ scale = 4, ox = 0, oy = 0 })
-  eq(cell, 4, "filter: 1x screen, the scale itself")
+  eq(cell[1] .. "x" .. cell[2], "4x4", "filter: 1x screen, the scale itself")
+  -- a GBA game stretched more down than across (a phone held upright):
+  -- the grid's rows its own height, Sy, in screen pixels -Elvie
+  cell = filter.gridFor({ scale = 7.5, Sx = 3.75, Sy = 7.9, dpiX = 2, dpiY = 2, ox = 0, oy = 0, worldActive = true })
+  eq(cell[1] .. "x" .. cell[2], "7.5x15.8", "filter: a game stretched upright, its rows their own height")
   local rects = { Up = 6.75, uox = 3, uoy = 1 }
   cell, origin = filter.gridFor({ scale = 6, dpiX = 2, ox = 10, oy = 4, worldActive = false,
     renderer = { frameRects = function() return rects end } })
-  eq(cell .. ":" .. origin[1] .. "," .. origin[2], "6.75:6,2", "filter: a battle filling the screen uses the UI's scale and origin")
+  eq(cell[1] .. "x" .. cell[2] .. ":" .. origin[1] .. "," .. origin[2], "6.75x6.75:6,2", "filter: a battle filling the screen uses the UI's scale and origin")
   local carried = wraps["render.compose"](function() return "next" end, {}, { worldActive = true, scale = 3, ox = 10, oy = 4 })
   eq(carried, "next", "filter: render.compose hands on to the composite")
   check(filter.screenOn("off", "screen", "off") == false and filter.screenOn("gbc", "screen", "off") == true

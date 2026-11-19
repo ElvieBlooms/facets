@@ -170,7 +170,9 @@ extern float levels;
 extern float sat;
 extern float dots;
 extern float dotShade;
-extern float cell;
+// the game pixel's size on screen, across and down: the GBA games can
+// stretch one more than the other (a phone held upright)
+extern vec2 cell;
 extern vec2 origin;
 extern float paperOn;
 extern vec3 paper;
@@ -429,7 +431,7 @@ vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
     o = clamp(mix(vec3(l), o, sat), 0.0, 1.0);
     o = floor(o * (levels - 1.0) + 0.5) / (levels - 1.0);
   }
-  if (dots > 0.5 && cell >= 3.0) {
+  if (dots > 0.5 && min(cell.x, cell.y) >= 3.0) {
     // the first screen pixel of each game pixel, so the lines sit on the
     // game's pixel edges even when a game pixel isn't a whole number of
     // screen pixels wide
@@ -449,7 +451,7 @@ local function valueOf(list, value, default)
 end
 
 -- The game's pixel grid on screen from the engine's frame numbers: cell
--- is screen pixels per game pixel, origin where the picture starts, in
+-- is screen pixels per game pixel, { across, down }, origin where the picture starts, in
 -- screen pixels. The engine's scale is already in screen pixels (only the
 -- origin is in LÖVE units, so only it takes the DPI); a battle drawn to
 -- fill the screen uses the UI's own scale and origin. -Elvie
@@ -458,13 +460,19 @@ function filter.gridFor(ctx)
   local dpiX = tonumber(ctx.dpiX) or 1
   local dpiY = tonumber(ctx.dpiY) or dpiX
   local cell, ox, oy = tonumber(ctx.scale) or 0, tonumber(ctx.ox) or 0, tonumber(ctx.oy) or 0
+  -- (down, the GBA games' own Sy where they stretch the picture more one
+  -- way than the other, a phone held upright: one size for both put the
+  -- lines out of step with the pixels, doubling up across the screen) -Elvie
+  local down = tonumber(ctx.Sy) and tonumber(ctx.Sx) and tonumber(ctx.Sy) ~= tonumber(ctx.Sx)
+    and tonumber(ctx.Sy) * dpiY or cell
   if ctx.worldActive == false and type(ctx.renderer) == "table" and type(ctx.renderer.frameRects) == "function" then
     local ok, r = pcall(ctx.renderer.frameRects, ctx.renderer)
     if ok and type(r) == "table" and tonumber(r.Up) then
       cell, ox, oy = tonumber(r.Up), tonumber(r.uox) or ox, tonumber(r.uoy) or oy
+      down = cell
     end
   end
-  return cell, { ox * dpiX, oy * dpiY }
+  return { cell, down }, { ox * dpiX, oy * dpiY }
 end
 
 -- PRISM's corner for SCREEN: the look's shades as a row of swatches,
@@ -540,7 +548,7 @@ function filter.init(mod, rows, menu)
   local canvases = {}
   -- the game's pixel grid on screen, and the UI layer and where it sits,
   -- from the last render.compose -Elvie
-  local grid = { origin = { 0, 0 }, cell = 0 }
+  local grid = { origin = { 0, 0 }, cell = { 0, 0 } }
   local layer = { canvas = nil, origin = { 0, 0 }, size = { 1, 1 }, cell = 1, band = 0 }
   -- Whether the battle itself is what's showing (not a menu over it):
   -- game is the one with the state stack on Red to Crystal -Elvie
@@ -784,7 +792,9 @@ function filter.init(mod, rows, menu)
     send("steps", tonumber(steps) or 4)
     send("levels", filter.GBC_LEVELS)
     send("sat", filter.GBC_SATURATION)
-    send("dots", dots and 1 or 0)
+    -- (not in the picture when another mod draws it at a size of its own:
+    -- they go over it there, dotsOver below) -Elvie
+    send("dots", dots and not (slot == "screen" and filter.dotsScaledNow) and 1 or 0)
     send("dotShade", filter.DOT_SHADE)
     send("cell", grid.cell)
     send("origin", grid.origin)
@@ -870,6 +880,103 @@ function filter.init(mod, rows, menu)
   end
   filter.run = run
 
+  -- DOTS when another mod draws the finished picture at a size of its own,
+  -- not a whole number of times (Kanto Gear's layout on a phone): one-pixel
+  -- lines drawn into the picture come out doubled in places and gone in
+  -- others, unevenly across the screen. Seen drawn so, the next frames
+  -- leave them out of the picture and draw them over it where it lands, a
+  -- line on the first screen pixel of each game pixel as shown -Elvie
+  local dotGrid = { canvas = nil, key = nil }
+  local function dotsOver(cv, x, y, sx, sy)
+    local cx, cy = tonumber(grid.cell[1]) or 0, tonumber(grid.cell[2]) or 0
+    if cx < 3 or cy < 3 then return end
+    local G = love.graphics
+    local target = G.getCanvas()
+    local dS = 1
+    if target and target.getDPIScale then
+      dS = target:getDPIScale()
+    elseif G.getPixelDimensions then
+      local uw = G.getDimensions()
+      local pw = G.getPixelDimensions()
+      if uw and uw > 0 and pw and pw > 0 then dS = pw / uw end
+    end
+    local dC = cv.getDPIScale and cv:getDPIScale() or 1
+    local cw, ch = cv:getDimensions()
+    local kx, ky = sx * dS / dC, sy * dS / dC
+    if cx * kx < 2 or cy * ky < 2 then return end
+    local X0, Y0 = math.floor(x * dS + 0.5), math.floor(y * dS + 0.5)
+    local W, H = math.ceil(cw * sx * dS), math.ceil(ch * sy * dS)
+    if W < 1 or H < 1 or W > 8192 or H > 8192 then return end
+    local ox, oy = tonumber(grid.origin[1]) or 0, tonumber(grid.origin[2]) or 0
+    local key = string.format("%d %d %.3f %.3f %.4f %.4f %.4f %.4f %.3f", W, H, ox, oy, cx, cy, kx, ky, filter.DOT_SHADE)
+    if dotGrid.key ~= key then
+      local okC, g = pcall(G.newCanvas, W, H, { dpiscale = 1 })
+      if not okC then return end
+      local d = filter.DOT_SHADE
+      G.push("all")
+      G.setCanvas(g)
+      G.origin()
+      G.setScissor()
+      G.setShader()
+      G.clear(1, 1, 1, 1)
+      G.setBlendMode("replace")
+      G.setColor(d, d, d, 1)
+      local sub = x * dS - X0
+      local function lines(o, c, k, n, horiz)
+        local i = math.ceil(-o / c)
+        while true do
+          local at = math.floor(sub + (o + i * c) * k + 0.5)
+          if at >= n then break end
+          if at >= 0 then
+            if horiz then G.rectangle("fill", 0, at, W, 1) else G.rectangle("fill", at, 0, 1, H) end
+          end
+          i = i + 1
+        end
+      end
+      lines(ox, cx, kx, W, false)
+      sub = y * dS - Y0
+      lines(oy, cy, ky, H, true)
+      G.pop()
+      if dotGrid.canvas then dotGrid.canvas:release() end
+      dotGrid.canvas, dotGrid.key = g, key
+    end
+    G.push("all")
+    G.setShader()
+    G.setBlendMode("multiply", "premultiplied")
+    G.setColor(1, 1, 1, 1)
+    G.origin()
+    G.draw(dotGrid.canvas, X0 / dS, Y0 / dS, 0, 1 / dS, 1 / dS)
+    G.pop()
+  end
+  do
+    local ownDraw = love.graphics.draw
+    love.graphics.draw = function(drawable, x, y, r, sx, sy, ...)
+      local screen = canvases.screen
+      if drawable ~= screen or screen == nil or type(x) ~= "number" then return ownDraw(drawable, x, y, r, sx, sy, ...) end
+      local kx = tonumber(sx) or 1
+      local ky = tonumber(sy) or kx
+      local scaled = (tonumber(r) or 0) == 0 and (math.abs(kx - 1) > 1e-3 or math.abs(ky - 1) > 1e-3)
+      local out = ownDraw(drawable, x, y, r, sx, sy, ...)
+      if scaled then
+        local _, _, dots = filter.settings(get)
+        if dots == "on" then
+          filter.dotsScaledSeen = true
+          if filter.dotsScaledNow then
+            -- (in the transform the mod drew it in) -Elvie
+            local ok, err = pcall(function()
+              local tx, ty = love.graphics.transformPoint(x, y)
+              local tx1 = love.graphics.transformPoint(x + 1, y)
+              local _, ty1 = love.graphics.transformPoint(x, y + 1)
+              dotsOver(drawable, tx, ty, kx * (tx1 - tx), ky * (ty1 - ty))
+            end)
+            if not ok then mod.log:warn("DOTS over a scaled picture: %s", tostring(err)) end
+          end
+        end
+      end
+      return out
+    end
+  end
+
   local def = {
     label = "GB FILTER",
     levels = { "OFF", "ON" },
@@ -878,10 +985,12 @@ function filter.init(mod, rows, menu)
     -- (canvas, ctx) -> canvas: the finished frame in, the filtered copy
     -- out; the frame itself when there's nothing to do -Elvie
     present = function(input, ctx)
+      filter.dotsScaledNow, filter.dotsScaledSeen = filter.dotsScaledSeen, false
       local look, where, dots, steps, paper = filter.settings(get)
       if not filter.screenOn(look, where, dots, steps, paper) and not filter.mapTintNow then return input end
-      if grid.cell <= 0 and type(ctx) == "table" then
-        grid.cell = tonumber(ctx.scale) or 0
+      if grid.cell[1] <= 0 and type(ctx) == "table" then
+        local s = tonumber(ctx.scale) or 0
+        grid.cell = { s, s }
       end
       return run(input, "screen", where == "screen" and look or "off", dots == "on", steps, paper) or input
     end,
@@ -928,6 +1037,7 @@ function filter.init(mod, rows, menu)
       if type(filter.precacheStep) == "function" then pcall(filter.precacheStep) end
       if type(ctx) == "table" then
         grid.cell, grid.origin = filter.gridFor(ctx)
+        grid.cell = grid.cell or { 0, 0 }
         -- where the menus' layer goes in the window, in its units, for
         -- BORDERS: FILL to line its scene up with (classic_scenes) -Elvie
         do
