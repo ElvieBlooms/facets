@@ -1531,6 +1531,13 @@ function gbui.init(mod, rows, menu)
           gbui.ownTerrain = gbui.ownTerrain or {}
           gbui.ownTerrain[name] = function(key, ...)
             local _, _, bg = gbui.settings(get)
+            -- WoobleView's Battle Fit draws the battle's background
+            -- itself, zoomed to the screen, or its 3D Battle Scene: a
+            -- background set steps aside for it (wooble.lua) -Elvie
+            if bg ~= "white" and bg ~= "colours" and require("mods.facets.wooble").fitting(mod) then
+              if name == "drawTerrain" then gbui.lastTerrain = key end
+              return orig(key, ...)
+            end
             if name == "drawTerrain" then gbui.lastTerrain = key end -- for achievements.lua -Elvie
             -- the woods, as forests -Elvie
             if gbui.BG_SETS[bg] then key = gbui.forestKey(key, gbui.mapSec()) end
@@ -1634,6 +1641,7 @@ function gbui.init(mod, rows, menu)
         -- the hidden text box's place, over the scene) -Elvie
         local own = gbui.ownTerrain and gbui.ownTerrain.drawTerrain
         if gbui.BG_SETS[bg] and own and okB and BattleChrome.drawTerrain ~= own
+            and not require("mods.facets.wooble").fitting(mod)
             and type(BattleBg.sheetKey) == "function" then
           local id, a1, a2, a3 = ...
           local okK, key = pcall(BattleBg.sheetKey, id)

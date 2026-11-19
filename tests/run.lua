@@ -2873,6 +2873,42 @@ do
   eq(D.api({ find = function() return nil end }), nil, "ds: nothing without Prism Importer")
 end
 
+-- WoobleView (wooble.lua): Facets' battle pictures tagged for its Battle
+-- Fit, once each, with their side, height and art; never another mod's -Elvie
+do
+  local W = require("mods.facets.wooble")
+  local tags, fit = {}, true
+  local ex = {
+    isActive = function() return true end,
+    fitEnabled = function() return fit end,
+    tag = function(img, spec) tags[#tags + 1] = { img = img, spec = spec } end,
+    tagOf = function(img) return img.packs and {} or nil end,
+  }
+  local fakeMod = { find = function(id) return id == "gen3-hd-sprites" and { exports = ex } or nil end }
+  check(W.fitting(fakeMod), "wooble: Battle Fit seen on")
+  check(not W.fitting({ find = function() return nil end }), "wooble: ...and not without WoobleView")
+  local data = { getDimensions = function() return 8, 8 end,
+    getPixel = function(_, x, y) return 0, 0, 0, (x >= 2 and x <= 5 and y >= 3 and y <= 6) and 1 or 0 end }
+  eq(table.concat(W.artBox(data), ","), "2,3,6,7", "wooble: the art's box in the picture")
+  local img = { getDimensions = function() return 64, 64 end }
+  local realHeight = W.height
+  W.height = function(sp) return sp == 16 and 0.3 or nil end
+  W.tag(fakeMod, { image = img, imageData = data }, "enemy", 16)
+  W.tag(fakeMod, { image = img, imageData = data }, "enemy", 16)
+  eq(#tags, 1, "wooble: a picture tagged once")
+  local t = tags[1] and tags[1].spec or {}
+  eq(string.format("%s %g %s %d", t.side, t.height or 0, tostring(t.texture == img), t.top or -1), "enemy 0.3 true 3",
+    "wooble: its side, height, texture and art's top")
+  W.tag(fakeMod, { image = { getDimensions = function() return 64, 64 end, packs = true } }, "player", 16)
+  eq(#tags, 1, "wooble: a picture another mod tagged is left to it")
+  W.tag(fakeMod, { image = { getDimensions = function() return 64, 64 end } }, "player", 999)
+  eq(#tags, 1, "wooble: no height, no tag")
+  fit = false
+  W.tag(fakeMod, { image = { getDimensions = function() return 64, 64 end } }, "player", 16)
+  eq(#tags, 1, "wooble: nothing without Battle Fit")
+  W.height = realHeight
+end
+
 -- BW ANIM (bw.lua): which frame of Black/White's idle is showing -Elvie
 do
   local B = require("mods.facets.bw")

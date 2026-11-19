@@ -240,6 +240,15 @@ python3 tools/mon_convert.py tools/recipes/ds_mons.json "<The DS-style 64x64 Pok
 
 The Pokémon side is `mons.lua`, `mon_names.lua` and `assets/mons/`, listed once in `main.lua`; an NPC-only build drops those.
 
+### With WoobleView
+
+[WoobleView](https://github.com/poooooby/gen3-hd-sprites) by poooooby fits a FireRed to Emerald battle to your screen (Fill Screen), draws a sprite mod's Pokémon true to size by their real heights, pulling the camera back for a tall one (Battle Fit), and can set a battle in the world around you in 2.5D (Battle Scene). Facets works with it:
+
+* **Facets' Pokémon are true to size.** The battle pictures Facets makes (its SET's, Emerald's for FR/LG ANIMS, YOUR SIDE: FRONT's) are tagged for Battle Fit the way WoobleSpritePack's are: their side, the Pokémon's height from your own game's Pokédex, and where the art is in the picture. They stay Facets' pixel art, sized up. A sprite pack's pictures are left to the pack.
+* **Facets steps aside for its battle background.** With Battle Fit on, a BATTLE BG set (SCENERY and the rest) gives way to WoobleView's own: the game's background zoomed to the screen with its pads, or its 3D Battle Scene. WHITE and COLORS still show.
+* **TEXT BOX** is WoobleView's when its Battle Text Box is on.
+* **DOTS** follows where WoobleView puts the battle's text box and menus, a line on each of their pixels, evenly across the screen.
+
 ### With SPRITE SWAPPER (and other sprite pack mods)
 
 [SPRITE SWAPPER](https://github.com/artyrambles/ST_SPRITESWAPPER) by artyrambles swaps Pokémon pictures for sprite packs through the engine's `pokemon.sprite` and `pokemon.icon` hooks. Facets steps aside for it: when the pack you've picked there (or any mod using those hooks) has a picture for a Pokémon, that picture shows, front, back and icon, whatever Facets' SET or FR/LG ANIMS say. Facets fills in only what the pack doesn't have, so with a pack picked and a SET on, a Pokémon the pack leaves out still gets the set's picture. A pack's Pokémon keep the pack's picture through their whole animation instead of flashing Facets' or Emerald's art mid-move. YOUR SIDE: FRONT still works, using the pack's front. When the FACETS screen's preview has a pack's Pokémon in it, the POKéMON row says so, and names the pack (SPRITE SWAPPER shares which one is picked). Picking another pack there clears the turned-around pictures YOUR SIDE: FRONT made from the old one's, so they follow straight away. With no pack picked, nothing changes.

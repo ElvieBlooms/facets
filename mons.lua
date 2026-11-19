@@ -1738,6 +1738,33 @@ function mons.init(mod, rows, menu)
       mod.log:warn("Ui.sidePic not found; SIZE only fits")
     end
 
+    -- WoobleView's Battle Fit: the battle pictures Facets made, tagged
+    -- with their side and the Pokémon's height (wooble.lua), wrapped last
+    -- so it's what the battle draws, sized. Only with a set, FR/LG ANIMS
+    -- or YOUR SIDE: FRONT on, and never a pack's picture -Elvie
+    local W = require("mods.facets.wooble")
+    local function facetsPics() return current ~= nil or borrowing() or backs == "front" end
+    local function tagPic(e, side, sp)
+      if not facetsPics() or type(e) ~= "table" or mons.fromHook(e) then return end
+      pcall(W.tag, mod, e, side, sp)
+    end
+    if okU and type(Ui) == "table" and type(Ui.sidePic) == "function" then
+      local seenSide = Ui.sidePic
+      Ui.sidePic = function(back, ignoreDeoxys, picSp, ...)
+        local e = seenSide(back, ignoreDeoxys, picSp, ...)
+        tagPic(e, back and "player" or "enemy", picSp)
+        return e
+      end
+    end
+    if okA and type(MonAnim) == "table" and type(MonAnim.framePic) == "function" then
+      local seenFrame = MonAnim.framePic
+      MonAnim.framePic = function(species, frame, shiny, ...)
+        local e = seenFrame(species, frame, shiny, ...)
+        tagPic(e, "enemy", species)
+        return e
+      end
+    end
+
     local function configure()
       local selected = mod.options:get("setMons")
       current = nil
