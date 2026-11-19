@@ -3,6 +3,7 @@
 ## 1.3.2
 
 - **Fixed: DOTS uneven when another mod resizes the picture** (Kanto Gear's layout on a phone, among others): the dot lines were drawn into the picture at the game's own size, so a mod drawing it a little bigger or smaller doubled some lines and lost others, more on one side than the other. Facets now sees the picture drawn at a size of its own and draws the lines over it there, one on each game pixel as shown. DOTS also follows a GBA game stretched more one way than the other.
+- **DOTS with WoobleView** (gen3-hd-sprites by poooooby): with Fill Screen, a battle's scene is zoomed and its Pokémon drawn at the screen's own resolution, so there are no game pixels there for the dots, and they beat against the menus WoobleView draws a little bigger. DOTS now follows WoobleView's own placing of the text box and menus, one line on each of their pixels, evenly across the whole screen.
 
 ## 1.3.1
 

@@ -794,7 +794,11 @@ function filter.init(mod, rows, menu)
     send("sat", filter.GBC_SATURATION)
     -- (not in the picture when another mod draws it at a size of its own:
     -- they go over it there, dotsOver below) -Elvie
-    send("dots", dots and not (slot == "screen" and filter.dotsScaledNow) and 1 or 0)
+    -- (nor over a battle WoobleView draws to fill the screen, its scene
+    -- at the screen's own resolution, zoomed: only on its menus, where it
+    -- says it put them, wooble below) -Elvie
+    local woobleMap = dots and slot == "screen" and filter.woobleMap() or nil
+    send("dots", dots and not (slot == "screen" and filter.dotsScaledNow) and not woobleMap and 1 or 0)
     send("dotShade", filter.DOT_SHADE)
     send("cell", grid.cell)
     send("origin", grid.origin)
@@ -876,9 +880,97 @@ function filter.init(mod, rows, menu)
     love.graphics.setShader(sh)
     love.graphics.draw(src, 0, 0)
     love.graphics.pop()
+    if woobleMap then
+      local ok, err = pcall(filter.dotsOnMap, cv, woobleMap)
+      if not ok then mod.log:warn("DOTS over WoobleView's menus: %s", tostring(err)) end
+    end
     return cv
   end
   filter.run = run
+
+  -- WoobleView (gen3-hd-sprites, by poooooby): with Fill Screen, a battle
+  -- fills the screen, its scene zoomed and its Pokémon at the screen's own
+  -- resolution, with no game pixels to put DOTS on; its text box and menus
+  -- are the game's, placed where its uiMap says (a canvas pixel's corner and
+  -- size on the screen, or two places for an upright battle's top band).
+  -- DOTS is set to those, one line on each of their pixels as shown -Elvie
+  function filter.woobleMap()
+    if type(mod.find) ~= "function" then return nil end
+    local h = mod.find("gen3-hd-sprites")
+    local ex = h and h.exports
+    if type(ex) ~= "table" or type(ex.uiMap) ~= "function" then return nil end
+    local ok, m = pcall(ex.uiMap)
+    if ok and type(m) == "table" and tonumber(m.sx) and tonumber(m.sy) and type(m.box) == "table" then return m end
+    return nil
+  end
+  -- (a mask of the lines for each box, made once until the layout moves,
+  -- multiplied over the picture: no reading the picture back) -Elvie
+  local mapMasks = {}
+  function filter.dotsOnMap(cv, m)
+    local G = love.graphics
+    local dpi = cv.getDPIScale and cv:getDPIScale() or 1
+    local cx, cy = tonumber(m.sx) * dpi, tonumber(m.sy) * dpi
+    if cx < 3 or cy < 3 then return end
+    -- (over the whole screen, set to the menus' pixels: the scene has none
+    -- of its own to keep to, and a grid ending at the menus' edge showed as
+    -- a box over it; an upright battle's top band, moved up, its own) -Elvie
+    local W, H = cv:getDimensions()
+    local regions
+    if m.banded and type(m.topBox) == "table" then
+      local cut = (tonumber(m.topBox[2]) or 0) + (tonumber(m.topBox[4]) or 0)
+      regions = { { { 0, 0, W, cut }, m.x, m.topY }, { { 0, cut, W, H - cut }, m.x, m.y } }
+    else
+      regions = { { { 0, 0, W, H }, m.x, m.y } }
+    end
+    local d = filter.DOT_SHADE
+    local used = {}
+    G.push("all")
+    G.setCanvas(cv)
+    G.origin()
+    G.setShader()
+    G.setScissor()
+    for n, rg in ipairs(regions) do
+      local b, x0, y0 = rg[1], (tonumber(rg[2]) or 0) * dpi, (tonumber(rg[3]) or 0) * dpi
+      local bx, by = math.floor((tonumber(b[1]) or 0) * dpi), math.floor((tonumber(b[2]) or 0) * dpi)
+      local bw, bh = math.ceil((tonumber(b[3]) or 0) * dpi), math.ceil((tonumber(b[4]) or 0) * dpi)
+      if bw > 0 and bh > 0 and bw <= 8192 and bh <= 8192 then
+        local key = string.format("%d %d %d %d %.3f %.3f %.4f %.4f %.3f", bx, by, bw, bh, x0, y0, cx, cy, d)
+        local mask = mapMasks[n]
+        if not mask or mask.key ~= key then
+          if mask then mask.canvas:release() end
+          local g = G.newCanvas(bw, bh, { dpiscale = 1 })
+          G.setCanvas(g)
+          G.clear(1, 1, 1, 1)
+          G.setBlendMode("replace")
+          G.setColor(d, d, d, 1)
+          local function lines(o, first, size, cell, horiz)
+            local i = math.ceil((first - o) / cell) - 1
+            while true do
+              local at = math.floor(o + i * cell + 0.5) - first
+              if at >= size then break end
+              if at >= 0 then
+                if horiz then G.rectangle("fill", 0, at, bw, 1) else G.rectangle("fill", at, 0, 1, bh) end
+              end
+              i = i + 1
+            end
+          end
+          lines(x0, bx, bw, cx, false)
+          lines(y0, by, bh, cy, true)
+          G.setCanvas(cv)
+          mask = { canvas = g, key = key }
+          mapMasks[n] = mask
+        end
+        used[n] = true
+        G.setBlendMode("multiply", "premultiplied")
+        G.setColor(1, 1, 1, 1)
+        G.draw(mask.canvas, bx / dpi, by / dpi, 0, 1 / dpi, 1 / dpi)
+      end
+    end
+    for n, mask in pairs(mapMasks) do
+      if not used[n] then mask.canvas:release(); mapMasks[n] = nil end
+    end
+    G.pop()
+  end
 
   -- DOTS when another mod draws the finished picture at a size of its own,
   -- not a whole number of times (Kanto Gear's layout on a phone): one-pixel
