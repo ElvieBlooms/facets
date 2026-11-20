@@ -2909,6 +2909,66 @@ do
   W.height = realHeight
 end
 
+-- WoobleView's Field HD (wooble.lua): an NPC sheet tagged to stand as tall
+-- as the game's own, its copies in other colours tagged with it
+do
+  local W = require("mods.facets.wooble")
+  -- frames of fw x fh stacked in a column, frame i drawn on rows art[i][1]..art[i][2]
+  local function sheet(fw, fh, art)
+    return { getDimensions = function() return fw, fh * #art end,
+      getPixel = function(_, x, y)
+        local a = art[math.floor(y / fh) + 1]
+        local r = y % fh
+        return 0, 0, 0, (x == math.floor(fw / 2) and r >= a[1] and r <= a[2]) and 1 or 0
+      end }
+  end
+  eq(W.artHeight(sheet(4, 4, { { 1, 2 }, { 0, 3 } }), 4, 4, 2), 4, "wooble npc: the tallest frame's art")
+  eq(W.artHeight(sheet(4, 4, { { 1, 2 }, { 0, 3 } }), 4, 4, 1), 2, "wooble npc: ...in the first n frames")
+  local function rec(fw, fh, top, n)
+    local art = {}
+    for i = 1, n do art[i] = { top, fh - 1 } end
+    return { imageData = sheet(fw, fh, art), width = fw, height = fh, frameCount = n }
+  end
+  local vanilla = rec(16, 32, 12, 9)   -- the game's: 20 tall
+  local ours = rec(32, 32, 6, 9)       -- the set's: 26 tall
+  eq(string.format("%.3f", W.npcScale(vanilla, ours)), "0.769", "wooble npc: drawn at the game's height over ours")
+  eq(W.npcScale(vanilla, rec(32, 32, 12, 9)), nil, "wooble npc: as tall as the game's, left as it is")
+  eq(W.npcScale(rec(16, 32, 22, 9), rec(32, 32, 2, 9)), W.NPC_MIN, "wooble npc: never below half")
+  local tags = {}
+  local ex = { isActive = function() return true end, features = { frame = true },
+    tag = function(img, spec) tags[#tags + 1] = { img = img, spec = spec } end }
+  local fakeMod = { find = function(id) return id == "gen3-hd-sprites" and { exports = ex } or nil end }
+  ours.image, ours.quads = {}, {}
+  W.tagNpc(fakeMod, ours, vanilla, 77)
+  local t = tags[1] and tags[1].spec or {}
+  eq(string.format("%.3f %s %s", t.scale or 0, tostring(t.anchor), table.concat(t.frame or {}, "x")), "0.769 feet 32x32",
+    "wooble npc: its size, standing on its feet, by its frames")
+  W.followCopy(fakeMod, { image = {}, quads = ours.quads })
+  eq(#tags, 2, "wooble npc: a copy sharing its quads (a palette swap) tagged too")
+  eq(tags[2] and tags[2].spec, t, "wooble npc: ...the same way")
+  W.followCopy(fakeMod, { image = {}, quads = {} })
+  eq(#tags, 2, "wooble npc: another sheet's copy left alone")
+  -- Ruby to Emerald's reflections: copies kept by id and colours as they're made
+  local fx = { _images = {} }
+  local was = package.loaded["src.core.game3.field_effects_rse"]
+  package.loaded["src.core.game3.field_effects_rse"] = fx
+  W.watchReflections(fakeMod, 77)
+  local kept = fx._images[77]
+  check(type(kept) == "table", "wooble npc: its reflection copies watched")
+  kept[4359] = { image = {}, width = 32, height = 32 }
+  eq(#tags, 3, "wooble npc: a reflection copy tagged as it's kept")
+  eq(kept[4359].width, 32, "wooble npc: ...and kept as it was")
+  W.watchReflections(fakeMod, 12)
+  eq(fx._images[12], nil, "wooble npc: nothing for a sheet that isn't tagged")
+  package.loaded["src.core.game3.field_effects_rse"] = was
+  ex.features = {}
+  local other = rec(32, 32, 6, 9)
+  other.image, other.quads = {}, {}
+  W.tagNpc(fakeMod, other, vanilla, 78)
+  eq(#tags, 3, "wooble npc: nothing with a WoobleView that can't grow a reflection with its frame")
+  W.forgetNpcs()
+end
+
 -- BW ANIM (bw.lua): which frame of Black/White's idle is showing -Elvie
 do
   local B = require("mods.facets.bw")

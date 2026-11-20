@@ -246,6 +246,7 @@ The Pokémon side is `mons.lua`, `mon_names.lua` and `assets/mons/`, listed once
 
 * **Facets' Pokémon are true to size.** The battle pictures Facets makes (its SET's, Emerald's for FR/LG ANIMS, YOUR SIDE: FRONT's) are tagged for Battle Fit the way WoobleSpritePack's are: their side, the Pokémon's height from your own game's Pokédex, and where the art is in the picture. They stay Facets' pixel art, sized up. A sprite pack's pictures are left to the pack.
 * **Facets steps aside for its battle background.** With Battle Fit on, a BATTLE BG set (SCENERY and the rest) gives way to WoobleView's own: the game's background zoomed to the screen with its pads, or its 3D Battle Scene. WHITE and COLORS still show.
+* **The people on the map at the game's sizes.** A SET's NPCs are drawn in Gen 4 style, a head or so taller than the game's own people. With WoobleView's Field HD on, each one stands as tall as the game's own sprite for that NPC, drawn at your screen's resolution so none of the set's detail is lost, their reflections in water shrinking with them. With Field HD off they're drawn as before. The Game Boy sets keep the sizes they pick. Needs a WoobleView that can shrink a reflection with its person; an older one leaves them as before.
 * **TEXT BOX** is WoobleView's when its Battle Text Box is on.
 * **DOTS** follows where WoobleView puts the battle's text box and menus, a line on each of their pixels, evenly across the screen.
 
