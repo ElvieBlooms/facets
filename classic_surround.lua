@@ -346,6 +346,16 @@ function surround.inBattle(game)
   return false
 end
 
+-- Whether the screen on top draws across the whole window itself (it
+-- says so: drawsWidescreen) -Elvie
+function surround.drawsWide(game)
+  local stack = game and game.stack
+  local ok, top = pcall(function() return stack:top() end)
+  if not (ok and type(top) == "table" and type(top.drawsWidescreen) == "function") then return false end
+  local okW, wide = pcall(top.drawsWidescreen, top)
+  return okW and wide == true
+end
+
 -- Fill the window round the game screen (info: render.letterbox's) -Elvie
 -- the game, for BORDERS (classic_scenes) to tell a battle -Elvie
 function surround.game() return mod and mod.game end
@@ -359,6 +369,10 @@ function surround.draw(info, battle, real)
   -- the GBA screen, with room round it like any other -Elvie
   if info.worldActive and surround.gen ~= 3 then return false end
   if not battle and surround.inBattle(mod and mod.game) then return false end
+  -- nor round a screen that draws across the whole window itself (Gold,
+  -- Silver and Crystal's wipe into a battle: WORLD's map round it boxed
+  -- the wipe into the middle) -Elvie
+  if not battle and surround.gen ~= 3 and surround.drawsWide(mod and mod.game) then return false end
   local ww, wh = tonumber(info.ww), tonumber(info.wh)
   local ox, oy, vpw, vph = tonumber(info.ox), tonumber(info.oy), tonumber(info.vpw), tonumber(info.vph)
   if real then ox, oy, vpw, vph = real[1], real[2], real[3], real[4] end
