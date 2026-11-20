@@ -3256,6 +3256,22 @@ do
   for _, r in ipairs(bars) do t[#t + 1] = table.concat(r, " ") end
   eq(table.concat(t, ","), "0 0 112 768,912 0 112 768,112 0 800 24,112 744 800 24", "scenes: the four borders")
   eq(#Sc.bars(0, 0, 160, 144, 160, 144), 0, "scenes: no borders, nothing drawn")
+  do
+    -- Gold's ORIGINAL layout battle with BATTLE SIZE: FILL, bigger than
+    -- the letterbox: the borders go round it, not over its edges -Elvie
+    local Sur = require("mods.facets.classic_surround")
+    local battle = { battlePanelScale = function(_, w, h) return math.min(w / 160, h / 144) end,
+      wideLayout = function() return false end }
+    local before = Sur.game
+    Sur.game = function() return { stack = { top = function() return battle end } } end
+    local r = Sc.panelRect(640, 480)
+    eq(r and string.format("%g,%g", r[2], r[4]), "0,480", "borders: a FILL battle is as tall as the window")
+    battle.wideLayout = function() return true end
+    eq(Sc.panelRect(640, 480), nil, "borders: ...and a WIDE one is left to the wide battle")
+    Sur.game = function() return { stack = { top = function() return {} end } } end
+    eq(Sc.panelRect(640, 480), nil, "borders: ...and no battle, no panel")
+    Sur.game = before
+  end
   local r, g, b = Sc.gbcColour(0.5, 0.5, 0.5)
   eq(("%.3f"):format(r) .. "," .. ("%.3f"):format(b), "0.516,0.516", "scenes: GBC leaves grey grey, on 32 levels")
   r, g, b = Sc.gbcColour(0.6, 0.5, 0.4)

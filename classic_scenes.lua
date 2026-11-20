@@ -314,6 +314,31 @@ blurOf = function(image)
   return blurs[image] or nil
 end
 
+-- Where Gold, Silver and Crystal's battle panel is in the window, in the
+-- ORIGINAL layout: BATTLE SIZE: FILL draws it bigger than the letterbox
+-- (as tall as the window), and the borders, going by the letterbox, were
+-- drawn over its edges, the foe's name among them. Worked out from the
+-- battle itself, as it draws itself (another mod drawing the battle for
+-- it, WoobleView, may never call the game's own drawWidescreen), or nil
+-- -Elvie
+function scenes.panelRect(ww, wh)
+  local okC, Chrome = pcall(require, "src.ui.gen2.Chrome")
+  if not (okC and type(Chrome) == "table" and type(Chrome.fitOrigin) == "function") then return nil end
+  local okG, game = pcall(function() return require("mods.facets.classic_surround").game() end)
+  local stack = okG and type(game) == "table" and game.stack
+  local ok, top = pcall(function() return stack:top() end)
+  if not (ok and type(top) == "table" and type(top.battlePanelScale) == "function") then return nil end
+  if type(top.wideLayout) == "function" then
+    local okW, wide = pcall(top.wideLayout, top)
+    if not okW or wide then return nil end
+  end
+  local okS, scale = pcall(top.battlePanelScale, top, ww, wh)
+  if not (okS and tonumber(scale) and scale > 0) then return nil end
+  local okO, ox, oy = pcall(Chrome.fitOrigin, ww, wh, scale)
+  if not (okO and tonumber(ox) and tonumber(oy)) then return nil end
+  return { ox, oy, scenes.W * scale, scenes.SCREEN_H * scale }
+end
+
 -- The window around the game screen: the scene, zoomed and blurred, in the
 -- borders instead of a flat colour. Drawn by the engine's render.letterbox before
 -- the game screen goes on top. Only on a frame the scene was drawn -Elvie
@@ -333,6 +358,7 @@ function scenes.edges(info)
       -- BATTLE SIZE made bigger, is more than the letterbox) -Elvie
       local b = scenes.battleScreen
       if not real and b and b.frame >= frame - 2 and b.canvas == canvas then real = b.rect end
+      if not real then real = scenes.panelRect(tonumber(info.ww), tonumber(info.wh)) end
       return surround.draw(info, mode, real)
     end
   end
@@ -372,6 +398,9 @@ function scenes.edges(info)
   -- the screen as it was really drawn, when that's known and on the same
   -- canvas (BATTLE SIZE: FILL draws it bigger than the letterbox) -Elvie
   local real = scenes.screenRect(s, G.getCanvas and G.getCanvas())
+  -- (a Gold, Silver or Crystal battle in the ORIGINAL layout, drawn on a
+  -- canvas of its own: where its panel is in the window) -Elvie
+  if not real then real = scenes.panelRect(ww, wh) end
   if real then ox, oy, sw, sh = real[1], real[2], real[3], real[4] end
   -- pixels to a unit, each way: on some handhelds (the AYN Thor) they
   -- differ, and getDPIScale is only one of them -Elvie
