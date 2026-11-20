@@ -3256,6 +3256,9 @@ do
   for _, r in ipairs(bars) do t[#t + 1] = table.concat(r, " ") end
   eq(table.concat(t, ","), "0 0 112 768,912 0 112 768,112 0 800 24,112 744 800 24", "scenes: the four borders")
   eq(#Sc.bars(0, 0, 160, 144, 160, 144), 0, "scenes: no borders, nothing drawn")
+  eq(Sc.trimEnd("Pancham   "), "Pancham", "scenes: a name's padding isn't printed over a scene")
+  eq(Sc.trimEnd("   "), "   ", "scenes: ...but a field cleared with spaces still is")
+  eq(Sc.trimEnd(" L12"), " L12", "scenes: ...and leading spaces stay")
   do
     -- Gold's ORIGINAL layout battle with BATTLE SIZE: FILL, bigger than
     -- the letterbox: the borders go round it, not over its edges -Elvie

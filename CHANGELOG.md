@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3
+
+- **Fixed: a white strip past a name over a BATTLE BG** (Gold, Silver and Crystal): a name kept at its full length with spaces, as a translation mod's are, had the spaces' white paper printed past its end over the scene. Names are printed without their trailing spaces when a set is behind them.
+
 ## 1.3.2
 
 - **Fixed: the foe's name cut off with BATTLE SIZE: FILL** (Gold, Silver and Crystal's ORIGINAL layout, with any BATTLE BG but GAME): the battle fills the window's height there, a little bigger than the usual screen, but the borders round it went by the usual screen's square and were drawn over the battle's edges, the foe's name along the top among them. The borders go round the battle as it's really drawn now.

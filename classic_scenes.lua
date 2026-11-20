@@ -272,6 +272,14 @@ end
 
 -- The scale that makes a w x h picture cover a ww x wh window, zoomed in a
 -- little more -Elvie
+-- Text without its trailing spaces, unless it's all spaces (a field
+-- cleared on purpose) -Elvie
+function scenes.trimEnd(text)
+  local trimmed = text:gsub(" +$", "")
+  if trimmed == "" then return text end
+  return trimmed
+end
+
 function scenes.coverScale(w, h, ww, wh, zoom)
   return math.max(ww / w, wh / h) * (zoom or 1)
 end
@@ -783,6 +791,19 @@ function scenes.init(mod, rows)
         and okC and type(Chrome) == "table" and type(Chrome.clear) == "function") then
       mod.log:warn("BattleState.drawPanel not found; BATTLE BG is off")
       return
+    end
+    -- Gold, Silver and Crystal's letters carry their own white paper, the
+    -- spaces too. A name kept at its full length with spaces (as a
+    -- translation mod's are) put a white strip past its end over a BATTLE
+    -- BG's scene. Left-aligned text is printed without its trailing
+    -- spaces when a set is behind it: they'd print nothing else -Elvie
+    if gen == 2 and type(Chrome.printThrough) == "function" then
+      local ownPrint = Chrome.printThrough
+      Chrome.printThrough = function(text, ...)
+        local bg = mod.options:get("classicBattleBg")
+        if bg and bg ~= "game" and type(text) == "string" then text = scenes.trimEnd(text) end
+        return ownPrint(text, ...)
+      end
     end
 
     local images = {} -- [set/file] = { image, quad }, or false -Elvie
