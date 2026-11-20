@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **WoobleView's Field HD** (gen3-hd-sprites by poooooby): a SET's NPCs stand as tall as the game's own people, drawn at the screen's resolution so the set's detail is kept, instead of a head or so taller. Each sheet is sized by the game's own sprite for that NPC; the copies the game makes in other colours (a palette swap, a reflection in water) are sized with it, so a reflection shrinks with its person. With Field HD off, or without WoobleView, nothing changes. The Game Boy sets keep their own sizes.
+
 ## 1.3.2
 
 - **Fixed: the foe's name cut off with BATTLE SIZE: FILL** (Gold, Silver and Crystal's ORIGINAL layout, with any BATTLE BG but GAME): the battle fills the window's height there, a little bigger than the usual screen, but the borders round it went by the usual screen's square and were drawn over the battle's edges, the foe's name along the top among them. The borders go round the battle as it's really drawn now.

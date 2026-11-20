@@ -13,6 +13,7 @@
 
 local names = require("mods.facets.names")
 local gb = require("mods.facets.gb")
+local wooble = require("mods.facets.wooble")
 
 local gen3 = {}
 
@@ -239,6 +240,10 @@ function gen3.init(mod, ctx)
       record.quads[fi] = love.graphics.newQuad(0, fi * fh, fw, fh, fw, fh * n)
     end
     replaced[id] = true
+    -- With WoobleView's Field HD, a set's art stands as tall as the game's
+    -- own sprite, at the screen's resolution (wooble.lua). The Game Boy
+    -- sets are drawn at the sizes they pick.
+    if type(ref) ~= "table" then wooble.tagNpc(mod, record, vanilla, id) end
     return record
   end
 
@@ -257,6 +262,28 @@ function gen3.init(mod, ctx)
     record = build(vanilla, rel, id) or false
     built[vanilla] = record
     return record or vanilla
+  end
+
+  -- The copies the engine makes of a sheet in other colours (a palette
+  -- swap, a reflection) are tagged as the sheet is (wooble.lua)
+  local originalGetDraw = OwSprites.getDraw
+  if type(originalGetDraw) == "function" then
+    OwSprites.getDraw = function(graphicsId, ...)
+      local spr = originalGetDraw(graphicsId, ...)
+      if spr and #bases > 0 then
+        wooble.followCopy(mod, spr)
+        wooble.watchReflections(mod, graphicsId)
+      end
+      return spr
+    end
+  end
+  local originalReflection = OwSprites.getReflectionDraw
+  if type(originalReflection) == "function" then
+    OwSprites.getReflectionDraw = function(graphicsId, ...)
+      local spr = originalReflection(graphicsId, ...)
+      if spr and #bases > 0 then wooble.followCopy(mod, spr) end
+      return spr
+    end
   end
 
   -- Scenes drawn the GBA way (Emerald's cable car) build a 4-bit sheet
@@ -324,6 +351,7 @@ function gen3.init(mod, ctx)
     end
     fileFor = nil
     built = setmetatable({}, { __mode = "k" })
+    wooble.forgetNpcs()
   end
 
   configure(ctx)
