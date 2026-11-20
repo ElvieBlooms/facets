@@ -242,8 +242,9 @@ function scenes.fillDraw(image, gx0, gy0, gameW)
   if not (m and scenes.borders() == "fill" and m.sw and m.sw > 0) then return false end
   local iw, ih = image:getDimensions()
   local f = m.sw / gameW
-  -- (the borders go by this game's pixel from the next frame on) -Elvie
-  scenes.fillGameW = gameW
+  -- (the borders go by this game's pixel from the next frame on; not
+  -- while the docked column draws, which is its own width) -Elvie
+  if not scenes.docking then scenes.fillGameW = gameW end
   local cx, cy, cw, ch, x0, y0, k = scenes.fillPlace(iw, ih, m.ww, m.wh, m.g and f, m.ox, m.oy)
   local q = scenes._fillQuad
   if not q then
@@ -942,10 +943,15 @@ function scenes.init(mod, rows)
     -- boxes -Elvie
     local column = nil
     -- FILL's picture is the window's (as the borders have it), so the
-    -- column and the borders round it are one -Elvie
+    -- column and the borders round it are one: the same game pixel (the
+    -- column's own width in them, for the borders' next frame) and the
+    -- same corner to snap it from, the column's. (It went unsnapped while
+    -- the borders snapped, by a game width left from another battle:
+    -- Kanto Gear's docked battles on an RG DS showed the seam) -Elvie
     local function dockPlace(s)
       local iw, ih = s.image:getDimensions()
-      return scenes.fillPlace(iw, ih, dock.ww, dock.wh)
+      scenes.fillGameW = dock.w / dock.scale
+      return scenes.fillPlace(iw, ih, dock.ww, dock.wh, dock.scale, dock.x, dock.y)
     end
     local function dockQuad(s)
       local iw, ih = s.image:getDimensions()
@@ -1254,8 +1260,10 @@ function scenes.init(mod, rows)
         end
         dock = not blur and place or nil
         column = place
+        scenes.docking = dock ~= nil
         local ok, err = pcall(ownDraw, battle, winW, winH, ...)
         Chrome.paletteFill, dock, column = fill, nil, nil
+        scenes.docking = false
         if not ok then error(err, 0) end
       end
     end
