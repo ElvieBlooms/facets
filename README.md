@@ -249,6 +249,16 @@ The Pokémon side is `mons.lua`, `mon_names.lua` and `assets/mons/`, listed once
 * **TEXT BOX** is WoobleView's when its Battle Text Box is on.
 * **DOTS** follows where WoobleView puts the battle's text box and menus, a line on each of their pixels, evenly across the screen.
 
+### With OmniUI
+
+[OmniUI](https://github.com/1Jamie/omni_ui) by Lady Gaia (Good Girl Software) redraws the menus, text boxes and battle HP boxes and commands in a modern look on every game, and in Red, Blue, Yellow, Gold, Silver and Crystal battles puts the Pokémon on its own themed arena. While its MODERN HIGH-RES UI is on, Facets steps aside where the two would draw the same thing:
+
+* **BATTLE UI** sets aren't drawn; OmniUI's HP boxes are.
+* **BATTLE BG** (with SURROUND and BORDERS) gives way to OmniUI's arena in Red, Blue, Yellow, Gold, Silver and Crystal battles. FireRed to Emerald battles keep Facets' background, as OmniUI leaves those to the game.
+* **Facets' Pokémon, trainers and people stay.** OmniUI shows Pokémon through the same picture hooks Facets uses, so a Facets SET shows in its party and summary screens too.
+
+Turn OmniUI's MODERN HIGH-RES UI off and Facets draws everything as before.
+
 ### With SPRITE SWAPPER (and other sprite pack mods)
 
 [SPRITE SWAPPER](https://github.com/artyrambles/ST_SPRITESWAPPER) by artyrambles swaps Pokémon pictures for sprite packs through the engine's `pokemon.sprite` and `pokemon.icon` hooks. Facets steps aside for it: when the pack you've picked there (or any mod using those hooks) has a picture for a Pokémon, that picture shows, front, back and icon, whatever Facets' SET or FR/LG ANIMS say. Facets fills in only what the pack doesn't have, so with a pack picked and a SET on, a Pokémon the pack leaves out still gets the set's picture. A pack's Pokémon keep the pack's picture through their whole animation instead of flashing Facets' or Emerald's art mid-move. YOUR SIDE: FRONT still works, using the pack's front. When the FACETS screen's preview has a pack's Pokémon in it, the POKéMON row says so, and names the pack (SPRITE SWAPPER shares which one is picked). Picking another pack there clears the turned-around pictures YOUR SIDE: FRONT made from the old one's, so they follow straight away. With no pack picked, nothing changes.

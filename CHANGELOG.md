@@ -2,6 +2,8 @@
 
 ## 1.3.3
 
+- **OmniUI** (omni_ui by Lady Gaia): while its MODERN HIGH-RES UI is on, Facets steps aside for it. BATTLE UI sets aren't drawn (OmniUI draws the HP boxes), and BATTLE BG, SURROUND and BORDERS give way to its themed arena in Red, Blue, Yellow, Gold, Silver and Crystal battles. Facets' Pokémon, trainers and people stay, and its Pokémon show in OmniUI's screens.
+- **Kanto Reforged 1.8.0's EXP bar** (Red, Blue, Yellow) waits while a BATTLE UI set is showing in the wide battle, instead of being drawn over or under the set's box: the set has an EXP bar of its own.
 - **Fixed: a white strip past a name over a BATTLE BG** (Gold, Silver and Crystal): a name kept at its full length with spaces, as a translation mod's are, had the spaces' white paper printed past its end over the scene. Names are printed without their trailing spaces when a set is behind them.
 
 ## 1.3.2

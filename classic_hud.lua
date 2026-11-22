@@ -158,7 +158,22 @@ local function startGen1(mod, chosenSet, drawEnemy, drawPlayer)
     if active(battle) then return false end
     return nextFn(battle, ...)
   end)
+  -- Kanto Reforged's EXP bar (1.8.0) is drawn over the game's own
+  -- player box in the wide battle. A set has its own EXP bar and the
+  -- game's box is off, so its bar waits while a set is showing. Its
+  -- module is wrapped once, the first battle it's loaded for -Elvie
+  local function quietKrBar()
+    local Bar = package.loaded["mods.Kanto-Reforged.ui.battle_exp_bar"]
+    if type(Bar) ~= "table" or Bar._facetsQuiet or type(Bar.drawFill) ~= "function" then return end
+    Bar._facetsQuiet = true
+    local own = Bar.drawFill
+    Bar.drawFill = function(battle, ...)
+      if active(battle) then return end
+      return own(battle, ...)
+    end
+  end
   mod.hooks:wrap("battle.overlay", function(nextFn, battle, ...)
+    pcall(quietKrBar)
     local result = nextFn(battle, ...)
     local a = active(battle)
     if not a then return result end
@@ -370,9 +385,13 @@ function hud.init(mod, rows)
       expBar(a, x + geo.exp[1], y + geo.exp[2], v.exp or 0)
     end
 
+    -- (none while OmniUI draws the battle's HP boxes itself: Facets steps
+    -- aside for it, omni.lua) -Elvie
+    local omni = require("mods.facets.omni")
     local function chosenSet()
       local key = mod.options:get("classicBattleUi")
       if key == GAME or not byKey[key] then return nil end
+      if omni.on(mod) then return nil end
       if not getFont() then return nil end
       return art(key)
     end

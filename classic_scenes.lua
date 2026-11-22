@@ -952,6 +952,9 @@ function scenes.init(mod, rows)
       -- HUD over the world, which has no field to paint -Elvie
       if setKey == GAME or not byKey[setKey] then return nil end
       if type(self.extendedWorldHUD) == "function" and self:extendedWorldHUD() then return nil end
+      -- (OmniUI draws its own arena behind the battle: Facets steps aside,
+      -- omni.lua) -Elvie
+      if require("mods.facets.omni").on(mod, self.game) then return nil end
       local look = setKey .. "|" .. tostring(mod.options:get("classicSceneColours"))
         .. "|" .. tostring(mod.options:get("bgColour")) .. "|" .. tostring(mod.options:get("paper"))
       if self._facetsScene == nil or self._facetsSceneSet ~= look then

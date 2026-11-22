@@ -2873,6 +2873,21 @@ do
   eq(D.api({ find = function() return nil end }), nil, "ds: nothing without Prism Importer")
 end
 
+-- OmniUI (omni.lua): on while it's running and its MODERN HIGH-RES UI is,
+-- and Facets steps aside for it -Elvie
+do
+  local O = require("mods.facets.omni")
+  local game = { mods = { modOptions = {} } }
+  local there = { find = function(id) return id == "omni_ui" and { id = id, exports = {} } or nil end, game = game }
+  check(O.on(there), "omni: OmniUI running, its UI on by default")
+  game.mods.modOptions.omni_ui = { overlay = false }
+  check(not O.on(there), "omni: ...and off with MODERN HIGH-RES UI off")
+  game.mods.modOptions.omni_ui = { overlay = true }
+  check(O.on(there, game), "omni: ...and on again")
+  check(not O.on({ find = function() return nil end, game = game }), "omni: nothing without OmniUI")
+  check(not O.on(nil), "omni: nothing without a mod")
+end
+
 -- WoobleView (wooble.lua): Facets' battle pictures tagged for its Battle
 -- Fit, once each, with their side, height and art; never another mod's -Elvie
 do
