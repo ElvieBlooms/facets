@@ -2900,6 +2900,9 @@ do
   eq(I.dsName({ name = "LEVEL_BALL" }), "level_ball", "items: HeartGold's Level Ball")
   eq(I.dsName({ name = "MIRACLEBERRY" }), "lum_berry", "items: MIRACLEBERRY is a Lum Berry")
   eq(I.dsName({ tm = "BUG" }), "tm89", "items: HeartGold's Bug disc")
+  local fs, fw, fh = I.fit(20, 18)
+  eq(fw .. "x" .. fh, "16x14", "items: an icon's art shrunk to fit the tile")
+  eq(I.fit(14, 12), 1, "items: ...and art that fits stays as it is")
   local x, y = I.place(100, 50, 24, 24, { 2, 3, 22, 21 })
   eq(x .. "," .. y, "96,45", "items: an icon centred on its tile, its foot on the tile's foot")
 end

@@ -9,8 +9,8 @@
 -- player's own dump through Prism Importer (0.4.0 or newer), which has
 -- Kurt's Apricorn balls and the Park Ball too. An item one look hasn't
 -- got is drawn from the other when it's there, and as the game's own ball
--- when neither has it. An icon stands on its tile, centred, as tall as
--- it is. Nothing from any game is included with Facets. -Elvie
+-- when neither has it. An icon is shrunk to fit its tile and stands on
+-- it, centred. Nothing from any game is included with Facets. -Elvie
 -- --------------------------------------------------
 
 local items = {}
@@ -145,6 +145,48 @@ function items.place(x, y, w, h, art)
   return math.floor(x + 8 - cx + 0.5), y + 16 - art[4]
 end
 
+-- How an icon's art of w x h is shrunk to fit the 16x16 tile: its scale,
+-- and its size there. Art that fits already stays as it is -Elvie
+function items.fit(w, h)
+  local s = math.min(1, 16 / math.max(w, h, 1))
+  return s, math.max(1, math.floor(w * s + 0.5)), math.max(1, math.floor(h * s + 0.5))
+end
+
+-- A smaller copy of an icon, fitted to the tile: each new pixel is the
+-- colour of the bit of the icon it covers, sampled 4x4, drawn where at
+-- least half of it is icon (so there's no blur, and no see-through edge
+-- for the GB filter to catch). nil when the art fits already -Elvie
+function items.shrink(data)
+  local art = items.artBox(data)
+  local aw, ah = art[3] - art[1], art[4] - art[2]
+  local s, ow, oh = items.fit(aw, ah)
+  if s >= 1 then return nil end
+  local out = love.image.newImageData(16, 16)
+  local ox, oy = math.floor((16 - ow) / 2), 16 - oh
+  local N = 4
+  for j = 0, oh - 1 do
+    for i = 0, ow - 1 do
+      local r, g, b, n = 0, 0, 0, 0
+      for v = 0, N - 1 do
+        for u = 0, N - 1 do
+          local sx = math.floor(art[1] + (i + (u + 0.5) / N) * aw / ow)
+          local sy = math.floor(art[2] + (j + (v + 0.5) / N) * ah / oh)
+          local pr, pg, pb, pa = data:getPixel(math.min(sx, art[3] - 1), math.min(sy, art[4] - 1))
+          if pa > 0.5 then r, g, b, n = r + pr, g + pg, b + pb, n + 1 end
+        end
+      end
+      if n * 2 >= N * N then out:setPixel(ox + i, oy + j, r / n, g / n, b / n, 1) end
+    end
+  end
+  return out
+end
+
+-- an icon fitted to the tile, or as it is if it can't be -Elvie
+function items.small(data)
+  local ok, small = pcall(items.shrink, data)
+  return ok and small or data
+end
+
 -- the art's box in an ImageData: { x0, y0, x1, y1 } (past the last) -Elvie
 function items.artBox(data)
   local w, h = data:getDimensions()
@@ -215,6 +257,7 @@ function items.init(mod, rows)
         for _, game in ipairs({ "firered", "leafgreen" }) do
           local data = gba.image(gba.read(game, "items/bag/icons/" .. n .. ".rgba"), 24, 24)
           if data then
+            data = items.small(data)
             local okImg, img = pcall(love.graphics.newImage, data)
             if okImg then
               img:setFilter("nearest", "nearest")
@@ -238,6 +281,7 @@ function items.init(mod, rows)
         if type(dsApi.imageData) == "function" then
           local okD, data = pcall(dsApi.imageData, "hgss", "item_icons", name)
           if okD and data then
+            data = items.small(data)
             local okImg, img = pcall(love.graphics.newImage, data)
             if okImg then
               img:setFilter("nearest", "nearest")

@@ -124,6 +124,7 @@ function items3.init(mod, rows, menu)
     local made = {}
     local function keep(key, data)
       if not data then return nil end
+      data = citems.small(data)
       local okImg, img = pcall(love.graphics.newImage, data)
       if not okImg then return nil end
       img:setFilter("nearest", "nearest")
