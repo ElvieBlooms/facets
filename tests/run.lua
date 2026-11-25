@@ -2930,6 +2930,26 @@ do
   eq(I3.slice(strip, 2), nil, "items3: ...and none past the end")
 end
 
+-- Thrown balls (classic_balls.lua, gbc_ball.lua): how the game's ball is
+-- turned, where it is, and Crystal's ball colours -Elvie
+do
+  local B = require("mods.facets.classic_balls")
+  eq(B.gen1Pose({ { tile = 2 }, { tile = 18 } }), "closed", "balls: Red's closed ball")
+  local p, d = B.gen1Pose({ { tile = 7, xf = true }, { tile = 6, xf = true } })
+  eq(p .. d, "tilt-1", "balls: Red's ball tipped the other way")
+  eq(select(2, B.gen1Pose({ { tile = 6 }, { tile = 7 } })), 1, "balls: ...and the first way")
+  eq(B.gen2Pose({ { index = 0 }, { index = 1 } }), "closed", "balls: Crystal's closed ball")
+  p, d = B.gen2Pose({ { index = 2, xflip = true }, { index = 3 } })
+  eq(p .. d, "tilt-1", "balls: Crystal's tipped ball, mirrored")
+  eq(B.gen2Pose({ { index = 7 }, { index = 7, xflip = true } }), "open", "balls: Crystal's open ball")
+  local cx, cy = B.middle({ { x = 40, y = 60 }, { x = 48, y = 60 }, { x = 40, y = 68 }, { x = 48, y = 68 } })
+  eq(math.floor(cx) .. "," .. math.floor(cy), "40,52", "balls: the middle of the ball's four tiles")
+  local G = require("mods.facets.gbc_ball")
+  local pals = G.parsePalettes("return {\n  battleObjects = {\n    PAL_BATTLE_OB_RED = {\n      { 255, 255, 255 },\n      { 248, 120, 80 },\n      { 200, 0, 0 },\n      { 0, 0, 0 },\n    },\n  },\n  other = {\n  },\n}")
+  eq(pals and pals.PAL_BATTLE_OB_RED[3][1], 200, "gbc ball: Crystal's ball colours read")
+  eq(G.COLOURS[3], "PAL_BATTLE_OB_YELLOW", "gbc ball: an Ultra Ball is yellow")
+end
+
 -- OmniUI (omni.lua): on while it's running and its MODERN HIGH-RES UI is,
 -- and Facets steps aside for it -Elvie
 do

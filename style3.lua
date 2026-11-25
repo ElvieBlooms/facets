@@ -14,7 +14,7 @@ style3.STYLES = {
     setFrlg = { OFF }, setRse = { OFF }, setItems = { "game" }, setTrainers = { OFF }, setMons = { OFF },
     gbcBattleBg = { "game" }, gbcFrame = { "game" }, gbcTextBox = { "match" }, gbcHud = { "game" } } },
   { "GBC", "gbc", {
-    setFrlg = { "gbc" }, setRse = { "gbc" }, setItems = { "game" }, setTrainers = { "gbcish", "gameboy" }, setMons = { "gbc_anim", "gbcish" },
+    setFrlg = { "gbc" }, setRse = { "gbc" }, setItems = { "gbc", "game" }, setTrainers = { "gbcish", "gameboy" }, setMons = { "gbc_anim", "gbcish" },
     gbcBattleBg = { "white" }, gbcFrame = { "1" }, gbcTextBox = { "match" }, gbcHud = { "gbc" } } },
   { "DS", "ds", {
     setFrlg = { "diego" }, setRse = { "diego" }, setItems = { "ds_hgss", "game" }, setTrainers = { "ds" },

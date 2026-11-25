@@ -8,10 +8,11 @@
 -- GBA: the game's own bag icons, 24x24 (Emerald's, or FireRed's and
 -- LeafGreen's), from the player's own imported game. HGSS: HeartGold's or
 -- SoulSilver's, 32x32, from the player's own dump through Prism Importer
--- (0.4.0 or newer). An item one hasn't got comes from the other, or stays
--- the game's ball. The GBC people (NPCS) bring the Game Boy's own Poké
--- Ball with them, for ITEMS: GAME (assets/npcs/gbc/gb.json). Nothing from
--- any game is included with Facets. -Elvie
+-- (0.4.0 or newer). GBC: Crystal's Poké Ball for every ball, on the map
+-- and in battle (gbc_ball.lua). An item one hasn't got comes from the
+-- other, or stays the game's ball. The GBC people (NPCS) bring the Game
+-- Boy's own Poké Ball with them, for ITEMS: GAME (assets/npcs/gbc/gb.json).
+-- Nothing from any game is included with Facets. -Elvie
 -- --------------------------------------------------
 
 local items3 = {}
@@ -20,6 +21,7 @@ local OFF = "game"
 items3.OFF = OFF
 items3.GBA = "gba"
 items3.DS = "ds_hgss"
+items3.GBC = "gbc"
 
 items3.POKE_BALL = 4 -- the item number of a Poké Ball, in every GBA game -Elvie
 items3.ITEM_VAR = 0x8000 -- an item ball's script puts its item here -Elvie
@@ -83,7 +85,7 @@ end
 
 function items3.init(mod, rows, menu)
   local ds = require("mods.facets.ds")
-  local choices = { { "GAME", OFF }, { "GBA", items3.GBA } }
+  local choices = { { "GAME", OFF }, { "GBA", items3.GBA }, { "GBC", items3.GBC } }
   local api = ds.api(mod)
   if api and ds.state(api, "hgss") ~= "absent" then choices[#choices + 1] = { "HGSS", items3.DS } end
   rows[#rows + 1] = { key = "setItems", type = "choice", label = "ITEMS", choices = choices, default = OFF }
@@ -99,6 +101,7 @@ function items3.init(mod, rows, menu)
         local v = mod.options:get("setItems") or OFF
         if v == items3.GBA then return { lines = { { text = "Items on the map: the bag's icons." } } } end
         if v == items3.DS then return { lines = { { text = "Items on the map: HeartGold's icons." } } } end
+        if v == items3.GBC then return { lines = { { text = "Crystal's Poké Balls, on the map and thrown." } } } end
         return { lines = { { text = "Items on the map: the game's Poké Balls." } } }
       end,
     })
@@ -180,8 +183,18 @@ function items3.init(mod, rows, menu)
       end
       return made.dsBall or nil
     end
+    -- GBC: every ball on the map is Crystal's Poké Ball -Elvie
+    local gbcBall = require("mods.facets.gbc_ball")
+    local function mapBall()
+      if made.gbc == nil then
+        local okB, data = pcall(gbcBall.mapBall)
+        made.gbc = okB and data and keep("gbc", data) or false
+      end
+      return made.gbc or nil
+    end
     local function icon(what)
       local look = mod.options:get("setItems")
+      if look == items3.GBC then return mapBall() end
       if what.gift then return look == items3.DS and dsBall() or nil end
       if look == items3.GBA then return gbaIcon(what) or dsIcon(what) end
       if look == items3.DS then return dsIcon(what) or gbaIcon(what) end
@@ -256,9 +269,43 @@ function items3.init(mod, rows, menu)
       return own(graphicsId, px, py, camX, camY, ...)
     end
 
+    -- GBC: the ball thrown in battle (and sent out) is Crystal's too, in
+    -- the colour Crystal gives that ball. The battle draws every ball
+    -- through Ui.ballQuad, closed, opening or open -Elvie
+    local thrown = {}
+    local okU, Ui = pcall(require, "src.core.game3.battle.ui")
+    if okU and type(Ui) == "table" and type(Ui.ballQuad) == "function" then
+      local ownQuad = Ui.ballQuad
+      Ui.ballQuad = function(ballId, frame, ...)
+        if mod.options:get("setItems") == items3.GBC then
+          local id = math.floor(tonumber(ballId) or 0)
+          if id < 0 or id > 11 then id = 0 end
+          local t = thrown[id]
+          if t == nil then
+            local okB, data = pcall(gbcBall.battleSheet, id)
+            t = false
+            if okB and data then
+              local okImg, img = pcall(love.graphics.newImage, data)
+              if okImg then
+                img:setFilter("nearest", "nearest")
+                t = { image = img, quads = {} }
+              end
+            end
+            thrown[id] = t
+          end
+          if t then
+            local f = math.max(0, math.min(2, math.floor(tonumber(frame) or 0)))
+            t.quads[f] = t.quads[f] or love.graphics.newQuad(f * 16, 0, 16, 16, 48, 16)
+            return t.image, t.quads[f], id
+          end
+        end
+        return ownQuad(ballId, frame, ...)
+      end
+    end
+
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
-        if type(change) == "table" and change.mod == mod.id and change.key == "setItems" then made = {} end
+        if type(change) == "table" and change.mod == mod.id and change.key == "setItems" then made = {}; thrown = {} end
       end)
     end
   end

@@ -49,6 +49,7 @@ function help.needsOf(key, value)
   if key == "setMons" and (value == "gbc_anim" or value == "gbcish") then return "crystal" end
   if (key == "gbcFrame" or key == "gbcTextBox") and value:match("^%d+$") then return "crystal" end
   if key == "gbcHud" and value == "gbc" then return "crystal" end
+  if key == "setItems" and value == "gbc" then return "crystal" end
   return nil
 end
 
@@ -177,18 +178,19 @@ help.TEXT = {
     },
   },
   classicItems = {
-    about = "The items lying on the map, which the game draws as Poké Balls: each one drawn as the item it is, a Potion, an Ultra Ball, a TM disc in its move's type's colour. A Poké Ball with a Pokémon in it shows as that look's own Poké Ball lying on the map. An item one look hasn't got comes from the other, or stays the game's ball.",
+    about = "The items lying on the map, which the game draws as Poké Balls: each one drawn as the item it is, a Potion, an Ultra Ball, a TM disc in its move's type's colour. A Poké Ball with a Pokémon in it shows as that look's own Poké Ball lying on the map. The ball you throw in battle is that look's too, Kurt's Apricorn balls and the Park Ball among HeartGold's. An item or ball one look hasn't got comes from the other, or stays the game's.",
     choices = {
       game = "The game's own Poké Balls.",
-      gba_firered = "FireRed's bag icons.",
-      ds_hgss = "HeartGold's bag icons, Kurt's Apricorn balls and the Park Ball among them.",
+      gba_firered = "FireRed's bag icons, and its thrown balls.",
+      ds_hgss = "HeartGold's bag icons and thrown balls, Kurt's Apricorn balls and the Park Ball among them.",
     },
   },
   setItems = {
-    about = "The items lying on the map, which the game draws as Poké Balls: each one drawn as the item it is, a Potion, a Rare Candy, a TM disc in its move's type's colour. A Poké Ball with a Pokémon in it stays the game's ball with GBA, and is HeartGold's own with HGSS. An item one look hasn't got comes from the other, or stays the game's ball. With GAME, the GBC people bring the Game Boy's Poké Ball with them.",
+    about = "The items lying on the map, which the game draws as Poké Balls: each one drawn as the item it is, a Potion, a Rare Candy, a TM disc in its move's type's colour. A Poké Ball with a Pokémon in it stays the game's ball with GBA, and is HeartGold's own with HGSS. An item one look hasn't got comes from the other, or stays the game's ball. GBC makes every ball Crystal's: the ones on the map, and the ones thrown and sent out in battle, in Crystal's colour for each ball. With GAME, the GBC people bring the Game Boy's Poké Ball with them.",
     choices = {
       game = "The game's own Poké Balls.",
       gba = "The bag's own icons.",
+      gbc = "Crystal's Poké Ball for every ball on the map, and Crystal's balls thrown in battle.",
       ds_hgss = "HeartGold's bag icons.",
     },
   },
