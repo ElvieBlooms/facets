@@ -1227,13 +1227,13 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,bgColour,sceneTime,battleTextBox,sceneBorders,sectionSpeed,prebuild,surround", "main: NPC rows, TRAINERS, POKEMON rows, then SPEED, then SURROUND")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,setItems,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,bgColour,sceneTime,battleTextBox,sceneBorders,sectionSpeed,prebuild,surround", "main: NPC rows, ITEMS, TRAINERS, POKEMON rows, then SPEED, then SURROUND")
   local trainerSets = {}
-  for _, c in ipairs(mod.rows[6].choices) do trainerSets[#trainerSets + 1] = c[1] end
+  for _, c in ipairs(mod.rows[7].choices) do trainerSets[#trainerSets + 1] = c[1] end
   eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
-  eq(mod.rows[6].default, "__off", "TRAINERS: OFF by default")
+  eq(mod.rows[7].default, "__off", "TRAINERS: OFF by default")
   local monSets = {}
-  for _, c in ipairs(mod.rows[9].choices) do monSets[#monSets + 1] = c[1] end
+  for _, c in ipairs(mod.rows[10].choices) do monSets[#monSets + 1] = c[1] end
   eq(table.concat(monSets, ","), "DS,GB EMERALD,GBC ANIM,GBC-ISH,OFF", "shipped: Pokémon sets DS, GB EMERALD, GBC ANIM and GBC-ISH, then OFF")
   package.loaded["src.core.game3.pokemon"] = nil
 end
@@ -1261,7 +1261,7 @@ for _, version in ipairs({ "firered", "emerald" }) do
   local tag = "screen (" .. version .. "): "
   local keys = {}
   for _, r in ipairs(M.allRows()) do keys[#keys + 1] = r.label end
-  eq(table.concat(keys, ","), frlg and "PRESETS,NPCS,TRAINERS,POKéMON,ANIMS,ANIMATION,YOUR SIDE,CREDITS" or "PRESETS,NPCS,TRAINERS,POKéMON,ANIMATION,YOUR SIDE,CREDITS",
+  eq(table.concat(keys, ","), frlg and "PRESETS,NPCS,ITEMS,TRAINERS,POKéMON,ANIMS,ANIMATION,YOUR SIDE,CREDITS" or "PRESETS,NPCS,ITEMS,TRAINERS,POKéMON,ANIMATION,YOUR SIDE,CREDITS",
     tag .. "the running game's rows only")
   -- YOUR SIDE: one row here for both options -Elvie
   local side
@@ -1293,8 +1293,9 @@ for _, version in ipairs({ "firered", "emerald" }) do
   eq(rows[1].valueLabel, "CUSTOM", tag .. "...CUSTOM with the settings mixed")
   eq(rows[2].key, frlg and "setFrlg" or "setRse", tag .. "NPCS is this family's SET")
   eq(rows[2].valueLabel, "COMMUNITY", tag .. "NPCS shows the set's label")
-  eq(rows[3].valueLabel, "OFF", tag .. "TRAINERS starts OFF")
-  eq(rows[4].valueLabel, "OFF", tag .. "POKEMON starts OFF")
+  eq(rows[3].valueLabel, "GAME", tag .. "ITEMS starts GAME")
+  eq(rows[4].valueLabel, "OFF", tag .. "TRAINERS starts OFF")
+  eq(rows[5].valueLabel, "OFF", tag .. "POKEMON starts OFF")
 
   -- START menu: PRISM above MODS, with FACETS and PERFORMANCE; OPTION
   -- menu: PRISM last -Elvie
@@ -2901,6 +2902,29 @@ do
   eq(I.dsName({ tm = "BUG" }), "tm89", "items: HeartGold's Bug disc")
   local x, y = I.place(100, 50, 24, 24, { 2, 3, 22, 21 })
   eq(x .. "," .. y, "96,45", "items: an icon centred on its tile, its foot on the tile's foot")
+end
+
+-- ITEMS on the GBA games (items3.lua): the item an item ball's script
+-- gives, and its names -Elvie
+do
+  local I3 = require("mods.facets.items3")
+  local CI = require("mods.facets.classic_items")
+  local ball = { { 32768, 34, op = "setorcopyvar" }, { 32769, 1, op = "setorcopyvar" }, { op = "callstd", std = 1 } }
+  eq(I3.itemOf(ball), 34, "items3: an item ball's item, from its script")
+  local names = I3.names({ NONE = 0, POTION = 13, POKE_BALL = 4, EXP_SHARE = 182, TM05 = 293 })
+  eq(I3.what(ball, { [34] = "CARBOS" }).name, "CARBOS", "items3: ...by name")
+  local trap = { { op = "lock" }, { 101, 34, op = "setwildbattle" } }
+  local w = I3.what(trap, names)
+  check(w.gift and w.number == 4 and w.name == "POKE_BALL", "items3: a ball with a Pokemon in it is a Poke Ball")
+  eq(names[0], nil, "items3: no item 0")
+  eq(I3.dsName({ name = "EXP_SHARE" }, CI.ALIASES), "exp__share", "items3: HeartGold's Exp. Share")
+  eq(I3.dsName({ name = "TM05" }, CI.ALIASES), "tm05", "items3: HeartGold's TM05")
+  eq(I3.dsName({ name = "TWISTED_SPOON" }, CI.ALIASES), "twistedspoon", "items3: one word in HeartGold")
+  eq(CI.dsName({ name = "TWISTEDSPOON" }), "twistedspoon", "items: Gold's TWISTEDSPOON in HeartGold")
+  eq(CI.gbaNumber({ name = "TWISTEDSPOON" }, { TWISTED_SPOON = 214 }), 214, "items: ...and in FireRed")
+  local strip = string.rep("a", 2304) .. string.rep("b", 2304)
+  eq(I3.slice(strip, 1):sub(1, 1), "b", "items3: Emerald's second icon")
+  eq(I3.slice(strip, 2), nil, "items3: ...and none past the end")
 end
 
 -- OmniUI (omni.lua): on while it's running and its MODERN HIGH-RES UI is,

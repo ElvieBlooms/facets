@@ -11,13 +11,13 @@ local OFF = "__off"
 -- used. NPCS is setFrlg or setRse, by the game's family -Elvie
 style3.STYLES = {
   { "GAME", "original", {
-    setFrlg = { OFF }, setRse = { OFF }, setTrainers = { OFF }, setMons = { OFF },
+    setFrlg = { OFF }, setRse = { OFF }, setItems = { "game" }, setTrainers = { OFF }, setMons = { OFF },
     gbcBattleBg = { "game" }, gbcFrame = { "game" }, gbcTextBox = { "match" }, gbcHud = { "game" } } },
   { "GBC", "gbc", {
-    setFrlg = { "gbc" }, setRse = { "gbc" }, setTrainers = { "gbcish", "gameboy" }, setMons = { "gbc_anim", "gbcish" },
+    setFrlg = { "gbc" }, setRse = { "gbc" }, setItems = { "game" }, setTrainers = { "gbcish", "gameboy" }, setMons = { "gbc_anim", "gbcish" },
     gbcBattleBg = { "white" }, gbcFrame = { "1" }, gbcTextBox = { "match" }, gbcHud = { "gbc" } } },
   { "DS", "ds", {
-    setFrlg = { "diego" }, setRse = { "diego" }, setTrainers = { "ds" },
+    setFrlg = { "diego" }, setRse = { "diego" }, setItems = { "ds_hgss", "game" }, setTrainers = { "ds" },
     setMons = { "ds_hgss", "ds_dppt", "ds_bw2", "bw_anim", "ds" },
     gbcBattleBg = { "scenery" }, gbcFrame = { "game" }, gbcTextBox = { "match" }, gbcHud = { "hgss", "game" } } },
 }

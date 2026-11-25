@@ -177,11 +177,19 @@ help.TEXT = {
     },
   },
   classicItems = {
-    about = "The items lying on the map, which the game draws as Poké Balls: each one drawn as the item it is, a Potion, an Ultra Ball, a TM disc in its move's type's colour. A Poké Ball with a Pokémon in it stays a Poké Ball, in the same look. An item one look hasn't got comes from the other, or stays the game's ball.",
+    about = "The items lying on the map, which the game draws as Poké Balls: each one drawn as the item it is, a Potion, an Ultra Ball, a TM disc in its move's type's colour. A Poké Ball with a Pokémon in it shows as that look's own Poké Ball lying on the map. An item one look hasn't got comes from the other, or stays the game's ball.",
     choices = {
       game = "The game's own Poké Balls.",
       gba_firered = "FireRed's bag icons.",
       ds_hgss = "HeartGold's bag icons, Kurt's Apricorn balls and the Park Ball among them.",
+    },
+  },
+  setItems = {
+    about = "The items lying on the map, which the game draws as Poké Balls: each one drawn as the item it is, a Potion, a Rare Candy, a TM disc in its move's type's colour. A Poké Ball with a Pokémon in it stays the game's ball with GBA, and is HeartGold's own with HGSS. An item one look hasn't got comes from the other, or stays the game's ball. With GAME, the GBC people bring the Game Boy's Poké Ball with them.",
+    choices = {
+      game = "The game's own Poké Balls.",
+      gba = "The bag's own icons.",
+      ds_hgss = "HeartGold's bag icons.",
     },
   },
   classicIcons = {

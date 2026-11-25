@@ -13,7 +13,7 @@
 -- achievements.lua adds a FACETS tab to Recomp Achievements when it's there.
 -- An NPC-only build drops "mons" from this list (and mons.lua,
 -- mon_names.lua and assets/mons/). -Elvie
-local PARTS = { "npcs", "foes", "mons", "gba_loop", "filter", "gbui", "prebuild", "achievements" }
+local PARTS = { "npcs", "items3", "foes", "mons", "gba_loop", "filter", "gbui", "prebuild", "achievements" }
 
 -- The Game Boy games get their own parts, set from the Mods manager: the
 -- Gen 3 ones above reach into Gen 3's engine and screens. -Elvie

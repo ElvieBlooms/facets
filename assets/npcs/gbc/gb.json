@@ -450,6 +450,11 @@
     "DEOXYS_N": {
       "icon": "humanshape",
       "palette": "PAL_OW_RED"
+    },
+    "ITEM_BALL": {
+      "sprite": "poke_ball",
+      "palette": "PAL_OW_RED",
+      "still": true
     }
   },
   "rse": {
@@ -903,6 +908,11 @@
     "ZIGZAGOON_2": {
       "icon": "fox",
       "palette": "PAL_OW_BROWN"
+    },
+    "ITEM_BALL": {
+      "sprite": "poke_ball",
+      "palette": "PAL_OW_RED",
+      "still": true
     }
   }
 }

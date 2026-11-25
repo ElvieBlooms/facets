@@ -179,7 +179,10 @@ function gen3.init(mod, ctx)
     local rel = type(ref) == "table" and ref.label or ref
     local w0, h0, n0 = vanilla.width, vanilla.height, vanilla.frameCount
     if not (w0 and h0 and n0) then return nil end
-    if vanilla.inanimate or n0 < 9 or w0 > WIDE or h0 > WIDE then
+    -- A Game Boy set's "still" things (the Poké Ball lying on the map)
+    -- stand in for one of the game's one-frame things -Elvie
+    local still = type(ref) == "table" and ref.gb and ref.gb.still and w0 <= 16 and h0 <= 16
+    if not still and (vanilla.inanimate or n0 < 9 or w0 > WIDE or h0 > WIDE) then
       warnOnce(mod, rel, "%s: the game's sprite here isn't a walking person (%dx%d, %d frames); skipping it",
         rel, w0, h0, n0)
       return nil

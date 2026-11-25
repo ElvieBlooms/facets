@@ -20,16 +20,45 @@ items.OFF = OFF
 items.GBA = "gba_firered"
 items.DS = "ds_hgss"
 
--- The Game Boy games' item names that the later games spell another
--- way, or have in another form: FireRed's name, HeartGold's -Elvie
+-- Item names that the other games spell another way, or have in another
+-- form, from any of Red to Emerald: FireRed's name, HeartGold's. Shared
+-- with FireRed to Emerald's ITEMS (items3.lua) -Elvie
 items.ALIASES = {
   ELIXER = { "ELIXIR", "elixir" },
   MAX_ELIXER = { "MAX_ELIXIR", "max_elixir" },
   PARLYZ_HEAL = { "PARALYZE_HEAL", "parlyz_heal" },
+  PARALYZE_HEAL = { "PARALYZE_HEAL", "parlyz_heal" },
   X_DEFEND = { "X_DEFEND", "x_defense" },
-  EXP_ALL = { "EXP_SHARE", "exp_share" },
+  GUARD_SPEC = { "GUARD_SPEC", "guard_spec_" },
+  EXP_ALL = { "EXP_SHARE", "exp__share" },
+  EXP_SHARE = { "EXP_SHARE", "exp__share" },
   ITEMFINDER = { "ITEMFINDER", "dowsing_mchn" },
   POKE_FLUTE = { "POKE_FLUTE", "poke_flute" },
+  S_S_TICKET = { "SS_TICKET", "s_s__ticket" },
+  SS_TICKET = { "SS_TICKET", "s_s__ticket" },
+  OAKS_PARCEL = { "OAKS_PARCEL", "parcel" },
+  VS_SEEKER = { "VS_SEEKER", "vs__seeker" },
+  UP_GRADE = { "UP_GRADE", "upgrade" },
+  BLACKBELT_I = { "BLACK_BELT", "black_belt" },
+  THUNDERSTONE = { "THUNDER_STONE", "thunderstone" },
+  THUNDER_STONE = { "THUNDER_STONE", "thunderstone" },
+  -- one word on the Game Boy and in HeartGold, two in FireRed -Elvie
+  BLACKGLASSES = { "BLACK_GLASSES", "blackglasses" },
+  BLACK_GLASSES = { "BLACK_GLASSES", "blackglasses" },
+  BRIGHTPOWDER = { "BRIGHT_POWDER", "brightpowder" },
+  BRIGHT_POWDER = { "BRIGHT_POWDER", "brightpowder" },
+  ENERGYPOWDER = { "ENERGY_POWDER", "energypowder" },
+  ENERGY_POWDER = { "ENERGY_POWDER", "energypowder" },
+  NEVERMELTICE = { "NEVER_MELT_ICE", "nevermeltice" },
+  NEVER_MELT_ICE = { "NEVER_MELT_ICE", "nevermeltice" },
+  SILVERPOWDER = { "SILVER_POWDER", "silverpowder" },
+  SILVER_POWDER = { "SILVER_POWDER", "silverpowder" },
+  TINYMUSHROOM = { "TINY_MUSHROOM", "tinymushroom" },
+  TINY_MUSHROOM = { "TINY_MUSHROOM", "tinymushroom" },
+  TWISTEDSPOON = { "TWISTED_SPOON", "twistedspoon" },
+  TWISTED_SPOON = { "TWISTED_SPOON", "twistedspoon" },
+  DEEP_SEA_TOOTH = { "DEEP_SEA_TOOTH", "deepseatooth" },
+  DEEP_SEA_SCALE = { "DEEP_SEA_SCALE", "deepseascale" },
   -- Gold, Silver and Crystal's berries, as the later games named them
   BERRY = { "ORAN_BERRY", "oran_berry" },
   GOLD_BERRY = { "SITRUS_BERRY", "sitrus_berry" },
@@ -135,6 +164,26 @@ function items.artBox(data)
   return { x0, y0, x1 + 1, y1 + 1 }
 end
 
+-- HeartGold's Poké Ball lying on the map, from Prism Importer: { image,
+-- art } or nil. Shared with items3.lua -Elvie
+function items.dsBall(dsApi)
+  if not (dsApi and type(dsApi.imageData) == "function") then return nil end
+  local okD, data = pcall(dsApi.imageData, "hgss", "overworld", "monstarball")
+  if not (okD and data) then return nil end
+  -- the first 16x16 frame of the sheet -Elvie
+  local w, h = data:getDimensions()
+  if w ~= 16 or h ~= 16 then
+    local okF, frame = pcall(love.image.newImageData, 16, 16)
+    if not okF then return nil end
+    frame:paste(data, 0, 0, 0, 0, 16, 16)
+    data = frame
+  end
+  local okImg, img = pcall(love.graphics.newImage, data)
+  if not okImg then return nil end
+  img:setFilter("nearest", "nearest")
+  return { image = img, art = items.artBox(data) }
+end
+
 function items.init(mod, rows)
   local gba = require("mods.facets.classic_gba")
   local ds = require("mods.facets.ds")
@@ -199,8 +248,40 @@ function items.init(mod, rows)
       end
       return made[key] or nil
     end
+    -- A ball with a Pokémon in it: the later games' own Poké Ball lying
+    -- on the map, FireRed's or HeartGold's, as big as the Game Boy's -Elvie
+    local function gbaBall()
+      if made.gbaBall == nil then
+        made.gbaBall = false
+        for _, at in ipairs({ { "firered", 92 }, { "leafgreen", 92 }, { "emerald", 59 } }) do
+          local data = gba.image(gba.read(at[1], "ow/" .. at[2] .. ".rgba"), 16, 16)
+          if data then
+            local okImg, img = pcall(love.graphics.newImage, data)
+            if okImg then
+              img:setFilter("nearest", "nearest")
+              made.gbaBall = { image = img, art = items.artBox(data) }
+            end
+            break
+          end
+        end
+      end
+      return made.gbaBall or nil
+    end
+    local function dsBall()
+      if made.dsBall == nil then
+        local dsApi = ds.api(mod)
+        if not (dsApi and ds.state(dsApi, "hgss") == "ready") then return nil end
+        made.dsBall = items.dsBall(dsApi) or false
+      end
+      return made.dsBall or nil
+    end
     local function icon(what)
       local look = mod.options:get("classicItems")
+      if what.gift then
+        if look == items.GBA then return gbaBall() or dsBall() or gbaIcon(what) or dsIcon(what) end
+        if look == items.DS then return dsBall() or gbaBall() or dsIcon(what) or gbaIcon(what) end
+        return nil
+      end
       if look == items.GBA then return gbaIcon(what) or dsIcon(what) end
       if look == items.DS then return dsIcon(what) or gbaIcon(what) end
       return nil
