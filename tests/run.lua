@@ -1227,13 +1227,13 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,setItems,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,bgColour,sceneTime,battleTextBox,sceneBorders,sectionSpeed,prebuild,surround", "main: NPC rows, ITEMS, TRAINERS, POKEMON rows, then SPEED, then SURROUND")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,setItems,sizeItems,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,bgColour,sceneTime,battleTextBox,sceneBorders,sectionSpeed,prebuild,surround", "main: NPC rows, ITEMS, TRAINERS, POKEMON rows, then SPEED, then SURROUND")
   local trainerSets = {}
-  for _, c in ipairs(mod.rows[7].choices) do trainerSets[#trainerSets + 1] = c[1] end
+  for _, c in ipairs(mod.rows[8].choices) do trainerSets[#trainerSets + 1] = c[1] end
   eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
-  eq(mod.rows[7].default, "__off", "TRAINERS: OFF by default")
+  eq(mod.rows[8].default, "__off", "TRAINERS: OFF by default")
   local monSets = {}
-  for _, c in ipairs(mod.rows[10].choices) do monSets[#monSets + 1] = c[1] end
+  for _, c in ipairs(mod.rows[11].choices) do monSets[#monSets + 1] = c[1] end
   eq(table.concat(monSets, ","), "DS,GB EMERALD,GBC ANIM,GBC-ISH,OFF", "shipped: Pokémon sets DS, GB EMERALD, GBC ANIM and GBC-ISH, then OFF")
   package.loaded["src.core.game3.pokemon"] = nil
 end
@@ -1261,7 +1261,7 @@ for _, version in ipairs({ "firered", "emerald" }) do
   local tag = "screen (" .. version .. "): "
   local keys = {}
   for _, r in ipairs(M.allRows()) do keys[#keys + 1] = r.label end
-  eq(table.concat(keys, ","), frlg and "PRESETS,NPCS,ITEMS,TRAINERS,POKéMON,ANIMS,ANIMATION,YOUR SIDE,CREDITS" or "PRESETS,NPCS,ITEMS,TRAINERS,POKéMON,ANIMATION,YOUR SIDE,CREDITS",
+  eq(table.concat(keys, ","), frlg and "PRESETS,NPCS,ITEMS,SIZE,TRAINERS,POKéMON,ANIMS,ANIMATION,YOUR SIDE,CREDITS" or "PRESETS,NPCS,ITEMS,SIZE,TRAINERS,POKéMON,ANIMATION,YOUR SIDE,CREDITS",
     tag .. "the running game's rows only")
   -- YOUR SIDE: one row here for both options -Elvie
   local side
@@ -1294,8 +1294,9 @@ for _, version in ipairs({ "firered", "emerald" }) do
   eq(rows[2].key, frlg and "setFrlg" or "setRse", tag .. "NPCS is this family's SET")
   eq(rows[2].valueLabel, "COMMUNITY", tag .. "NPCS shows the set's label")
   eq(rows[3].valueLabel, "GAME", tag .. "ITEMS starts GAME")
-  eq(rows[4].valueLabel, "OFF", tag .. "TRAINERS starts OFF")
-  eq(rows[5].valueLabel, "OFF", tag .. "POKEMON starts OFF")
+  eq(rows[4].valueLabel, "MEDIUM", tag .. "ITEMS' SIZE starts MEDIUM")
+  eq(rows[5].valueLabel, "OFF", tag .. "TRAINERS starts OFF")
+  eq(rows[6].valueLabel, "OFF", tag .. "POKEMON starts OFF")
 
   -- START menu: PRISM above MODS, with FACETS and PERFORMANCE; OPTION
   -- menu: PRISM last -Elvie
@@ -2903,6 +2904,9 @@ do
   local fs, fw, fh = I.fit(20, 18)
   eq(fw .. "x" .. fh, "16x14", "items: an icon's art shrunk to fit the tile")
   eq(I.fit(14, 12), 1, "items: ...and art that fits stays as it is")
+  local _, sw, sh = I.fit(20, 18, I.BOX.small)
+  eq(sw .. "x" .. sh, "12x11", "items: SMALL fits the art in 12x12")
+  eq(I.BOX.big, nil, "items: BIG keeps the icon as it is")
   local x, y = I.place(100, 50, 24, 24, { 2, 3, 22, 21 })
   eq(x .. "," .. y, "96,45", "items: an icon centred on its tile, its foot on the tile's foot")
 end

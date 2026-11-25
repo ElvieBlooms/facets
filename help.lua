@@ -194,6 +194,22 @@ help.TEXT = {
       ds_hgss = "HeartGold's bag icons.",
     },
   },
+  classicItemSize = {
+    about = "How big ITEMS draws the items lying on the map. A Poké Ball with a Pokémon in it stays the size of the game's own ball.",
+    choices = {
+      big = "Each icon as big as the bag shows it, standing on its tile.",
+      medium = "Shrunk to fit the tile, the size of the ball it replaces.",
+      small = "Smaller still, three quarters of the tile.",
+    },
+  },
+  sizeItems = {
+    about = "How big ITEMS draws the items lying on the map. A Poké Ball with a Pokémon in it, and GBC's balls, stay the size of the game's own ball.",
+    choices = {
+      big = "Each icon as big as the bag shows it, standing on its tile.",
+      medium = "Shrunk to fit the tile, the size of the ball it replaces.",
+      small = "Smaller still, three quarters of the tile.",
+    },
+  },
   classicIcons = {
     about = "The little Pokémon in your party list.",
     choices = {

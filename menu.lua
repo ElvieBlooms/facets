@@ -261,7 +261,7 @@ end
 -- The GBA games' topics, as Red to Crystal's (classic_menu.lua) -Elvie
 menu.TOPICS3 = {
   { id = "people", short = "The people, and the trainers.", label = "PEOPLE", about = "The people and items on the map, and the trainers you battle.",
-    keys = { "setFrlg", "setRse", "setItems", "setTrainers", "sizeTrainers" } },
+    keys = { "setFrlg", "setRse", "setItems", "sizeItems", "setTrainers", "sizeTrainers" } },
   { id = "pokemon", short = "Pokémon, and how they move.", label = "POKéMON", about = "Pokémon pictures, how they move, and your side.",
     keys = { "setMons", "animMons", "animMode", "backMons", "sizeMons" } },
   { id = "battle", short = "Battle scenes and boxes.", label = "BATTLE", about = "What stands behind each battle, and the battle boxes.",

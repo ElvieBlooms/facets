@@ -145,10 +145,16 @@ function items.place(x, y, w, h, art)
   return math.floor(x + 8 - cx + 0.5), y + 16 - art[4]
 end
 
--- How an icon's art of w x h is shrunk to fit the 16x16 tile: its scale,
--- and its size there. Art that fits already stays as it is -Elvie
-function items.fit(w, h)
-  local s = math.min(1, 16 / math.max(w, h, 1))
+-- SIZE: BIG draws an icon as it is, MEDIUM (the default) fits it to the
+-- 16x16 tile, and SMALL to 12x12, standing on the tile all the same -Elvie
+items.SIZES = { { "BIG", "big" }, { "MEDIUM", "medium" }, { "SMALL", "small" } }
+items.BOX = { medium = 16, small = 12 }
+
+-- How an icon's art of w x h is shrunk to fit a box (16, the tile, if not
+-- given): its scale, and its size there. Art that fits already stays as it
+-- is -Elvie
+function items.fit(w, h, box)
+  local s = math.min(1, (box or 16) / math.max(w, h, 1))
   return s, math.max(1, math.floor(w * s + 0.5)), math.max(1, math.floor(h * s + 0.5))
 end
 
@@ -156,10 +162,10 @@ end
 -- colour of the bit of the icon it covers, sampled 4x4, drawn where at
 -- least half of it is icon (so there's no blur, and no see-through edge
 -- for the GB filter to catch). nil when the art fits already -Elvie
-function items.shrink(data)
+function items.shrink(data, box)
   local art = items.artBox(data)
   local aw, ah = art[3] - art[1], art[4] - art[2]
-  local s, ow, oh = items.fit(aw, ah)
+  local s, ow, oh = items.fit(aw, ah, box)
   if s >= 1 then return nil end
   local out = love.image.newImageData(16, 16)
   local ox, oy = math.floor((16 - ow) / 2), 16 - oh
@@ -181,9 +187,12 @@ function items.shrink(data)
   return out
 end
 
--- an icon fitted to the tile, or as it is if it can't be -Elvie
-function items.small(data)
-  local ok, small = pcall(items.shrink, data)
+-- an icon at SIZE (size: "big", "medium" or "small"), or as it is if it
+-- can't be made smaller -Elvie
+function items.small(data, size)
+  local box = items.BOX[size or "medium"]
+  if not box then return data end
+  local ok, small = pcall(items.shrink, data, box)
   return ok and small or data
 end
 
@@ -233,6 +242,7 @@ function items.init(mod, rows)
   local api = ds.api(mod)
   if api and ds.state(api, "hgss") ~= "absent" then choices[#choices + 1] = { "HGSS", items.DS } end
   rows[#rows + 1] = { key = "classicItems", type = "choice", label = "  ITEMS", choices = choices, default = OFF }
+  rows[#rows + 1] = { key = "classicItemSize", type = "choice", label = "  SIZE", choices = items.SIZES, default = "medium" }
 
   return function()
     local okS, SpriteRenderer = pcall(require, "src.render.SpriteRenderer")
@@ -248,6 +258,16 @@ function items.init(mod, rows)
 
     -- icons made once each: { image, art } or false -Elvie
     local made = {}
+    -- a new SIZE: icons made again -Elvie
+    if mod.events and type(mod.events.on) == "function" then
+      mod.events:on("mod.options_changed", function(change)
+        if type(change) == "table" and change.mod == mod.id and change.key == "classicItemSize" then
+          for k in pairs(made) do
+            if k:sub(1, 3) == "gba" and k ~= "gbaBall" or k:sub(1, 3) == "ds:" then made[k] = nil end
+          end
+        end
+      end)
+    end
     local function gbaIcon(what)
       local n = items.gbaNumber(what, frItems)
       if not n then return nil end
@@ -257,7 +277,7 @@ function items.init(mod, rows)
         for _, game in ipairs({ "firered", "leafgreen" }) do
           local data = gba.image(gba.read(game, "items/bag/icons/" .. n .. ".rgba"), 24, 24)
           if data then
-            data = items.small(data)
+            data = items.small(data, mod.options:get("classicItemSize"))
             local okImg, img = pcall(love.graphics.newImage, data)
             if okImg then
               img:setFilter("nearest", "nearest")
@@ -281,7 +301,7 @@ function items.init(mod, rows)
         if type(dsApi.imageData) == "function" then
           local okD, data = pcall(dsApi.imageData, "hgss", "item_icons", name)
           if okD and data then
-            data = items.small(data)
+            data = items.small(data, mod.options:get("classicItemSize"))
             local okImg, img = pcall(love.graphics.newImage, data)
             if okImg then
               img:setFilter("nearest", "nearest")

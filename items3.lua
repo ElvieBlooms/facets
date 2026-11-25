@@ -89,12 +89,16 @@ function items3.init(mod, rows, menu)
   local api = ds.api(mod)
   if api and ds.state(api, "hgss") ~= "absent" then choices[#choices + 1] = { "HGSS", items3.DS } end
   rows[#rows + 1] = { key = "setItems", type = "choice", label = "ITEMS", choices = choices, default = OFF }
+  local citems = require("mods.facets.classic_items")
+  rows[#rows + 1] = { key = "sizeItems", type = "choice", label = "  SIZE", choices = citems.SIZES, default = "medium" }
 
   if menu then
     menu.register({
       rows = function()
         return { { key = "setItems", label = "ITEMS", who = "items", choices = choices,
-          value = mod.options:get("setItems") or OFF } }
+          value = mod.options:get("setItems") or OFF },
+          { key = "sizeItems", label = "SIZE", who = "items", choices = require("mods.facets.classic_items").SIZES,
+          value = mod.options:get("sizeItems") or "medium" } }
       end,
       preview = function(who)
         if who ~= "items" then return nil end
@@ -125,9 +129,9 @@ function items3.init(mod, rows, menu)
 
     -- icons made once each: { image, art } or false -Elvie
     local made = {}
-    local function keep(key, data)
+    local function keep(key, data, asIs)
       if not data then return nil end
-      data = citems.small(data)
+      if not asIs then data = citems.small(data, mod.options:get("sizeItems")) end
       local okImg, img = pcall(love.graphics.newImage, data)
       if not okImg then return nil end
       img:setFilter("nearest", "nearest")
@@ -188,7 +192,7 @@ function items3.init(mod, rows, menu)
     local function mapBall()
       if made.gbc == nil then
         local okB, data = pcall(gbcBall.mapBall)
-        made.gbc = okB and data and keep("gbc", data) or false
+        made.gbc = okB and data and keep("gbc", data, true) or false
       end
       return made.gbc or nil
     end
@@ -306,6 +310,7 @@ function items3.init(mod, rows, menu)
     if mod.events and type(mod.events.on) == "function" then
       mod.events:on("mod.options_changed", function(change)
         if type(change) == "table" and change.mod == mod.id and change.key == "setItems" then made = {}; thrown = {} end
+        if type(change) == "table" and change.mod == mod.id and change.key == "sizeItems" then made = {} end
       end)
     end
   end

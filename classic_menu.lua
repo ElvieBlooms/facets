@@ -40,7 +40,7 @@ end
 cmenu.TOPICS = {
   { id = "people", label = "PEOPLE", lead = "classicNpcs",
     about = "The people and items on the map, and the trainers you battle.",
-    keys = { "classicNpcs", "classicItems", "classicTrainers", "classicTrainerSize" } },
+    keys = { "classicNpcs", "classicItems", "classicItemSize", "classicTrainers", "classicTrainerSize" } },
   { id = "pokemon", label = "POKEMON", lead = "classicMons",
     about = "Pokémon pictures, how they move and how big they stand, and the Pokémon following you.",
     keys = { "classicMons", "classicPikachuBattle", "classicClefairyBattle", "animMode", "classicSide",
