@@ -2,6 +2,7 @@
 
 ## 1.3.3
 
+- **ITEMS** (Red to Crystal, under PEOPLE): the items lying on the map show as what they are, a Potion, an Ultra Ball, a TM disc in its move's type's colour, instead of a Poké Ball. **FIRERED** uses FireRed's bag icons, **HGSS** HeartGold's through Prism Importer 0.4.0 (with Kurt's Apricorn balls and the Park Ball). A Poké Ball with a Pokémon in it shows as a Poké Ball in the same look. The FIRERED and DS styles turn it on.
 - **OmniUI** (omni_ui by Lady Gaia): while its MODERN HIGH-RES UI is on, Facets steps aside for it. BATTLE UI sets aren't drawn (OmniUI draws the HP boxes), and BATTLE BG, SURROUND and BORDERS give way to its themed arena in Red, Blue, Yellow, Gold, Silver and Crystal battles. Facets' Pokémon, trainers and people stay, and its Pokémon show in OmniUI's screens.
 - **Kanto Reforged 1.8.0's EXP bar** (Red, Blue, Yellow) waits while a BATTLE UI set is showing in the wide battle, instead of being drawn over or under the set's box: the set has an EXP bar of its own.
 - **Fixed: a white strip past a name over a BATTLE BG** (Gold, Silver and Crystal): a name kept at its full length with spaces, as a translation mod's are, had the spaces' white paper printed past its end over the scene. Names are printed without their trailing spaces when a set is behind them.

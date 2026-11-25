@@ -176,6 +176,14 @@ help.TEXT = {
       front = "From the front.",
     },
   },
+  classicItems = {
+    about = "The items lying on the map, which the game draws as Poké Balls: each one drawn as the item it is, a Potion, an Ultra Ball, a TM disc in its move's type's colour. A Poké Ball with a Pokémon in it stays a Poké Ball, in the same look. An item one look hasn't got comes from the other, or stays the game's ball.",
+    choices = {
+      game = "The game's own Poké Balls.",
+      gba_firered = "FireRed's bag icons.",
+      ds_hgss = "HeartGold's bag icons, Kurt's Apricorn balls and the Park Ball among them.",
+    },
+  },
   classicIcons = {
     about = "The little Pokémon in your party list.",
     choices = {

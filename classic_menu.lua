@@ -39,8 +39,8 @@ end
 -- row shows -Elvie
 cmenu.TOPICS = {
   { id = "people", label = "PEOPLE", lead = "classicNpcs",
-    about = "The people on the map, and the trainers you battle.",
-    keys = { "classicNpcs", "classicTrainers", "classicTrainerSize" } },
+    about = "The people and items on the map, and the trainers you battle.",
+    keys = { "classicNpcs", "classicItems", "classicTrainers", "classicTrainerSize" } },
   { id = "pokemon", label = "POKEMON", lead = "classicMons",
     about = "Pokémon pictures, how they move and how big they stand, and the Pokémon following you.",
     keys = { "classicMons", "classicPikachuBattle", "classicClefairyBattle", "animMode", "classicSide",
@@ -82,11 +82,11 @@ end
 cmenu.STYLES = {
   { "GAME", "original", {
     classicNpcs = { OFF }, classicTrainers = { OFF }, classicMons = { OFF }, classicBattleBg = { "game" },
-    classicBattleUi = { "game" }, classicWindows = { "game" }, classicTextBox = { "match" } } },
+    classicBattleUi = { "game" }, classicWindows = { "game" }, classicTextBox = { "match" }, classicItems = { "game" } } },
   { "FIRERED", "firered", {
     classicNpcs = { "gba_firered" }, classicTrainers = { "gba_firered" }, classicMons = { "gba_firered" },
     classicBattleBg = { "gba_frlg" }, classicBattleUi = { "game" }, classicWindows = { "fr:1" },
-    classicTextBox = { "match" } } },
+    classicTextBox = { "match" }, classicItems = { "gba_firered", "game" } } },
   { "EMERALD", "emerald", {
     classicNpcs = { "gba_emerald" }, classicTrainers = { "gba_emerald" }, classicMons = { "gba_emerald" },
     classicBattleBg = { "gba_emerald" }, classicBattleUi = { "game" }, classicWindows = { "em:1" },
@@ -94,7 +94,7 @@ cmenu.STYLES = {
   { "DS", "ds", {
     classicNpcs = { "diego" }, classicTrainers = { "ds" }, classicMons = { "ds_hgss", "ds_dppt", "ds_bw2", "ds" },
     classicBattleBg = { "scenery" }, classicBattleUi = { "hgss" }, classicWindows = { "game" },
-    classicTextBox = { "match" } } },
+    classicTextBox = { "match" }, classicItems = { "ds_hgss", "game" } } },
 }
 cmenu.CUSTOM = "custom"
 

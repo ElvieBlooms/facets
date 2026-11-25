@@ -2873,6 +2873,36 @@ do
   eq(D.api({ find = function() return nil end }), nil, "ds: nothing without Prism Importer")
 end
 
+-- ITEMS (classic_items.lua): what an item ball shows, and its icon's
+-- names in FireRed and HeartGold -Elvie
+do
+  local I = require("mods.facets.classic_items")
+  local data = { items = { POTION = { index = 18 }, TM_FIRE_PUNCH = { index = 200, teaches = "FIRE_PUNCH" },
+    TM_CURSE = { index = 192, teaches = "CURSE" } },
+    moves = { FIRE_PUNCH = { type = "FIRE" }, BLIZZARD = { type = "ICE" }, PSYCHIC_M = { type = "PSYCHIC_TYPE" },
+      CURSE = { type = "CURSE_TYPE" } } }
+  eq(I.what({ item = "POTION" }, data, "SPRITE_POKE_BALL").name, "POTION", "items: Red's item ball")
+  eq(I.what({ item = "TM_BLIZZARD" }, data, "SPRITE_POKE_BALL").tm, "ICE", "items: Red's TM by its move's type")
+  eq(I.what({ itemball = { item = 18 } }, data, "SPRITE_POKE_BALL").name, "POTION", "items: Gold's item ball by number")
+  eq(I.what({ itemball = { item = 200 } }, data, "SPRITE_POKE_BALL").tm, "FIRE", "items: Gold's TM by what it teaches")
+  eq(I.what({ itemball = { item = 192 } }, data, "SPRITE_POKE_BALL").tm, "NORMAL", "items: Curse's ??? type is a Normal disc")
+  local gift = I.what({ item = "0" }, data, "SPRITE_POKE_BALL")
+  check(gift.gift and gift.name == "POKE_BALL", "items: a ball with a Pokemon in it is a Poke Ball")
+  eq(I.what({ item = "POTION" }, data, "SPRITE_YOUNGSTER"), nil, "items: only balls")
+  eq(I.what({ itemball = { item = 999 } }, data, "SPRITE_POKE_BALL"), nil, "items: an unknown item stays the ball")
+  local fr = { POTION = 13, ELIXIR = 36, TM05 = 293, TM35 = 323, TM24 = 312 }
+  eq(I.gbaNumber({ name = "POTION" }, fr), 13, "items: FireRed's Potion")
+  eq(I.gbaNumber({ name = "ELIXER" }, fr), 36, "items: Red's ELIXER is FireRed's ELIXIR")
+  eq(I.gbaNumber({ tm = "FIRE" }, fr), 323, "items: a Fire TM is FireRed's TM35 disc")
+  eq(I.gbaNumber({ tm = "BUG" }, fr), 293, "items: no Bug TM in FireRed, a Normal disc")
+  eq(I.gbaNumber({ name = "LEVEL_BALL" }, fr), nil, "items: FireRed has no Level Ball")
+  eq(I.dsName({ name = "LEVEL_BALL" }), "level_ball", "items: HeartGold's Level Ball")
+  eq(I.dsName({ name = "MIRACLEBERRY" }), "lum_berry", "items: MIRACLEBERRY is a Lum Berry")
+  eq(I.dsName({ tm = "BUG" }), "tm89", "items: HeartGold's Bug disc")
+  local x, y = I.place(100, 50, 24, 24, { 2, 3, 22, 21 })
+  eq(x .. "," .. y, "96,45", "items: an icon centred on its tile, its foot on the tile's foot")
+end
+
 -- OmniUI (omni.lua): on while it's running and its MODERN HIGH-RES UI is,
 -- and Facets steps aside for it -Elvie
 do

@@ -461,6 +461,8 @@ Everyone a set doesn't have comes from the others, then from the fill-in sets, w
 
 A person's own name is looked for in every set before any stand-in, so a fill-in's real Sage beats a set's Expert. Between them, the sets cover every person in all six games. Pokémon on the map, objects, the player and the rival stay the game's own; Crystal Lens and Emerald Lens draw the player and the rival. Changing the set redraws everyone on the map straight away.
 
+**ITEMS**, for the items lying on the map, which the games draw as Poké Balls: **GAME** (the default), **FIRERED** (FireRed's bag icons, from your own imported FireRed or LeafGreen) or **HGSS** (HeartGold's, from your own dump through Prism Importer 0.4.0 or newer, when you've picked one; it has Kurt's Apricorn balls and the Park Ball too). Each item ball shows the item it holds: a Potion, an Ultra Ball, a TM disc in the colour of its move's type. A Poké Ball with a Pokémon in it, like the starters on the table, shows as a Poké Ball in the same look. An item one look hasn't got comes from the other, and stays the game's ball when neither has it. The icons stand on their tile, as tall as they are.
+
 **PIKACHU** (Yellow only), for your partner on the map: **GAME** (Yellow's own, the default), **HGSS** (HeartGold and SoulSilver's walking Pikachu, from your own dump through Prism Importer, when you've picked one, stepping with both feet as HeartGold's does) or one of seven looks, which work whatever the NPC set: **HAT** (Ash's cap), **BELLE**, **ROCK STAR**, **PHD**, **POP STAR**, **LIBRE** and **COSPLAY**.
 
 **CLEFAIRY** (Yellow with Pokémon Pink's mods): with Pink's partner mod on, your partner is Clefairy, so the PIKACHU row becomes a CLEFAIRY row: **GAME** (Pink's own walking Clefairy, the default), **HGSS** and **B2W2** (their walking Clefairy, from your own dumps through Prism Importer, when you've picked them), and **BADASSBILL** (GBA-style, by Badassbill). Under POKEMON its battle row is **CLEFAIRY** too: **MATCH** (the POKEMON set, like any Pokémon), **GAME** (Yellow's own) or any POKEMON set.
@@ -645,6 +647,7 @@ None of this is included: Facets reads it while you play from the games you impo
 - **TRAINERS: GBC-ISH and GAME BOY:** Gen 1/2 trainer pictures and Crystal's colours from your imported games, and the game's own trainer pictures made Game Boy while you play.
 - **FIRERED and EMERALD (Game Boy games):** people, trainer pictures and Pokémon from your imported FireRed, LeafGreen and Emerald; **FR/LG ANIMS** reads Emerald's animations the same way.
 - **WINDOWS: FIRERED (Game Boy games):** FireRed's window frames and text box from your imported game.
+- **ITEMS: FIRERED and HGSS:** FireRed's bag icons from your imported FireRed or LeafGreen, HeartGold's from your own dump through Prism Importer.
 - **WINDOWS and BATTLE UI: GBC:** Crystal's window frames, HP and EXP bars, HUD brackets and bar colours from your imported Crystal, Gold or Silver.
 
 ### Code and data

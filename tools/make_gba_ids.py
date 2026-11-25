@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes gba_ids.lua: FireRed's and Emerald's overworld graphics ids and
-trainer picture ids by name, from gen1recomp's constant tables (made from
+trainer picture ids, and FireRed's item numbers, by name, from gen1recomp's constant tables (made from
 pret's pokefirered and pokeemerald headers). The Gen 1/2 GBA look uses
 them to find pictures in the player's own imported games, since a Gen 2
 game can't load the engine's Gen 3 modules -Elvie
@@ -33,16 +33,23 @@ def main():
     out_path = sys.argv[2] if len(sys.argv) > 2 else "gba_ids.lua"
     base = os.path.join(engine, "src", "core", "game3", "constants")
     lines = ["-- FireRed's and Emerald's overworld graphics ids and trainer picture",
-             "-- ids, by name. Made by tools/make_gba_ids.py from gen1recomp's",
+             "-- ids, and FireRed's item numbers, by name. Made by tools/make_gba_ids.py from gen1recomp's",
              "-- constant tables (pret's pokefirered and pokeemerald headers). -Elvie",
              "return {"]
     for game in GAMES:
         ow = table(os.path.join(base, game, "event_objects.lua"), "OBJ_EVENT_GFX_")
         pics = table(os.path.join(base, game, "trainer_classes.lua"), "TRAINER_PIC_")
+        sets = [("ow", ow), ("pics", pics)]
+        # FireRed's bag icons are kept by item number (Emerald's import has none) -Elvie
+        if game == "firered":
+            sets.append(("items", table(os.path.join(base, game, "items.lua"), "ITEM_")))
         lines.append(f"  {game} = {{")
-        for key, rows in (("ow", ow), ("pics", pics)):
+        for key, rows in sets:
             lines.append(f"    {key} = {{")
             for name, num in sorted(rows.items(), key=lambda r: r[1]):
+                # (unused slots, ITEM_034 and the like, have no name to use) -Elvie
+                if not re.match(r"[A-Za-z_]", name):
+                    continue
                 lines.append(f"      {name} = {num},")
             lines.append("    },")
         lines.append("  },")
