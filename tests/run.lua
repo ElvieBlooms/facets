@@ -2954,6 +2954,17 @@ do
   eq(G.COLOURS[3], "PAL_BATTLE_OB_YELLOW", "gbc ball: an Ultra Ball is yellow")
 end
 
+-- MAP TIME (filter.lua): the light fades in and out -Elvie
+do
+  local F = require("mods.facets.filter")
+  local night = { 0.58, 0.64, 0.9 }
+  eq(F.mapBlend(night, 0), nil, "map time: no light at 0")
+  eq(F.mapBlend(night, 1), night, "map time: the hour's light at 1")
+  local half = F.mapBlend(night, 0.5)
+  eq(math.floor(half[1] * 100 + 0.5), 79, "map time: halfway between white and the light")
+  eq(F.mapBlend(nil, 1), nil, "map time: no light when there's none to fade")
+end
+
 -- OmniUI (omni.lua): on while it's running and its MODERN HIGH-RES UI is,
 -- and Facets steps aside for it -Elvie
 do

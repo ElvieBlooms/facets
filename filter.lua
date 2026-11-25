@@ -513,6 +513,14 @@ function filter.settings(get)
     valueOf(filter.PAPERS, get("paper"), "off")
 end
 
+-- MAP TIME's light coming or going: lerped from no light (white) to the
+-- hour's light by amount, 0 to 1. nil when there's none -Elvie
+function filter.mapBlend(tint, amount)
+  if not tint or amount <= 0 then return nil end
+  if amount >= 1 then return tint end
+  return { 1 + (tint[1] - 1) * amount, 1 + (tint[2] - 1) * amount, 1 + (tint[3] - 1) * amount }
+end
+
 -- Whether the whole-screen pass has anything to do. -Elvie
 function filter.screenOn(look, where, dots, _, paper)
   return (look ~= "off" and where == "screen") or dots == "on" or (paper ~= nil and paper ~= "off")
@@ -1100,29 +1108,54 @@ function filter.init(mod, rows, menu)
   -- is read for DOTS. -Elvie
   -- MAP TIME's light for Red, Blue and Yellow's map now, or nil: on the
   -- outdoor maps only (as Gold, Silver and Crystal's houses and caves keep
-  -- their colours), read once a second. Morning a soft gold, evening a
-  -- rose, night a deep blue, a little lighter than the battle scenes'
-  -- so the map still reads -Elvie
+  -- their colours). Morning a soft gold, evening a rose, night a deep blue,
+  -- a little lighter than the battle scenes' so the map still reads -Elvie
   filter.MAP_LIGHT = { MORN = { 1, 0.94, 0.84 }, EVE = { 0.97, 0.8, 0.74 }, NITE = { 0.58, 0.64, 0.9 } }
   filter.MAP_OUTDOORS = { OVERWORLD = true, PLATEAU = true }
-  local mapAt, mapTint = -1, nil
+  -- how long the light takes to come or go, in seconds -Elvie
+  filter.MAP_FADE = 0.2
+
+  -- The hour's light, read once a second, and whether the map is outdoors,
+  -- worked out once for each map, as soon as the map changes (it used to
+  -- wait for the next second too, so the light stayed on for a moment
+  -- going indoors). Turning MAP TIME on, or a new hour, fades over
+  -- MAP_FADE -Elvie
+  local hourAt, hourTint = -1, nil
+  local mapSeen, mapOut = nil, false
+  local amount, lastTint, lastAt = 0, nil, nil
   filter.mapTimeWanted = function() return get("mapTime") == "on" end
   function filter.mapLight()
-    if get("mapTime") ~= "on" then return nil end
+    if get("mapTime") ~= "on" then amount, lastAt = 0, nil return nil end
     local now = os.time()
-    if now == mapAt then return mapTint end
-    mapAt, mapTint = now, nil
-    local tiles
+    if now ~= hourAt then
+      hourAt = now
+      local okS, sc = pcall(require, "mods.facets.classic_scenes")
+      local daytime = okS and type(sc.daytime) == "function" and sc.daytime(tonumber(os.date("%H"))) or "DAY"
+      hourTint = filter.MAP_LIGHT[daytime]
+    end
+    local map
     pcall(function()
       local ow = require("src.world.WorldAPI").new(mod.game):overworld()
-      local def = type(ow) == "table" and type(ow.map) == "table" and ow.map.def or nil
-      tiles = def and def.tileset
+      map = type(ow) == "table" and type(ow.map) == "table" and ow.map or nil
     end)
-    if not filter.MAP_OUTDOORS[tostring(tiles)] then return nil end
-    local okS, sc = pcall(require, "mods.facets.classic_scenes")
-    local daytime = okS and type(sc.daytime) == "function" and sc.daytime(tonumber(os.date("%H"))) or "DAY"
-    mapTint = filter.MAP_LIGHT[daytime]
-    return mapTint
+    local moved = false
+    if map ~= mapSeen then
+      moved = mapSeen ~= nil
+      mapSeen = map
+      local def = map and map.def
+      mapOut = def and filter.MAP_OUTDOORS[tostring(def.tileset)] and true or false
+    end
+    local target = mapOut and hourTint or nil
+    if target then lastTint = target end
+    -- A new map comes in while the screen is dark (a door, a warp), so its
+    -- light is set at once, unseen. A new hour fades -Elvie
+    if moved then amount = target and 1 or 0 end
+    local t = love.timer and love.timer.getTime() or 0
+    local dt = lastAt and math.max(0, math.min(t - lastAt, 0.1)) or 0
+    lastAt = t
+    local step = filter.MAP_FADE > 0 and dt / filter.MAP_FADE or 1
+    if target then amount = math.min(1, amount + step) else amount = math.max(0, amount - step) end
+    return filter.mapBlend(lastTint, amount)
   end
   if mod.hooks and type(mod.hooks.wrap) == "function" then
     mod.hooks:wrap("render.compose", function(nextFn, renderer, ctx)

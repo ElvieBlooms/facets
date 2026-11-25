@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.4
+
+- **MAP TIME** (Red, Blue, Yellow): the hour's light now goes off the moment you step through a door, while the screen is dark, and comes back the moment you step out, instead of staying on for up to a second in the house (or staying off outside). Turning MAP TIME on, or the hour changing, fades the light in or out.
+
 ## 1.3.3
 
 - **ITEMS** (Red to Crystal, under PEOPLE): the items lying on the map show as what they are, a Potion, an Ultra Ball, a TM disc in its move's type's colour, instead of a Poké Ball. **FIRERED** uses FireRed's bag icons, **HGSS** HeartGold's through Prism Importer 0.4.0 (with Kurt's Apricorn balls and the Park Ball). A Poké Ball with a Pokémon in it shows as that look's own Poké Ball lying on the map, FireRed's or HeartGold's. The FIRERED and DS styles turn it on. **SIZE** under it: **MEDIUM** (the default) fits each icon to its tile, the size of the ball it replaces, **BIG** draws it as big as the bag does, and **SMALL** smaller still.
