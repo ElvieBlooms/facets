@@ -1115,41 +1115,55 @@ function filter.init(mod, rows, menu)
   -- how long the light takes to come or go, in seconds -Elvie
   filter.MAP_FADE = 0.2
 
-  -- The hour's light, read once a second, and whether the map is outdoors,
-  -- worked out once for each map, as soon as the map changes (it used to
-  -- wait for the next second too, so the light stayed on for a moment
-  -- going indoors). Turning MAP TIME on, or a new hour, fades over
-  -- MAP_FADE -Elvie
+  -- Whether the map is outdoors is worked out when the game says a new
+  -- map has come in (map.entered: a door, a warp, a connection), with the
+  -- map in hand, so nothing is looked up each frame. A door's map comes in
+  -- while the screen is dark, so its light is set at once, unseen (it
+  -- used to wait for the next second, and the light stayed on in the house
+  -- for a moment). The hour's light is read once a second, and the map is
+  -- looked up then too, for a map that came in without a word (a loaded
+  -- save). Turning MAP TIME on, or a new hour, fades over MAP_FADE -Elvie
   local hourAt, hourTint = -1, nil
   local mapSeen, mapOut = nil, false
   local amount, lastTint, lastAt = 0, nil, nil
+  local function outdoors(map)
+    local def = type(map) == "table" and map.def or nil
+    return def and filter.MAP_OUTDOORS[tostring(def.tileset)] and true or false
+  end
+  local function seeMap(map)
+    if map == mapSeen then return end
+    local moved = mapSeen ~= nil
+    mapSeen, mapOut = map, outdoors(map)
+    if moved then amount = (mapOut and hourTint) and 1 or 0 end
+  end
+  if mod.events and type(mod.events.on) == "function" then
+    mod.events:on("map.entered", function(payload)
+      if type(payload) == "table" and type(payload.map) == "table" and get("mapTime") == "on" then
+        seeMap(payload.map)
+      end
+    end)
+  end
   filter.mapTimeWanted = function() return get("mapTime") == "on" end
   function filter.mapLight()
-    if get("mapTime") ~= "on" then amount, lastAt = 0, nil return nil end
+    if get("mapTime") ~= "on" then amount, lastAt, mapSeen = 0, nil, nil return nil end
     local now = os.time()
     if now ~= hourAt then
       hourAt = now
       local okS, sc = pcall(require, "mods.facets.classic_scenes")
       local daytime = okS and type(sc.daytime) == "function" and sc.daytime(tonumber(os.date("%H"))) or "DAY"
       hourTint = filter.MAP_LIGHT[daytime]
-    end
-    local map
-    pcall(function()
-      local ow = require("src.world.WorldAPI").new(mod.game):overworld()
-      map = type(ow) == "table" and type(ow.map) == "table" and ow.map or nil
-    end)
-    local moved = false
-    if map ~= mapSeen then
-      moved = mapSeen ~= nil
-      mapSeen = map
-      local def = map and map.def
-      mapOut = def and filter.MAP_OUTDOORS[tostring(def.tileset)] and true or false
+      pcall(function()
+        local ow = require("src.world.WorldAPI").new(mod.game):overworld()
+        if type(ow) == "table" and type(ow.map) == "table" then seeMap(ow.map) end
+      end)
     end
     local target = mapOut and hourTint or nil
     if target then lastTint = target end
-    -- A new map comes in while the screen is dark (a door, a warp), so its
-    -- light is set at once, unseen. A new hour fades -Elvie
-    if moved then amount = target and 1 or 0 end
+    -- (settled: nothing to fade) -Elvie
+    if (target and amount >= 1) or (not target and amount <= 0) then
+      lastAt = nil
+      return target
+    end
     local t = love.timer and love.timer.getTime() or 0
     local dt = lastAt and math.max(0, math.min(t - lastAt, 0.1)) or 0
     lastAt = t

@@ -2,7 +2,7 @@
 
 ## 1.3.4
 
-- **MAP TIME** (Red, Blue, Yellow): the hour's light now goes off the moment you step through a door, while the screen is dark, and comes back the moment you step out, instead of staying on for up to a second in the house (or staying off outside). Turning MAP TIME on, or the hour changing, fades the light in or out.
+- **MAP TIME** (Red, Blue, Yellow): the hour's light now goes off the moment you step through a door, while the screen is dark, and comes back the moment you step out, instead of staying on for up to a second in the house (or staying off outside). It listens for the game saying a new map has come in, so nothing extra runs each frame. Turning MAP TIME on, or the hour changing, fades the light in or out.
 
 ## 1.3.3
 
