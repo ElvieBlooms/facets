@@ -211,17 +211,19 @@ help.TEXT = {
     },
   },
   classicClearHud = {
-    about = "Gold, Silver and Crystal: the HP boxes over a BATTLE BG without their white, the scene showing through round the letters and bars. A thin white edge stays round the letters and lines so they still read, as Red, Blue and Yellow's do. Only with a BATTLE BG on.",
+    about = "The battle's boxes over a BATTLE BG without their white, the scene showing through. HUD clears the HP boxes (Gold, Silver and Crystal; Red, Blue and Yellow's are clear already). ALL clears those and takes away the text box and the menus' boxes too, leaving only the battle's words and the menus' choices. A thin white edge stays round the letters and lines so they read.",
     choices = {
-      off = "The boxes keep the game's white behind them.",
-      on = "The boxes are clear.",
+      off = "The boxes as the game draws them.",
+      hud = "The HP boxes without their white.",
+      all = "No boxes at all: just the HP boxes' letters and bars, and the words.",
     },
   },
   clearHud = {
-    about = "The HP boxes without their boxes: the name, level, HP bar, HP numbers and EXP bar stand over the battle on their own, each letter and line with a thin white edge so it reads over the scene. Works with the game's own boxes and with any BATTLE UI set.",
+    about = "The battle without its boxes. HUD takes away the HP boxes, leaving the name, level, HP bar, HP numbers and EXP bar standing over the battle on their own. ALL takes away the text box and the menus' frames too, leaving only the battle's words and the menus' choices, the scene carrying on to the bottom of the screen. Every letter and line keeps a thin edge so it reads over the scene. Works with the game's own boxes and with any BATTLE UI set.",
     choices = {
-      off = "The HP boxes as they're drawn.",
-      on = "No boxes, just what's in them.",
+      off = "The boxes as they're drawn.",
+      hud = "No HP boxes, just what's in them.",
+      all = "No boxes at all: just the words.",
     },
   },
   classicIcons = {

@@ -2968,6 +2968,9 @@ end
 -- CLEAR HUD on the GBA games (clearhud3.lua): what's taken out -Elvie
 do
   local C = require("mods.facets.clearhud3")
+  eq(select(2, C.parts("all")), true, "clear hud: ALL clears the text boxes")
+  eq(table.concat({ tostring(C.parts("on")), tostring(select(2, C.parts("on"))) }, ","), "true,false", "clear hud: an early ON is HUD")
+  eq(C.parts("off"), false, "clear hud: OFF clears nothing")
   check(C.isPaper(1, 1, 27 / 31), "clear hud: FireRed's cream is paper")
   check(C.isPaper(27 / 31, 26 / 31, 22 / 31), "clear hud: ...and the letters' pale shadow")
   check(C.isPaper(0, 0, 0, 0), "clear hud: nothing is paper")

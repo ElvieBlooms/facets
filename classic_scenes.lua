@@ -707,6 +707,24 @@ local function startGen1(mod, sceneFor)
       and not grey() and not (type(self.extendedWorldHUD) == "function" and self:extendedWorldHUD())
       and sceneFor(self)
   end
+  -- CLEAR HUD: ALL: no text box or menu boxes on the normal screen, the
+  -- words left over the scene, rimmed like the HUDs' (the boxes' frames
+  -- and white aren't drawn, so the sheet stays clear there) -Elvie
+  if type(BattleState.drawTextArea) == "function" then
+    local okF, Font = pcall(require, "src.render.Font")
+    local ownText = BattleState.drawTextArea
+    BattleState.drawTextArea = function(self, ...)
+      if not (okF and type(Font) == "table" and mod.options:get("classicClearHud") == "all" and onScreen(self)) then
+        return ownText(self, ...)
+      end
+      local box = Font.drawBox
+      Font.drawBox = function() love.graphics.setColor(0, 0, 0, 1) end
+      local results = { pcall(ownText, self, ...) }
+      Font.drawBox = box
+      if not results[1] then error(results[2], 0) end
+      return unpack(results, 2)
+    end
+  end
   if type(BattleState.drawHUDs) == "function" then
     local ownHUDs = BattleState.drawHUDs
     BattleState.drawHUDs = function(self, ...)
@@ -792,10 +810,10 @@ function scenes.init(mod, rows)
   rows[#rows + 1] = { key = "bgColour", type = "choice", label = "BG COLOR",
     choices = require("mods.facets.filter").BG_COLOURS, default = "paper" }
   rows[#rows + 1] = { key = "sceneBorders", type = "choice", label = "BORDERS", choices = scenes.BORDERS, default = "blur" }
-  if gen == 2 then
-    rows[#rows + 1] = { key = "classicClearHud", type = "choice", label = "CLEAR HUD",
-      choices = { { "OFF", "off" }, { "ON", "on" } }, default = "off" }
-  end
+  -- (Red, Blue and Yellow's HP boxes are clear already: ALL only) -Elvie
+  rows[#rows + 1] = { key = "classicClearHud", type = "choice", label = "CLEAR HUD",
+    choices = gen == 2 and { { "OFF", "off" }, { "HUD", "hud" }, { "ALL", "all" } } or { { "OFF", "off" }, { "ALL", "all" } },
+    default = "off" }
   scenes.borders = function() return mod.options:get("sceneBorders") or "blur" end
   -- (Red, Blue and Yellow have no clock: theirs is your own. Gold, Silver
   -- and Crystal go by theirs, or by yours on SYSTEM) -Elvie
@@ -839,13 +857,23 @@ function scenes.init(mod, rows)
       else
         local aside
         local MX, MY = 160, 72 -- room round the screen, for the wide layouts' boxes -Elvie
-        local function clearOn(self)
-          return mod.options:get("classicClearHud") == "on" and mod.options:get("classicBattleBg") ~= GAME
+        local function clearOn(self, part)
+          local v = mod.options:get("classicClearHud")
+          if v == "on" then v = "hud" end -- (an early test build's ON) -Elvie
+          if not (v == "all" or (v == "hud" and part == "hud")) then return false end
+          return mod.options:get("classicBattleBg") ~= GAME
             and self._facetsScene and not require("mods.facets.omni").on(mod, self.game)
         end
-        local function cleared(own)
+        local function cleared(own, part)
           return function(self, ...)
-            if not clearOn(self) then return own(self, ...) end
+            if not clearOn(self, part) then return own(self, ...) end
+            -- ALL's text boxes and menus: drawn without their boxes -Elvie
+            local kept
+            if part == "text" then
+              kept = { box = Chrome.box, paletteBox = Chrome.paletteBox }
+              Chrome.box = function() love.graphics.setColor(0, 0, 0, 1) end
+              Chrome.paletteBox = Chrome.box
+            end
             local G = love.graphics
             local W, H = 160 + 2 * MX, 144 + 2 * MY
             if not aside then
@@ -860,6 +888,9 @@ function scenes.init(mod, rows)
             G.translate(MX, MY)
             local ok, err = pcall(own, self, ...)
             G.pop()
+            if kept then
+              Chrome.box, Chrome.paletteBox = kept.box, kept.paletteBox
+            end
             if not ok then error(err, 0) end
             G.push("all")
             clearShader:send("size", { W, H })
@@ -870,8 +901,11 @@ function scenes.init(mod, rows)
             G.pop()
           end
         end
-        BattleState.drawEnemyHud = cleared(BattleState.drawEnemyHud)
-        BattleState.drawPlayerHud = cleared(BattleState.drawPlayerHud)
+        BattleState.drawEnemyHud = cleared(BattleState.drawEnemyHud, "hud")
+        BattleState.drawPlayerHud = cleared(BattleState.drawPlayerHud, "hud")
+        if type(BattleState.drawBottom) == "function" then
+          BattleState.drawBottom = cleared(BattleState.drawBottom, "text")
+        end
       end
     end
 
