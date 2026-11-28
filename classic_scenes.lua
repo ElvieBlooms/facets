@@ -750,6 +750,24 @@ local function startGen1(mod, sceneFor)
   end
 end
 
+-- CLEAR HUD's pass: the box's white (any near-white) see-through, but
+-- for a one-pixel white rim round its dark letters and lines -Elvie
+scenes.CLEAR_HUD_SHADER = [[
+  extern vec2 size;
+  bool paper(vec4 c) { return c.a < 0.01 || (c.r > 0.85 && c.g > 0.85 && c.b > 0.85); }
+  bool ink(vec4 c) { return c.a > 0.5 && (c.r + c.g + c.b) < 1.5; }
+  vec4 effect(vec4 colour, Image tex, vec2 uv, vec2 at) {
+    vec4 c = Texel(tex, uv);
+    if (!paper(c)) return c * colour;
+    for (int dy = -1; dy <= 1; dy++) {
+      for (int dx = -1; dx <= 1; dx++) {
+        if (ink(Texel(tex, uv + vec2(float(dx), float(dy)) / size))) return vec4(1.0) * colour.a;
+      }
+    }
+    return vec4(0.0);
+  }
+]]
+
 function scenes.init(mod, rows)
   local gen = require("mods.facets.classic").generation()
   if gen ~= 2 and gen ~= 1 then return nil end
@@ -774,6 +792,10 @@ function scenes.init(mod, rows)
   rows[#rows + 1] = { key = "bgColour", type = "choice", label = "BG COLOR",
     choices = require("mods.facets.filter").BG_COLOURS, default = "paper" }
   rows[#rows + 1] = { key = "sceneBorders", type = "choice", label = "BORDERS", choices = scenes.BORDERS, default = "blur" }
+  if gen == 2 then
+    rows[#rows + 1] = { key = "classicClearHud", type = "choice", label = "CLEAR HUD",
+      choices = { { "OFF", "off" }, { "ON", "on" } }, default = "off" }
+  end
   scenes.borders = function() return mod.options:get("sceneBorders") or "blur" end
   -- (Red, Blue and Yellow have no clock: theirs is your own. Gold, Silver
   -- and Crystal go by theirs, or by yours on SYSTEM) -Elvie
@@ -803,6 +825,53 @@ function scenes.init(mod, rows)
         local bg = mod.options:get("classicBattleBg")
         if bg and bg ~= "game" and type(text) == "string" then text = scenes.trimEnd(text) end
         return ownPrint(text, ...)
+      end
+    end
+
+    -- CLEAR HUD: Gold, Silver and Crystal's HP boxes over a BATTLE BG
+    -- without their white. Each box is drawn aside, then put down with its
+    -- white taken out, but for a one-pixel white rim round the letters and
+    -- lines so they still read, as Red, Blue and Yellow's are -Elvie
+    if gen == 2 and type(BattleState.drawEnemyHud) == "function" and type(BattleState.drawPlayerHud) == "function" then
+      local okSh, clearShader = pcall(love.graphics.newShader, scenes.CLEAR_HUD_SHADER)
+      if not okSh then
+        mod.log:warn("CLEAR HUD: %s", tostring(clearShader))
+      else
+        local aside
+        local MX, MY = 160, 72 -- room round the screen, for the wide layouts' boxes -Elvie
+        local function clearOn(self)
+          return mod.options:get("classicClearHud") == "on" and mod.options:get("classicBattleBg") ~= GAME
+            and self._facetsScene and not require("mods.facets.omni").on(mod, self.game)
+        end
+        local function cleared(own)
+          return function(self, ...)
+            if not clearOn(self) then return own(self, ...) end
+            local G = love.graphics
+            local W, H = 160 + 2 * MX, 144 + 2 * MY
+            if not aside then
+              aside = G.newCanvas(W, H)
+              aside:setFilter("nearest", "nearest")
+            end
+            G.push("all")
+            G.setCanvas(aside)
+            G.origin()
+            G.setScissor()
+            G.clear(0, 0, 0, 0)
+            G.translate(MX, MY)
+            local ok, err = pcall(own, self, ...)
+            G.pop()
+            if not ok then error(err, 0) end
+            G.push("all")
+            clearShader:send("size", { W, H })
+            G.setShader(clearShader)
+            G.setColor(1, 1, 1, 1)
+            G.setBlendMode("alpha", "premultiplied")
+            G.draw(aside, -MX, -MY)
+            G.pop()
+          end
+        end
+        BattleState.drawEnemyHud = cleared(BattleState.drawEnemyHud)
+        BattleState.drawPlayerHud = cleared(BattleState.drawPlayerHud)
       end
     end
 

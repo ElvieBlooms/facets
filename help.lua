@@ -210,6 +210,13 @@ help.TEXT = {
       small = "Smaller still, three quarters of the tile.",
     },
   },
+  classicClearHud = {
+    about = "Gold, Silver and Crystal: the HP boxes over a BATTLE BG without their white, the scene showing through round the letters and bars. A thin white edge stays round the letters and lines so they still read, as Red, Blue and Yellow's do. Only with a BATTLE BG on.",
+    choices = {
+      off = "The boxes keep the game's white behind them.",
+      on = "The boxes are clear.",
+    },
+  },
   classicIcons = {
     about = "The little Pokémon in your party list.",
     choices = {

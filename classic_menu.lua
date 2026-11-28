@@ -47,7 +47,7 @@ cmenu.TOPICS = {
       "classicSize", "classicIcons", "classicPikachu", "classicClefairy" } },
   { id = "battle", label = "BATTLE", lead = "classicBattleBg",
     about = "What stands behind each battle, and the battle boxes.",
-    keys = { "classicBattleBg", "sceneBorders", "classicSceneColours", "bgColour", "sceneTime", "classicBattleUi" } },
+    keys = { "classicBattleBg", "sceneBorders", "classicSceneColours", "bgColour", "sceneTime", "classicClearHud", "classicBattleUi" } },
   { id = "menus", label = "MENUS", lead = "classicWindows",
     about = "Window frames, the text box, PAPER, and what fills the space round the game.",
     keys = { "classicWindows", "classicTextBox", "surround", "paper", "paperDetail", "paperPrecache" } },
