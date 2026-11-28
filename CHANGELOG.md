@@ -4,7 +4,7 @@
 
 - **CLEAR HUD** (under BATTLE, every game, OFF by default): the battle without its boxes.
   - **HUD** clears the HP boxes. On FireRed to Emerald the boxes go, leaving the name, level, bars and HP numbers over the battle. On Gold, Silver and Crystal (over a BATTLE BG) their white goes. Red, Blue and Yellow's are clear already.
-  - **ALL** also takes away the text box and the menus' boxes, leaving only the battle's words and the menus' choices over the scene. On FireRed to Emerald the scene carries on to the bottom of the screen.
+  - **ALL** also takes away the text box and the menus' boxes, leaving only the battle's words and the menus' choices over the scene. On FireRed to Emerald the scene carries on to the bottom of the screen: a BATTLE BG set's ground stretched down, as under Kanto Gear's battle screen, and the GBA games' own backgrounds (platforms and all) mirrored, so the player's platform stays put.
   - Every letter and line keeps a thin edge so it reads over the scene. It works with the game's own boxes and with every BATTLE UI and TEXT BOX set.
 
 ## 1.3.3

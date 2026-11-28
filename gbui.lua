@@ -1553,6 +1553,11 @@ function gbui.init(mod, rows, menu)
                 local Ui = package.loaded["src.core.game3.battle.ui"]
                 hiddenPanel = type(Ui) == "table" and type(Ui.bottomUIVisible) == "function" and Ui.bottomUIVisible() == false
               end)
+              -- (and CLEAR HUD: ALL, which takes the text box away too; the
+              -- GBA games' own backgrounds, platforms and all, are
+              -- mirrored down instead, clearhud3.lua, so the player's
+              -- platform stays under them) -Elvie
+              if get("clearHud") == "all" and not gbui.BG_SETS[bg].gba then hiddenPanel = true end
               love.graphics.setColor(0, 0, 0, 1)
               love.graphics.rectangle("fill", 0, 112, 240, 48)
               gbui.groundBelow = hiddenPanel

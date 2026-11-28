@@ -161,8 +161,8 @@ function clear.init(mod, rows, menu)
         end
       end
     end
-    -- With no text box, the battle's scene carries on to the bottom of
-    -- the screen: its last 32 rows above the box, mirrored (the player's
+    -- With no text box, the game's own background carries on to the
+    -- bottom of the screen: its last 32 rows above the box, mirrored (the player's
     -- platform rounding off in its reflection), then the 16 above the
     -- player's platform, clear of the foe's higher up -Elvie
     local scene, mirror
@@ -171,6 +171,14 @@ function clear.init(mod, rows, menu)
     if type(ownTerrain) == "function" then
       BattleBg.draw = function(...)
         if not textOn() then return ownTerrain(...) end
+        -- a BATTLE BG set's scene stretches its own ground down instead,
+        -- as under Kanto Gear's battle screen (gbui.lua); the GBA games'
+        -- own (FRLG, EMERALD, R/S), with their platforms, are mirrored -Elvie
+        local okU, gbui = pcall(require, "mods.facets.gbui")
+        if okU and type(gbui.settings) == "function" and type(gbui.BG_SETS) == "table" then
+          local _, _, bg = gbui.settings(function(k) return mod.options:get(k) end)
+          if gbui.BG_SETS[bg] and not gbui.BG_SETS[bg].gba then return ownTerrain(...) end
+        end
         local G = love.graphics
         if not scene then
           scene = G.newCanvas(240, 160)
