@@ -217,6 +217,13 @@ help.TEXT = {
       on = "The boxes are clear.",
     },
   },
+  clearHud = {
+    about = "The HP boxes without their boxes: the name, level, HP bar, HP numbers and EXP bar stand over the battle on their own, each letter and line with a thin white edge so it reads over the scene. Works with the game's own boxes and with any BATTLE UI set.",
+    choices = {
+      off = "The HP boxes as they're drawn.",
+      on = "No boxes, just what's in them.",
+    },
+  },
   classicIcons = {
     about = "The little Pokémon in your party list.",
     choices = {

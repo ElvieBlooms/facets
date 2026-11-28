@@ -3,6 +3,7 @@
 ## 1.3.4
 
 - **CLEAR HUD** (Gold, Silver, Crystal, under BATTLE): the HP boxes over a BATTLE BG lose their white, so the scene shows through round the names, levels and bars. A thin white edge keeps the letters and lines readable, the way Red, Blue and Yellow's already are. OFF by default.
+- **CLEAR HUD** (FireRed to Emerald, under BATTLE): the HP boxes without their boxes. The name, level, HP bar, HP numbers and EXP bar stand over the battle on their own, each with a thin white edge. Works with the game's own boxes and with every BATTLE UI set. OFF by default.
 - **MAP TIME** (Red, Blue, Yellow): the hour's light now goes off the moment you step through a door, while the screen is dark, and comes back the moment you step out, instead of staying on for up to a second in the house (or staying off outside). It listens for the game saying a new map has come in, so nothing extra runs each frame. Turning MAP TIME on, or the hour changing, fades the light in or out.
 
 ## 1.3.3

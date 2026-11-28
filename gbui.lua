@@ -1014,6 +1014,8 @@ function gbui.init(mod, rows, menu)
           { key = "gbcFrame", label = "WINDOWS", who = "gbcFrame", choices = gbui.WINDOWS, value = frame },
           { key = "gbcTextBox", label = "TEXT BOX", who = "gbcTextBox", choices = gbui.TEXTBOX, value = text },
           { key = "gbcHud", label = "BATTLE UI", who = "gbcHud", choices = gbui.HUD, value = hud },
+          { key = "clearHud", label = "CLEAR HUD", who = "clearHud", choices = require("mods.facets.clearhud3").CHOICES,
+            value = tostring(get("clearHud") or "off") },
           { key = "gbcBattleBg", label = "BATTLE BG", who = "gbcBattleBg", choices = gbui.BG, value = bg },
           { key = "bgColour", label = "BG COLOR", who = "bgColour", choices = require("mods.facets.filter").BG_COLOURS,
             value = tostring(get("bgColour") or "paper") },

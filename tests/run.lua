@@ -1227,7 +1227,7 @@ do
   f()(mod)
   local keys = {}
   for _, r in ipairs(mod.rows) do keys[#keys + 1] = r.key end
-  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,setItems,sizeItems,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,bgColour,sceneTime,battleTextBox,sceneBorders,sectionSpeed,prebuild,surround", "main: NPC rows, ITEMS, TRAINERS, POKEMON rows, then SPEED, then SURROUND")
+  eq(table.concat(keys, ","), "sectionFrlg,setFrlg,sectionRse,setRse,setItems,sizeItems,sectionTrainers,setTrainers,sizeTrainers,sectionMons,setMons,sizeMons,animMons,animMode,backMons,mirrorMons,sectionScreen,gbcFrame,gbcTextBox,gbcHud,gbcBattleBg,bgColour,sceneTime,battleTextBox,sceneBorders,clearHud,sectionSpeed,prebuild,surround", "main: NPC rows, ITEMS, TRAINERS, POKEMON rows, then SPEED, then SURROUND")
   local trainerSets = {}
   for _, c in ipairs(mod.rows[8].choices) do trainerSets[#trainerSets + 1] = c[1] end
   eq(table.concat(trainerSets, ","), "DS,GAME BOY,GBC-ISH,OFF", "shipped: trainer sets DS, GAME BOY and GBC-ISH, then OFF")
@@ -2963,6 +2963,16 @@ do
   local half = F.mapBlend(night, 0.5)
   eq(math.floor(half[1] * 100 + 0.5), 79, "map time: halfway between white and the light")
   eq(F.mapBlend(nil, 1), nil, "map time: no light when there's none to fade")
+end
+
+-- CLEAR HUD on the GBA games (clearhud3.lua): what's taken out -Elvie
+do
+  local C = require("mods.facets.clearhud3")
+  check(C.isPaper(1, 1, 27 / 31), "clear hud: FireRed's cream is paper")
+  check(C.isPaper(27 / 31, 26 / 31, 22 / 31), "clear hud: ...and the letters' pale shadow")
+  check(C.isPaper(0, 0, 0, 0), "clear hud: nothing is paper")
+  check(not C.isPaper(8 / 31, 8 / 31, 8 / 31), "clear hud: the letters stay")
+  check(not C.isPaper(0.3, 0.9, 0.3), "clear hud: the HP bar's green stays")
 end
 
 -- OmniUI (omni.lua): on while it's running and its MODERN HIGH-RES UI is,
